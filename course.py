@@ -31,6 +31,8 @@ class Course:
             A flag to indicate whether the course is closed.
         - shortTerm (str): 
             The short term of the course.
+        - courseCode (str):
+            The course code of the course.
         - name (str): 
             The name of the course.
         - longTerm (str): 
