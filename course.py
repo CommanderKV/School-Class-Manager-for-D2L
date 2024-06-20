@@ -9,10 +9,15 @@
 ## Functions:
     None
 """
+import json
+import os
+import random
+import time
 import re as Regex
 
+from dotenv import load_dotenv
 from bs4 import BeautifulSoup
-from playwright.sync_api import Locator, Page
+from playwright.sync_api import sync_playwright, Locator, Page
 from rich import print # pylint: disable=redefined-builtin
 
 from assignment import Assignment
@@ -55,8 +60,8 @@ class Course:
             longTerm: str="",
             syllabus: str|None="",
             assignmentsURL: str="",
-            assignments: list[Assignment]|None=None
-        ):
+            assignments: list[Assignment]|None=[]
+        ): # pylint: disable=dangerous-default-value
         """
         # Description:
             The constructor of the Course class.
@@ -118,7 +123,10 @@ class Course:
         startPage = page.url
 
         # Get the course details
-        soup = BeautifulSoup(course.inner_html(), "html.parser")
+        if isinstance(course, str):
+            soup = BeautifulSoup(course, "html.parser")
+        else:
+            soup = BeautifulSoup(course.inner_html(), "html.parser")
         courseDetails = soup.select("span")
 
         # Check if the course has a span element (Should always be the case)
@@ -241,18 +249,7 @@ class Course:
         # Go to the start page
         page.goto(startPage)
 
-    def toDict(self):
-        """
-        # Description:
-            This function returns the dictionary of the course.
-    
-        ## Returns:
-            - dict: 
-                The dictionary of the course.
-        """
-        # Return the dictionary of the course
-        return self.__dict__
-
+    @property
     def __dict__(self):
         """
         # Description:
@@ -266,7 +263,7 @@ class Course:
         assignments = []
         if self.assignments:
             for assignment in self.assignments:
-                assignments.append(assignment.toDict())
+                assignments.append(assignment.__dict__)
         else:
             assignments = None
 
@@ -274,6 +271,7 @@ class Course:
         return {
             "LINK": self.link,
             "NAME": self.name,
+            "CODE": self.courseCode,
             "CLOSED": self.closed,
             "TERMS": {
                 "SHORT": self.shortTerm,
@@ -283,3 +281,60 @@ class Course:
             "ASSIGNMENTS-URL": self.assignmentsURL,
             "ASSIGNMENTS": assignments,
         }
+
+
+if __name__ == "__main__":
+    # Test the Course class
+    load_dotenv(dotenv_path=".env")
+
+    with sync_playwright() as play:
+        testPage = play.chromium.launch(headless=True).new_page()
+        testPage.goto("https://mycourselink.lakeheadu.ca/d2l/home")
+        testPage.wait_for_load_state("load")
+
+        # Login
+        print("Logging in...")
+        testPage.get_by_label("Username*").click()
+        testPage.get_by_label("Username*").fill(os.getenv("D2L_USERNAME"))
+        testPage.get_by_label("Password*").click()
+        testPage.get_by_label("Password*").fill(os.getenv("D2L_PASSWORD"))
+        testPage.get_by_role("button", name="Login").click()
+
+        # Navigate to the courses "page" / popup
+        try:
+            testPage.wait_for_url("https://mycourselink.lakeheadu.ca/d2l/home")
+            print("Logged in!")
+
+        except Exception as e:
+            if testPage.query_selector("body > div.login-onethird > section > p"):
+                raise ValueError("Invaild login credentials!") from e
+
+            raise e
+
+        testPage.wait_for_load_state("load")
+        testPage.get_by_role("heading", name="View All Courses").click()
+
+        time.sleep(.25)
+
+        base = testPage.url[:Regex.search(r"(https?://[^/]+)", testPage.url).end()]
+
+        courses = testPage.locator("a[href^='/d2l/home/']").all()
+        if courses:
+            length = len(courses)
+            randomCourse = courses[random.randint(0, length - 1)]
+
+            newCourse = Course(baseURL=base)
+            newCourse.fill(randomCourse, testPage)
+
+            with open("test.json", "w", encoding="utf-8") as file:
+                print(newCourse.__dict__)
+                json.dump(
+                    newCourse.__dict__,
+                    file,
+                    ensure_ascii=False,
+                    indent=4
+                )
+
+        else:
+            print("No courses found.")
+            print(testPage.locator("a").all())

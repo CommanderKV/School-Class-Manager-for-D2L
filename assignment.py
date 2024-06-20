@@ -434,17 +434,7 @@ class Assignment:
         return self.feedback
 
 
-    def toDict(self):
-        """
-        # Description:
-            Returns the dictionary of the assignment
-            
-        ## Returns:
-            - dict:
-                The dictionary of the assignment
-        """
-        return self.__dict__
-
+    @property
     def __dict__(self):
         return {
             "NAME": self.name,
@@ -452,7 +442,7 @@ class Assignment:
             "DUE": self.due,
             "INSTRUCTIONS": self.instructions,
             "ATTACHMENTS": self.attachments,
-            "SUBMISSIONS": self.submissions.toDict() if self.submissions else None,
+            "SUBMISSIONS": self.submissions.__dict__ if self.submissions else None,
             "GRADE": self.grade,
             "FEEDBACK": self.feedback
         }

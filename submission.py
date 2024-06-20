@@ -240,18 +240,7 @@ class Submissions:
 
         return None
 
-
-    def toDict(self):
-        """
-        # Description:
-            This function returns the submissions object as a dictionary.
-            
-        ## Returns:
-            dict[str, str]: 
-                The submissions object as a dictionary.
-        """
-        return self.__dict__
-
+    @property
     def __dict__(self):
         return {
             "URL": self.url,
