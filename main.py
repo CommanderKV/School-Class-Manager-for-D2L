@@ -73,7 +73,7 @@ def getCourses(page: Page) -> list[Course]:
         except ValueError as e:
             if "Course code not found" in str(e):
                 continue
-            
+
             raise e
 
         # Append the course object to the courses list

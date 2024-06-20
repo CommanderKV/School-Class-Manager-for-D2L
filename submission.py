@@ -237,7 +237,7 @@ class Submissions:
             print("\t[NOTICE] No comment found in the submission.")
             return None
 
-        
+
         return None
 
 
