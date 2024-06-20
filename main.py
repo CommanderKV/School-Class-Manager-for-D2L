@@ -1,3 +1,8 @@
+"""
+# Description:
+    This program scrapes the courses from the Lakehead University's D2L page and 
+    turns it into a json file.
+"""
 from playwright.sync_api import Playwright, sync_playwright, Page
 from dotenv import load_dotenv
 from course import Course

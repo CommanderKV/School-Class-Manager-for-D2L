@@ -1,18 +1,30 @@
-from playwright.sync_api import Page
-from bs4 import BeautifulSoup
-from rich import print
+"""
+# Description:
+    This module contains the Submissions class.
+    
+## Classes:
+    - Submissions: 
+        This class is used to store the submissions of a course.
+        
+## Functions:
+    None
+"""
 import re as Regex
+
+from bs4 import BeautifulSoup
+from playwright.sync_api import Page
+from rich import print # pylint: disable=redefined-builtin
 
 class Submissions:
     """
-    ## Description:
+    # Description:
         This class is used to store the submissions of a course.
 
-    ### Args:
+    ## Args:
         - submissionsURL (str): 
             The URL of the submissions page of the course.
 
-    ### Attributes:
+    ## Attributes:
         - url (str): 
             The URL of the submissions page of the course.
         - id (int): 
@@ -22,10 +34,10 @@ class Submissions:
     """
     def __init__(self, submissionsURL: str):
         """
-        ## Description:
+        # Description:
             The constructor of the Submissions class.
 
-        ### Args:
+        ## Args:
             - submissionsURL (str): 
                 The URL of the submissions page.
         """
@@ -36,30 +48,34 @@ class Submissions:
 
     def fill(self, page: Page, goBack: bool=True) -> None:
         """
-        ## Description:
-            This function fills the submissions list with the submissions of the course.
+        # Description:
+            This function fills the submissions list with the submissions 
+            of the course.
 
-        ### Args:
+        ## Args:
             - page (Page): 
                 The page object of the course.
             - goBack (bool):
-                A flag to indicate whether we need to go back to the original page after filling the submissions list.
+                A flag to indicate whether we need to go back to the 
+                original page after filling the submissions list.
 
-        ### Returns:
+        ## Returns:
             None
 
-        ### Raises:
+        ## Raises:
             - Exception: 
                 If there are no cells in the row of the submissions table.
         
-        ### Usage:
-            This will fill the submissions list with the submissions of the course.
+        ## Usage:
+            This will fill the submissions list with the submissions of the 
+            course.
             ```python
             submissions = Submissions("https://example.com/submissions")
             submissions.fill(page=page)
             ```
 
-            This will fill the submissions list with the submissions of the course and go back to the original page.
+            This will fill the submissions list with the submissions of the 
+            course and go back to the original page.
             ```python
             submissions = Submissions("https://example.com/submissions")
             submissions.fill(page=page, goBack=True)
@@ -74,7 +90,7 @@ class Submissions:
         # Get all submissions
         soup = BeautifulSoup(page.inner_html("*"), 'html.parser')
         rows = soup.select("table[type='list'] tr:not(:first-child)")
-        
+
         # Check if we have any submissions
         if rows:
             # Create a temporary submission object
@@ -95,17 +111,17 @@ class Submissions:
                                 print(str(cells[1]))
                                 print("Link: ", page.url)
                                 currentSubmission["FILES"] = None
-                            
+
                             # Add the current submission to the list of submissions
                             self.submissions.append(currentSubmission)
 
                         # Get the ID of the submission
-                        id = Regex.search(r">(\d+)<", str(cells[0]))
-                        if id:
-                            currentSubmission["ID"] = int(id.group(1))
+                        idRaw = Regex.search(r">(\d+)<", str(cells[0]))
+                        if idRaw:
+                            currentSubmission["ID"] = int(idRaw.group(1))
                         else:
-                            raise Exception(
-                                f"ID not found in the row of the submissions table. Link: {page.url}"
+                            raise ValueError(
+                                f"ID not in row of the submissions table. Link: {page.url}"
                             )
 
                         # Get the files submitted
@@ -114,12 +130,12 @@ class Submissions:
 
                         # Set default value for the comment
                         currentSubmission["COMMENT"] = None
-                        
+
                         # Get the date submitted
                         date = Regex.search(r"<label>(.+)</label>", str(cells[2]))
                         if date:
                             currentSubmission["DATE"] = date.group(1)
-                    
+
                     # If the submission is not the start of a new submission
                     else:
                         # Get the files submitted
@@ -131,13 +147,14 @@ class Submissions:
                     comment = self._getComment(str(cells[1]))
                     if comment:
                         currentSubmission["COMMENT"] = comment
-                
+
                 else:
                     # Raise an error if there are no cells in the row
-                    raise Exception(
-                        f"No cells found in the row of the submissions table. Link: {page.url}"
+                    raise ValueError(
+                        f"No cells found in row of the submissions table. Link: {page.url}"
                     )
             self.submissions.append(currentSubmission)
+
         else:
             print("\t[NOTICE] No submissions")
             print(soup.prettify())
@@ -147,17 +164,17 @@ class Submissions:
             # Go back to the original page
             page.goto(goBackAddress)
 
-    
+
     def _getFileDetails(self, cell: str) -> dict[str, str] | None:
         """
-        ## Description:
+        # Description:
             This function extracts the details of the file submitted by the student.
 
-        ### Args:
+        ## Args:
             - cell (str): 
                 The HTML cell containing the file details.
 
-        ### Returns:
+        ## Returns:
             dict[str, str|int] | None: 
                 The details of the file submitted by the student. 
                 NOTE: None if no file is found.
@@ -170,10 +187,10 @@ class Submissions:
         if not a:
             print("\t[NOTICE] No files found in the submission.")
             return None
-        
+
         else:
             a = a[0]
-        
+
         # Get the details of the file
         rawName: str = str(a.select("span")[0])
         link: str = self.baseURL + a["href"]
@@ -197,21 +214,21 @@ class Submissions:
 
     def _getComment(self, cell: str) -> str | None:
         """
-        ## Description:
+        # Description:
             This function extracts the comments left on a submission.
 
-        ### Args:
+        ## Args:
             - cell (str): 
                 The HTML cell containing the comments.
 
-        ### Returns:
+        ## Returns:
             str | None: 
                 The comment html. NOTE: None if no comment is found.
         """
         # Get the comment
         soup = BeautifulSoup(cell, 'html.parser')
         commentDiv = soup.select(".d2l-htmlblock-assignments-comments")
-        
+
         # If we have a comment, return it
         if commentDiv:
             comment = commentDiv[0].select("d2l-html-block")
@@ -220,13 +237,22 @@ class Submissions:
             else:
                 print("\t[NOTICE] No comment found in the submission.")
                 return None
+
         else:
             return None
 
 
     def toDict(self):
-        return self.__dict__()
-    
+        """
+        # Description:
+            This function returns the submissions object as a dictionary.
+            
+        ## Returns:
+            dict[str, str]: 
+                The submissions object as a dictionary.
+        """
+        return self.__dict__
+
     def __dict__(self):
         return {
             "URL": self.url,
