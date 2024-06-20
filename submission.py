@@ -237,8 +237,8 @@ class Submissions:
             print("\t[NOTICE] No comment found in the submission.")
             return None
 
-        else:
-            return None
+        
+        return None
 
 
     def toDict(self):
