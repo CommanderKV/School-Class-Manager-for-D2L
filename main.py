@@ -3,14 +3,16 @@
     This program scrapes the courses from the Lakehead University's D2L page and 
     turns it into a json file.
 """
-from playwright.sync_api import Playwright, sync_playwright, Page
-from dotenv import load_dotenv
-from course import Course
-from rich import print
-import re as Regex
-import time
 import json
 import os
+import re as Regex
+import time
+
+from dotenv import load_dotenv
+from playwright.sync_api import Page, Playwright, sync_playwright
+from rich import print # pylint: disable=redefined-builtin
+
+from course import Course
 
 # Load the environment variables
 load_dotenv()
@@ -23,7 +25,7 @@ SAVEFILE = "courses.json"
 
 def saveToFile(courses: list[Course], filename: str) -> None:
     """
-    ## Description:
+    # Description:
         This function saves the data to a file.
 
     ### Args:
@@ -32,23 +34,23 @@ def saveToFile(courses: list[Course], filename: str) -> None:
         - filename (str): 
             The name of the file.
     """
-    with open(filename, "w") as file:
+    with open(filename, "w", encoding="utf-8") as file:
         json.dump(
-            [course.toDict() for course in courses], 
-            file, 
+            [course.toDict() for course in courses],
+            file,
             indent=4
         )
 
 def getCourses(page: Page) -> list[Course]:
     """
-    ## Description:
+    # Description:
         This function gets the courses from the page.
 
-    ### Args:
+    ## Args:
         - page (Page): 
             The page object of the courses.
 
-    ### Returns:
+    ## Returns:
         list[Course]: 
             The list of courses.
     """
@@ -59,11 +61,6 @@ def getCourses(page: Page) -> list[Course]:
 
     # Go through each course
     for course in page.locator("a[href^='/d2l/home/']").all():
-        """
-        Examples:
-        (2024W) COMP-1112G-WAB - Doc Automation Using Python, 153335, Winter Term 2024
-        Closed, (2024W) COMP-1006G-WAB - Intro to Web Programming, 153334, Winter Term 2024
-        """
         # Add time for the page to load
         time.sleep(.25)
 
@@ -76,21 +73,35 @@ def getCourses(page: Page) -> list[Course]:
         except ValueError as e:
             if "Course code not found" in str(e):
                 continue
-            else:
-                raise e
+
+            raise e
 
         # Append the course object to the courses list
         courses.append(newCourse)
 
     print("Course details loaded!")
-    
+
     # Return results
     return courses
 
 
-def main(playwright: Playwright, link: str, username: str, password: str) -> None:
+def main(play: Playwright, link: str, username: str, password: str) -> None:
+    """
+    # Description:
+        This function is the main function that runs the program.
+        
+    ## Args:
+        - play (Playwright): 
+            The Playwright object.
+        - link (str): 
+            The link of the page.
+        - username (str): 
+            The username to login.
+        - password (str): 
+            The password to login.
+    """
     # Initialize the browser
-    browser = playwright.chromium.launch(headless=True)
+    browser = play.chromium.launch(headless=True)
     context = browser.new_context()
     page = context.new_page()
 
@@ -118,7 +129,7 @@ def main(playwright: Playwright, link: str, username: str, password: str) -> Non
 
     # Dump the courses object to a file using json
     saveToFile(courses, SAVEFILE)
-    
+
     # ---------------------
     context.close()
     browser.close()

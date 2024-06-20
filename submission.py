@@ -188,8 +188,7 @@ class Submissions:
             print("\t[NOTICE] No files found in the submission.")
             return None
 
-        else:
-            a = a[0]
+        a = a[0]
 
         # Get the details of the file
         rawName: str = str(a.select("span")[0])
@@ -234,12 +233,12 @@ class Submissions:
             comment = commentDiv[0].select("d2l-html-block")
             if comment:
                 return str(comment[0]["html"])
-            else:
-                print("\t[NOTICE] No comment found in the submission.")
-                return None
 
-        else:
+            print("\t[NOTICE] No comment found in the submission.")
             return None
+
+
+        return None
 
 
     def toDict(self):
