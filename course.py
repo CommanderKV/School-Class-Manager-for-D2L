@@ -274,6 +274,7 @@ class Course:
         return {
             "LINK": self.link,
             "NAME": self.name,
+            "CODE": self.courseCode,
             "CLOSED": self.closed,
             "TERMS": {
                 "SHORT": self.shortTerm,

@@ -15,7 +15,7 @@ from rich import print # pylint: disable=redefined-builtin
 from course import Course
 
 # Load the environment variables
-load_dotenv()
+load_dotenv(dotenv_path=".env")
 
 # Access the environment variables
 LINK = "https://mycourselink.lakeheadu.ca/d2l/home"
