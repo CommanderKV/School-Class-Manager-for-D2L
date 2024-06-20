@@ -61,8 +61,15 @@ def getCourses(page: Page) -> list[Course]:
     baseURL = page.url[:Regex.search(r"(https?://[^/]+)", page.url).end()]
     courses = []
 
+    coursesDiv = page.locator(".course-card-grid")
+    if not coursesDiv:
+        raise ValueError("Courses not found!")
+    coursesAElements = coursesDiv.locator("a").all()
+
+    print(coursesAElements)
+
     # Go through each course
-    for course in page.locator("a[href^='/d2l/home/']").all():
+    for course in coursesAElements:
         # Add time for the page to load
         time.sleep(.25)
 
