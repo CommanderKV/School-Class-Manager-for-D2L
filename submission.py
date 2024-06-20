@@ -258,7 +258,3 @@ class Submissions:
             "URL": self.url,
             "SUBMISSIONS": self.submissions
         }
-
-
-
-

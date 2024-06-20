@@ -192,10 +192,10 @@ class Assignment:
             for pos, attachment in enumerate(assignment.locator("a[title^='Open']").all()):
                 # Get the name
                 name = attachment.get_attribute("title").replace("Open ", "")
-                
+
                 # Get the link
                 link = self.baseUrl + attachment.get_attribute("href")
-                
+
                 # Get the size
                 size = assignment.locator(f"table tr:nth-child({pos+1}) span > span").inner_text() \
                                  .replace("(", "").replace(")", "").strip()
@@ -456,21 +456,3 @@ class Assignment:
             "GRADE": self.grade,
             "FEEDBACK": self.feedback
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
