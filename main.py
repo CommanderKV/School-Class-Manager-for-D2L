@@ -37,7 +37,7 @@ def saveToFile(courses: list[Course], filename: str) -> None:
     print("Saving course details...")
     with open(filename, "w", encoding="utf-8") as file:
         json.dump(
-            [course.toDict() for course in courses],
+            [course.__dict__ for course in courses],
             file,
             indent=4
         )
