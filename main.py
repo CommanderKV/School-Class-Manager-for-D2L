@@ -19,8 +19,8 @@ load_dotenv(dotenv_path=".env")
 
 # Access the environment variables
 LINK = "https://mycourselink.lakeheadu.ca/d2l/home"
-USERNAME = os.getenv("USERNAME")
-PASSWORD = os.getenv("PASSWORD")
+USERNAME = os.getenv("D2L_USERNAME")
+PASSWORD = os.getenv("D2L_PASSWORD")
 SAVEFILE = "courses.json"
 
 def saveToFile(courses: list[Course], filename: str) -> None:
@@ -34,12 +34,14 @@ def saveToFile(courses: list[Course], filename: str) -> None:
         - filename (str): 
             The name of the file.
     """
+    print("Saving course details...")
     with open(filename, "w", encoding="utf-8") as file:
         json.dump(
             [course.toDict() for course in courses],
             file,
             indent=4
         )
+    print("Course details saved!")
 
 def getCourses(page: Page) -> list[Course]:
     """
@@ -118,8 +120,15 @@ def main(play: Playwright, link: str, username: str, password: str) -> None:
     page.get_by_role("button", name="Login").click()
 
     # Navigate to the courses "page" / popup
-    page.wait_for_url("https://mycourselink.lakeheadu.ca/d2l/home")
-    print("Logged in!")
+    try:
+        page.wait_for_url("https://mycourselink.lakeheadu.ca/d2l/home")
+        print("Logged in!")
+
+    except Exception as e:
+        if page.query_selector("body > div.login-onethird > section > p"):
+            raise ValueError("Invaild login credentials!") from e
+
+        raise e
 
     page.wait_for_load_state("load")
     page.get_by_role("heading", name="View All Courses").click()

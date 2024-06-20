@@ -55,8 +55,8 @@ class Course:
             longTerm: str="",
             syllabus: str|None="",
             assignmentsURL: str="",
-            assignments: list[Assignment]|None=None
-        ):
+            assignments: list[Assignment]|None=[]
+        ): # pylint: disable=dangerous-default-value
         """
         # Description:
             The constructor of the Course class.
