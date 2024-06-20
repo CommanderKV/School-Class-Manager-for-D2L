@@ -12,7 +12,7 @@
 """
 from bs4 import BeautifulSoup
 from playwright.sync_api import Locator, Page
-from rich import print # pylint: disable=redefined-builtin
+from customPrint import print # pylint: disable=redefined-builtin
 
 from submission import Submissions
 
@@ -72,31 +72,52 @@ class Assignment:
         self._getName(assignment)
 
         # Output logs
-        print(f"Assignment: ***{self.name}*** loading...")
+        print(f"\t\t[Notice] Assignment: \"{self.name}\" loading...")
 
         # Get the assignment link
-        self._getLink(assignment)
+        if self._getLink(assignment) is None:
+            print("\t\t\t[Error] Assignment link not found!")
+        else:
+            print("\t\t\t[Success] Obtained assignment link!")
 
         # Get the due date
-        self._getDueDate(assignment)
-
+        if self._getDueDate(assignment) is None:
+            print("\t\t\t[Warning] Due date not found!")
+        else:
+            print("\t\t\t[Success] Obtained due date!")
+        
         # Get attachments
-        self._getAttachments(assignment)
+        if self._getAttachments(assignment) is None:
+            print("\t\t\t[Notice] No attachments found!")
+        else:
+            print("\t\t\t[Success] Obtained attachments!")
 
         # Get the instructions
-        self._getInstructions(page)
+        if self._getInstructions(page) is None:
+            print("\t\t\t[Notice] No instructions found!")
+        else:
+            print("\t\t\t[Success] Obtained instructions!")
 
         # Get the submission status
-        self._getSubmissions(assignment, page)
+        if self._getSubmissions(assignment, page) is None:
+            print("\t\t\t[Notice] No submissions found!")
+        else:
+            print("\t\t\t[Success] Obtained submissions!")
 
         # Get the grade
-        self._getGrade(assignment)
+        if self._getGrade(assignment) is None:
+            print("\t\t\t[Notice] Grade not found!")
+        else:
+            print("\t\t\t[Success] Obtained grade!")
 
         # Get the feedback
-        self._getFeedback(assignment, page)
+        if self._getFeedback(assignment, page) is None:
+            print("\t\t\t[Notice] Feedback not found!")
+        else:
+            print("\t\t\t[Success] Obtained feedback!")
 
         # Output logs
-        print(f"Assignment: ***{self.name}*** loaded!")
+        print(f"\t\t[Success] Assignment: \"{self.name}\" loaded!")
 
 
     def _getName(self, assignment: Locator) -> str:
@@ -121,7 +142,7 @@ class Assignment:
 
         return self.name
 
-    def _getLink(self, assignment: Locator) -> str:
+    def _getLink(self, assignment: Locator) -> str | None:
         """
         # Description:
             Sets the link of the assignment and returns it
@@ -173,7 +194,7 @@ class Assignment:
 
         return self.due
 
-    def _getAttachments(self, assignment: Locator) -> list[dict[str, str]]:
+    def _getAttachments(self, assignment: Locator) -> list[dict[str, str]] | None:
         """
         # Description:
             Sets the attachments of the assignment and returns them
@@ -211,7 +232,7 @@ class Assignment:
                 attachments = None
 
         except Exception as e: # pylint: disable=broad-except
-            print(f"\t[NOTICE] Attachments not found. Because of error: {e}")
+            print(f"\t[Error] Attachments not found. Because of error: {e}")
             attachments = None
 
         # Save the attachments
@@ -315,15 +336,13 @@ class Assignment:
 
         # Check if the grade is available
         if not gradeDiv:
-            print("Grade not found.")
-            print(soup.prettify())
+            print("\t\t\t[Warning] Grade div not found.")
             return None
 
         # Get the grade parts
         partsOfGrade = gradeDiv[0].select("label")
         if not partsOfGrade:
-            print("Grade parts not found.")
-            print(soup.prettify())
+            print("\t\t\t[Warning] Grade parts not found.")
             return None
 
         # Set the grade
@@ -359,14 +378,14 @@ class Assignment:
 
         # Check if the feedback div is available (Should always be the case)
         if not feedbackDiv:
-            print("\t[NOTICE] Feedback not found.")
+            print("\t\t\t[Error] Feedback div not found.")
             return None
 
         feedbackLink = feedbackDiv[0].select("a")
 
         # Check if there is any feedback
         if not feedbackLink:
-            print("\t[NOTICE] No feedback available.")
+            print("\t\t\t[Warning] No feedback available.")
             self.feedback = None
             return None
 
@@ -381,7 +400,7 @@ class Assignment:
         # Check if the feedback table is available
         if not feedbackTables:
             print(soup.prettify())
-            print("Wrong page? query: ***table[role='presentation']*** failed")
+            print("\t\t\t[Error] Wrong page? query: ***table[role='presentation']*** failed")
             return None
 
         feedbackHTML = feedbackTables[0].select(
@@ -395,7 +414,7 @@ class Assignment:
 
         else:
             # Log that feedback was not provided
-            print("\t[NOTICE] Feedback was not provided.")
+            print("\t\t\t[Notice] Feedback was not provided.")
             feedbackHTML = None
 
         # Get the table that has the feedback date

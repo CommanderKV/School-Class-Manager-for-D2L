@@ -10,7 +10,7 @@ import time
 
 from dotenv import load_dotenv
 from playwright.sync_api import Page, Playwright, sync_playwright
-from rich import print # pylint: disable=redefined-builtin
+from customPrint import print # pylint: disable=redefined-builtin
 
 from course import Course
 
@@ -34,14 +34,14 @@ def saveToFile(courses: list[Course], filename: str) -> None:
         - filename (str): 
             The name of the file.
     """
-    print("Saving course details...")
+    print("[Notice] Saving course details...")
     with open(filename, "w", encoding="utf-8") as file:
         json.dump(
             [course.__dict__ for course in courses],
             file,
             indent=4
         )
-    print("Course details saved!")
+    print("[Completed] Course details saved!")
 
 def getCourses(page: Page) -> list[Course]:
     """
@@ -56,20 +56,24 @@ def getCourses(page: Page) -> list[Course]:
         list[Course]: 
             The list of courses.
     """
-    print("Loading course details...")
+    print("[Notice] Loading course details...")
     # Get the base URL
     baseURL = page.url[:Regex.search(r"(https?://[^/]+)", page.url).end()]
     courses = []
 
-    coursesDiv = page.locator(".course-card-grid")
+    coursesDiv = page.locator("d2l-my-courses-card-grid .course-card-grid")
     if not coursesDiv:
         raise ValueError("Courses not found!")
-    coursesAElements = coursesDiv.locator("a").all()
-
-    print(coursesAElements)
+    coursesAElements = coursesDiv.locator("d2l-card").all()
 
     # Go through each course
     for course in coursesAElements:
+        # Check that the course has text in it
+        if not course.get_attribute("text"):
+            print("[Warning] No text skipping course...")
+            print(f"[Warning] Href: {course.get_attribute("href")}")
+            continue
+
         # Add time for the page to load
         time.sleep(.25)
 
@@ -88,7 +92,7 @@ def getCourses(page: Page) -> list[Course]:
         # Append the course object to the courses list
         courses.append(newCourse)
 
-    print("Course details loaded!")
+    print("[Completed] Course details loaded!")
 
     # Return results
     return courses
@@ -119,7 +123,7 @@ def main(play: Playwright, link: str, username: str, password: str) -> None:
     page.wait_for_load_state("load")
 
     # Login
-    print("Logging in...")
+    print("[Notice] Logging in...")
     page.get_by_label("Username*").click()
     page.get_by_label("Username*").fill(username)
     page.get_by_label("Password*").click()
@@ -129,7 +133,7 @@ def main(play: Playwright, link: str, username: str, password: str) -> None:
     # Navigate to the courses "page" / popup
     try:
         page.wait_for_url("https://mycourselink.lakeheadu.ca/d2l/home")
-        print("Logged in!")
+        print("[Notice] Logged in!")
 
     except Exception as e:
         if page.query_selector("body > div.login-onethird > section > p"):
