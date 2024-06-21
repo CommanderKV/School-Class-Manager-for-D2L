@@ -85,7 +85,7 @@ class Assignment:
             print("\t\t\t[Warning] Due date not found!")
         else:
             print("\t\t\t[Success] Obtained due date!")
-        
+
         # Get attachments
         if self._getAttachments(assignment) is None:
             print("\t\t\t[Notice] No attachments found!")
