@@ -71,7 +71,7 @@ def getCourses(page: Page) -> list[Course]:
         # Check that the course has text in it
         if not course.get_attribute("text"):
             print("[Warning] No text skipping course...")
-            print(f"[Warning] Href: {course.get_attribute("href")}")
+            print(f"[Warning] Href: {course.get_attribute('href')}")
             continue
 
         # Add time for the page to load
