@@ -13,7 +13,7 @@ import re as Regex
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import Page
-from rich import print # pylint: disable=redefined-builtin
+from customPrint import print # pylint: disable=redefined-builtin
 
 class Submissions:
     """
@@ -107,9 +107,9 @@ class Submissions:
                         # Check if we have a current submission
                         if currentSubmission:
                             if len(currentSubmission["FILES"]) < 1:
-                                print("No files found in the submission.")
-                                print(str(cells[1]))
-                                print("Link: ", page.url)
+                                print("\t\t\t\t[Notice] No files found in the submission.")
+                                print(f"\t\t\t\t[bold]{str(cells[1])}")
+                                print(f"\t\t\t\t[bold]Link: {page.url}")
                                 currentSubmission["FILES"] = None
 
                             # Add the current submission to the list of submissions
@@ -156,7 +156,7 @@ class Submissions:
             self.submissions.append(currentSubmission)
 
         else:
-            print("\t[NOTICE] No submissions")
+            print("\t\t\t\t[NOTICE] No submissions")
             print(soup.prettify())
 
         # Check if we need to go back to the original page
