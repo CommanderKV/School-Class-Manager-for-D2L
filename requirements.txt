@@ -2,4 +2,4 @@ python-dotenv
 playwright
 rich
 bs4
-re
+regex

@@ -13,7 +13,7 @@ import re as Regex
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import Page
-from rich import print # pylint: disable=redefined-builtin
+from customPrint import print # pylint: disable=redefined-builtin
 
 class Submissions:
     """
@@ -107,9 +107,9 @@ class Submissions:
                         # Check if we have a current submission
                         if currentSubmission:
                             if len(currentSubmission["FILES"]) < 1:
-                                print("No files found in the submission.")
-                                print(str(cells[1]))
-                                print("Link: ", page.url)
+                                print("\t\t\t\t[Notice] No files found in the submission.")
+                                print(f"\t\t\t\t[bold]{str(cells[1])}")
+                                print(f"\t\t\t\t[bold]Link: {page.url}")
                                 currentSubmission["FILES"] = None
 
                             # Add the current submission to the list of submissions
@@ -156,7 +156,7 @@ class Submissions:
             self.submissions.append(currentSubmission)
 
         else:
-            print("\t[NOTICE] No submissions")
+            print("\t\t\t\t[NOTICE] No submissions")
             print(soup.prettify())
 
         # Check if we need to go back to the original page
@@ -188,8 +188,7 @@ class Submissions:
             print("\t[NOTICE] No files found in the submission.")
             return None
 
-        else:
-            a = a[0]
+        a = a[0]
 
         # Get the details of the file
         rawName: str = str(a.select("span")[0])
@@ -234,25 +233,14 @@ class Submissions:
             comment = commentDiv[0].select("d2l-html-block")
             if comment:
                 return str(comment[0]["html"])
-            else:
-                print("\t[NOTICE] No comment found in the submission.")
-                return None
 
-        else:
+            print("\t[NOTICE] No comment found in the submission.")
             return None
 
 
-    def toDict(self):
-        """
-        # Description:
-            This function returns the submissions object as a dictionary.
-            
-        ## Returns:
-            dict[str, str]: 
-                The submissions object as a dictionary.
-        """
-        return self.__dict__
+        return None
 
+    @property
     def __dict__(self):
         return {
             "URL": self.url,
