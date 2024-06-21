@@ -1,4 +1,3 @@
--- Active: 1714171043711@@visserfamily.ca@3306@classes
 -- Make database
 CREATE DATABASE classes;
 USE classes;
