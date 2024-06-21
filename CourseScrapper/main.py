@@ -10,9 +10,9 @@ import time
 
 from dotenv import load_dotenv
 from playwright.sync_api import Page, Playwright, sync_playwright
-from customPrint import print # pylint: disable=redefined-builtin
+from .customPrint import print # pylint: disable=redefined-builtin
 
-from course import Course
+from .course import Course
 
 # Load the environment variables
 load_dotenv(dotenv_path=".env")

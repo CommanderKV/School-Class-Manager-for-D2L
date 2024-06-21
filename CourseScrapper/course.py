@@ -18,9 +18,9 @@ import re as Regex
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright, Locator, Page
-from customPrint import print # pylint: disable=redefined-builtin
+from .customPrint import print # pylint: disable=redefined-builtin
 
-from assignment import Assignment
+from .assignment import Assignment
 
 class Course:
     """

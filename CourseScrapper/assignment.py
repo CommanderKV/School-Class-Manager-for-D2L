@@ -12,9 +12,9 @@
 """
 from bs4 import BeautifulSoup
 from playwright.sync_api import Locator, Page
-from customPrint import print # pylint: disable=redefined-builtin
+from .customPrint import print # pylint: disable=redefined-builtin
 
-from submission import Submissions
+from .submission import Submissions
 
 
 class Assignment:
