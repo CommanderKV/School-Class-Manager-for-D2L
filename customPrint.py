@@ -43,6 +43,7 @@ def print(*args, **kwargs): # pylint: disable=redefined-builtin
             toPrint = f"[bold underline red]{toPrint}"
 
         # Check for success
+        # pylint: disable=too-many-boolean-expressions
         if checkFor(r"\[success\]", original) or \
            checkFor(r"\[completed\]", original) or \
            checkFor(r"\[done\]", original) or \
@@ -50,7 +51,7 @@ def print(*args, **kwargs): # pylint: disable=redefined-builtin
            checkFor(r"\[loaded\]", original) or \
            checkFor(r"\[found\]", original) or \
            checkFor(r"\[obtained\]", original) \
-        : # pylint: disable=too-many-boolean-expressions
+        :
             toPrint = f"[bold green]{toPrint}"
 
         # Set the args to the new value
@@ -58,8 +59,7 @@ def print(*args, **kwargs): # pylint: disable=redefined-builtin
 
         return richPrint(*args, **kwargs)
 
-    else:
-        return None
+    return None
 
 # Check if the debugging is enabled
 DEBUG: bool = False
