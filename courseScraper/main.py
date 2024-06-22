@@ -10,9 +10,9 @@ import re as Regex
 
 from dotenv import load_dotenv
 from playwright.sync_api import Page, Playwright, sync_playwright
-from customPrint import print # pylint: disable=redefined-builtin
+from customPrint import print # pylint: disable=redefined-builtin,import-error
 
-from course import Course
+from course import Course # pylint: disable=import-error
 
 # Load the environment variables
 dotenv_path=os.path.join(

@@ -10,14 +10,12 @@
 ## Functions:
     None
 """
-import time
-
 from bs4 import BeautifulSoup
 from playwright.sync_api import Locator, Page
 from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
-from customPrint import print # pylint: disable=redefined-builtin
+from customPrint import print # pylint: disable=redefined-builtin,import-error
 
-from submission import Submissions
+from submission import Submissions # pylint: disable=import-error
 
 
 class Assignment:
