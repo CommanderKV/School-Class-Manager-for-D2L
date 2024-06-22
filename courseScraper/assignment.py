@@ -12,9 +12,10 @@
 """
 from bs4 import BeautifulSoup
 from playwright.sync_api import Locator, Page
-from .customPrint import print # pylint: disable=redefined-builtin
+from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
+from customPrint import print # pylint: disable=redefined-builtin,import-error
 
-from .submission import Submissions
+from submission import Submissions # pylint: disable=import-error
 
 
 class Assignment:
@@ -263,8 +264,16 @@ class Assignment:
         pageURL = page.url
 
         # Go to the assignment page
-        page.goto(self.link)
-        page.wait_for_load_state("load")
+        try:
+            page.goto(self.link, timeout=60000)
+            page.wait_for_load_state("load")
+
+        except PlaywrightTimeoutError as e:
+            print(f"\t\t\t[Error] Timed out while fetching instructions. Error: {e}")
+            self.instructions = None
+            return self.instructions
+
+
 
         # Get the instructions
         soup = BeautifulSoup(page.inner_html("*"), "html.parser")

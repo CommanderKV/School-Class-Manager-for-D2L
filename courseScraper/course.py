@@ -17,10 +17,10 @@ import re as Regex
 
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright, Locator, Page
-from .customPrint import print # pylint: disable=redefined-builtin
+from playwright.sync_api import sync_playwright, Page
+from customPrint import print # pylint: disable=redefined-builtin,import-error
 
-from .assignment import Assignment
+from assignment import Assignment # pylint: disable=import-error
 
 class Course:
     """
@@ -103,7 +103,7 @@ class Course:
         self.assignmentsURL: str = assignmentsURL
         self.assignments: list[Assignment] | None = assignments
 
-    def fill(self, course: Locator, page: Page) -> None: # pylint: disable=too-many-branches
+    def fill(self, course: tuple[str, str], page: Page) -> None: # pylint: disable=too-many-branches
         """
         # Description:
             This function fills the course object with the information of the course.
@@ -124,13 +124,13 @@ class Course:
         startPage = page.url
 
         # Get the course details
-        courseDetails = course.get_attribute("text")
+        courseDetails = course[1]
 
         # Check if the course has a span element (Should always be the case)
         if courseDetails:
             # Get the link of the course
             try:
-                self.link = self.baseURL + course.get_attribute("href")
+                self.link = self.baseURL + course[0]
             except Exception as exc:
                 raise ValueError("Could not get the link of the course.") from exc
 
@@ -141,6 +141,7 @@ class Course:
             shortTerm = Regex.search(r"\((.+)\) .+? - ", courseDetails)
             if shortTerm:
                 self.shortTerm = shortTerm.group(1)
+                print("\t[Success] Short term found!")
             else:
                 print("\t[Warning] Short term not found.")
 
@@ -148,6 +149,7 @@ class Course:
             courseCodeReg = Regex.search(r"\) (.+) - ", courseDetails)
             if courseCodeReg:
                 self.courseCode = courseCodeReg.group(1)
+                print("\t[Success] Course code found!")
             else:
                 print("\t[Error] Course code not found. skipping...")
                 raise ValueError("Course code not found.")
@@ -156,18 +158,19 @@ class Course:
             name = Regex.search(r"- (.+), \d+", courseDetails)
             if name:
                 self.name = name.group(1)
+                print("\t[Success] Name found!")
             else:
                 print("\t[Warning] Name not found.")
 
             # Get the long term of the course
-            longTerm = Regex.search(r", \d+, (.+)<", courseDetails)
+            longTerm = Regex.search(r", \d+, (.+ \d\d\d\d)", courseDetails)
             if longTerm:
                 self.longTerm = longTerm.group(1)
+                print("\t[Success] Long term found!")
             else:
-                print("\t[Warning] Long term not found.")
+                print(f"\t[Warning] Long term not found. {courseDetails}")
 
             print(f"\t[Completed] Course: {self.courseCode} - {self.name}")
-            print("\t[Notice] Obtaining syllabus...")
 
             # Go to the course page
             page.goto(self.link)
@@ -189,12 +192,10 @@ class Course:
             if syllabus:
                 # Save the syllabus link
                 self.syllabus = self.baseURL + syllabus[0]["href"]
+                print("\t[Success] Syllabus found!")
             else:
                 self.syllabus = None
-
-            # Print out logs
-            print("\t[Success] Obtained syllabus!")
-            print("\t[Notice] Obtaining assignments...")
+                print("\t[Warning] Syllabus not found.")
 
             # Go to the Assignments page
             page.get_by_role("link", name="Assignments").first.click()
@@ -228,10 +229,14 @@ class Course:
                     # Add the assignment to the list of assignments
                     self.assignments.append(newAssignment)
 
+                # Print out logs
+                print("\t[Success] Obtained assignments!")
+
             # If there are no assignments
             else:
                 # Set the assignments to None
                 self.assignments = None
+                print("\t[Warning] No assignments found.")
 
             # Print out logs
             print("\t[Success] Obtained assignments!")

@@ -1,6 +1,7 @@
 """
 # Description:
     This module contains the custom print function.
+    To enable debugging, set the environment variable "SCRAPER_DEBUG=True" in .env.
     
 ## Functions:
     - checkFor(item: str, text: str) -> bool: 
@@ -9,9 +10,12 @@
         This function is used to print the data with rich.
 """
 import os
+import sys
 import re as Regex
 from dotenv import load_dotenv
 from rich import print as richPrint  # pylint: disable=redefined-builtin
+
+DEBUG: bool = True
 
 def checkFor(item: str, text: str) -> bool:
     """
@@ -27,15 +31,22 @@ def print(*args, **kwargs): # pylint: disable=redefined-builtin
     # Description:
         This function is used to print the data with rich.
     """
+    global DEBUG # pylint: disable=global-statement
+
     toPrint: str = str(args[0])
-    if DEBUG or checkFor(r"\[ignore\]", toPrint):
-        original: str = toPrint
+    if DEBUG or checkFor(r"\[ignore\]", toPrint): # pylint: disable=used-before-assignment
+        #Check for ignore
+        if os.environ.get("SCRAPER_DEBUG") == "False":
+            DEBUG = False
+
+        original: str = toPrint.replace("[ignore]", "", 1)
+
         # Check for notice
         if checkFor(r"\[notice\]", original):
             toPrint = f"[bold]{toPrint}"
 
         # Check for warning
-        if checkFor(r"[\\t]\[warning\]", original):
+        if checkFor(r"\[warning\]", original):
             toPrint = f"[bold yellow]{toPrint}"
 
         # Check for error
@@ -57,22 +68,31 @@ def print(*args, **kwargs): # pylint: disable=redefined-builtin
         # Set the args to the new value
         args = (toPrint,)
 
-        return richPrint(*args, **kwargs)
+        ret = richPrint(*args, **kwargs)
+        sys.stdout.flush()
+        return ret
 
     return None
 
 # Check if the debugging is enabled
 DEBUG: bool = False
-if os.path.exists(".env"):
-    load_dotenv(dotenv_path=".env")
+# Load the environment variables
+dotenv_path=os.path.join(
+    os.path.dirname(
+        os.path.abspath(__file__)
+    ),
+    ".env"
+)
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path=dotenv_path)
     if os.getenv("SCRAPER_DEBUG") == "True":
         DEBUG = True
         print("[Success] Custom print function debugging enabled!")
         print("[Success] Environment variable \"SCRAPER_DEBUG=True\" enabled!")
 
 # Check if the debugging is enabled
-if not DEBUG:
+#if not DEBUG:
     # Inform the user that debugging is disabled
-    print("[Notice] Custom print function debugging disabled")
-    print("[Notice] Environment variable \"SCRAPER_DEBUG\" not set or set to \"False\"")
-    print("[Notice] To enable debugging, set the environment variable \"SCRAPER_DEBUG=True\" in .env") # pylint: disable=line-too-long
+    #print("[Notice] Custom print function debugging disabled")
+    #print("[Notice] Environment variable \"SCRAPER_DEBUG\" not set or set to \"False\"")
+    #print("[Notice] To enable debugging, set the environment variable \"SCRAPER_DEBUG=True\" in .env") # pylint: disable=line-too-long
