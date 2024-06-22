@@ -15,7 +15,7 @@ import re as Regex
 from dotenv import load_dotenv
 from rich import print as richPrint  # pylint: disable=redefined-builtin
 
-SCRAPER_BRACKETS: bool = True
+DEBUG: bool = True
 
 def checkFor(item: str, text: str) -> bool:
     """
@@ -31,7 +31,7 @@ def print(*args, **kwargs): # pylint: disable=redefined-builtin
     # Description:
         This function is used to print the data with rich.
     """
-    global SCRAPER_BRACKETS, DEBUG # pylint: disable=global-statement
+    global DEBUG # pylint: disable=global-statement
 
     toPrint: str = str(args[0])
     if DEBUG or checkFor(r"\[ignore\]", toPrint): # pylint: disable=used-before-assignment

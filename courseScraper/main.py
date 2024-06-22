@@ -10,15 +10,15 @@ import re as Regex
 
 from dotenv import load_dotenv
 from playwright.sync_api import Page, Playwright, sync_playwright
-from customPrint import print # pylint: disable=redefined-builtin
+from customPrint import print # pylint: disable=redefined-builtin,import-error
 
-from course import Course
+from course import Course # pylint: disable=import-error
 
 # Load the environment variables
 dotenv_path=os.path.join(
     os.path.dirname(
         os.path.abspath(__file__)
-    ), 
+    ),
     ".env"
 )
 load_dotenv(dotenv_path=dotenv_path)

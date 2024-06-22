@@ -17,10 +17,10 @@ import re as Regex
 
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright, Locator, Page
-from customPrint import print # pylint: disable=redefined-builtin
+from playwright.sync_api import sync_playwright, Page
+from customPrint import print # pylint: disable=redefined-builtin,import-error
 
-from assignment import Assignment
+from assignment import Assignment # pylint: disable=import-error
 
 class Course:
     """
@@ -166,7 +166,7 @@ class Course:
             longTerm = Regex.search(r", \d+, (.+ \d\d\d\d)", courseDetails)
             if longTerm:
                 self.longTerm = longTerm.group(1)
-                print(f"\t[Success] Long term found!")
+                print("\t[Success] Long term found!")
             else:
                 print(f"\t[Warning] Long term not found. {courseDetails}")
 
@@ -228,7 +228,7 @@ class Course:
 
                     # Add the assignment to the list of assignments
                     self.assignments.append(newAssignment)
-                
+
                 # Print out logs
                 print("\t[Success] Obtained assignments!")
 
