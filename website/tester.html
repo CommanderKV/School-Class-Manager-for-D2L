@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>My HTML Page</title>
+    </head>
+    <body>
+        <div id="myDiv">
+        </div>
+        <script>
+            const source = new EventSource("http://localhost:3000/api/v1/classes/update/1002");
+            source.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                document.getElementById("myDiv").innerHTML += `<br>${data.message}<br>`;
+            };
+        </script>
+    </body>
+</html>
