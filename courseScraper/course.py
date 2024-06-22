@@ -166,7 +166,7 @@ class Course:
             longTerm = Regex.search(r", \d+, (.+ \d\d\d\d)", courseDetails)
             if longTerm:
                 self.longTerm = longTerm.group(1)
-                print(f"\t[Success] Long term found!")
+                print("\t[Success] Long term found!")
             else:
                 print(f"\t[Warning] Long term not found. {courseDetails}")
 
@@ -228,7 +228,7 @@ class Course:
 
                     # Add the assignment to the list of assignments
                     self.assignments.append(newAssignment)
-                
+
                 # Print out logs
                 print("\t[Success] Obtained assignments!")
 
