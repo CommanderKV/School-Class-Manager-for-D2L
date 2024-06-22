@@ -5,17 +5,23 @@
 """
 import json
 import os
+import sys
 import re as Regex
-import time
 
 from dotenv import load_dotenv
 from playwright.sync_api import Page, Playwright, sync_playwright
-from rich import print # pylint: disable=redefined-builtin
+from customPrint import print # pylint: disable=redefined-builtin
 
 from course import Course
 
 # Load the environment variables
-load_dotenv(dotenv_path=".env")
+dotenv_path=os.path.join(
+    os.path.dirname(
+        os.path.abspath(__file__)
+    ), 
+    ".env"
+)
+load_dotenv(dotenv_path=dotenv_path)
 
 # Access the environment variables
 LINK = "https://mycourselink.lakeheadu.ca/d2l/home"
@@ -34,14 +40,14 @@ def saveToFile(courses: list[Course], filename: str) -> None:
         - filename (str): 
             The name of the file.
     """
-    print("Saving course details...")
+    print("[Notice] Saving course details...")
     with open(filename, "w", encoding="utf-8") as file:
         json.dump(
             [course.__dict__ for course in courses],
             file,
             indent=4
         )
-    print("Course details saved!")
+    print("[Completed] Course details saved!")
 
 def getCourses(page: Page) -> list[Course]:
     """
@@ -56,32 +62,70 @@ def getCourses(page: Page) -> list[Course]:
         list[Course]: 
             The list of courses.
     """
-    print("Loading course details...")
+    print("[Notice] Loading course details...")
     # Get the base URL
     baseURL = page.url[:Regex.search(r"(https?://[^/]+)", page.url).end()]
     courses = []
 
-    # Go through each course
-    for course in page.locator("a[href^='/d2l/home/']").all():
-        # Add time for the page to load
-        time.sleep(.25)
+    page.wait_for_selector(
+        "d2l-my-courses-card-grid:first-child .course-card-grid d2l-enrollment-card"
+    )
+    coursesDiv = page.locator("d2l-my-courses-card-grid:first-child .course-card-grid")
+    if not coursesDiv:
+        raise ValueError("Courses not found!")
 
+    coursesData = []
+    for course in coursesDiv.locator("d2l-card").all():
+        # Check if href is there
+        try:
+            href = course.get_attribute("href")
+            if not href:
+                print("[Warning] No href skipping course...")
+                continue
+
+        except: # pylint: disable=bare-except
+            print("[Warning] No href skipping course...")
+            continue
+
+        # Check if text is there
+        try:
+            text = course.get_attribute("text")
+            if not text:
+                print("[Warning] No text skipping course...")
+                continue
+
+        except: # pylint: disable=bare-except
+            print("[Warning] No text skipping course...")
+            continue
+
+        coursesData.append((href, text))
+
+    # Check if there are no courses
+    if not coursesData:
+        print("[Warning] No courses found!")
+        return courses
+
+    print(f"[ignore][Notice] Found {len(coursesData)} courses!")
+
+    # Go through each course
+    for course in coursesData:
         # Create a new course object
         newCourse = Course(baseURL)
 
         try:
             # Fill the course object with the course details
             newCourse.fill(course, page)
+
         except ValueError as e:
             if "Course code not found" in str(e):
                 continue
-
             raise e
 
         # Append the course object to the courses list
+        print(f"[ignore][Success] {newCourse.name} loaded!")
         courses.append(newCourse)
 
-    print("Course details loaded!")
+    print("[Completed] Course details loaded!")
 
     # Return results
     return courses
@@ -112,7 +156,8 @@ def main(play: Playwright, link: str, username: str, password: str) -> None:
     page.wait_for_load_state("load")
 
     # Login
-    print("Logging in...")
+    print("[ignore][Notice] Initalizing...")
+    print("[Notice] Logging in...")
     page.get_by_label("Username*").click()
     page.get_by_label("Username*").fill(username)
     page.get_by_label("Password*").click()
@@ -122,7 +167,7 @@ def main(play: Playwright, link: str, username: str, password: str) -> None:
     # Navigate to the courses "page" / popup
     try:
         page.wait_for_url("https://mycourselink.lakeheadu.ca/d2l/home")
-        print("Logged in!")
+        print("[Notice] Logged in!")
 
     except Exception as e:
         if page.query_selector("body > div.login-onethird > section > p"):
@@ -142,9 +187,25 @@ def main(play: Playwright, link: str, username: str, password: str) -> None:
     # ---------------------
     context.close()
     browser.close()
+    print("[ignore][Success] Data writen to file!")
 
 # Start the program
 if __name__ == "__main__":
-    # Start scraping
-    with sync_playwright() as playwright:
-        main(playwright, LINK, USERNAME, PASSWORD)
+    if len(sys.argv) >= 3:
+        SAVEFILE = sys.argv[3] if len(sys.argv) == 4 else SAVEFILE
+
+        # Check if we are being run by api
+        if  len(sys.argv) == 4 and "api" in sys.argv[3]:
+            os.environ["SCRAPER_DEBUG"] = "False"
+            print("[Notice] Running in API mode!")
+
+        # Start scraping
+        with sync_playwright() as playwright:
+            print(f"[Notice] Username: {sys.argv[1]}")
+            print(f"[Notice] Password: {sys.argv[2]}")
+            main(playwright, LINK, sys.argv[1], sys.argv[2])
+
+    else:
+        # Start scraping
+        with sync_playwright() as playwright:
+            main(playwright, LINK, USERNAME, PASSWORD)
