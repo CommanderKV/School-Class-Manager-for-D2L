@@ -13,7 +13,7 @@ import re as Regex
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import Page
-from .customPrint import print # pylint: disable=redefined-builtin
+from customPrint import print # pylint: disable=redefined-builtin
 
 class Submissions:
     """
