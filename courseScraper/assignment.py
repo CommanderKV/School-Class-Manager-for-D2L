@@ -181,17 +181,49 @@ class Assignment:
 
         ## Returns:
             str: 
-                The due date of the assignment or "Unavailable"
+                The due date of the assignment or "1999-01-01 00:00:00"
         """
         # Get the due date
         soup = BeautifulSoup(assignment.inner_html(), "html.parser")
-        dueDate = soup.select(".d2l-dates-text label > strong")
+        dueDateRaw = soup.select(".d2l-dates-text label > strong")
 
         # Set the due date
-        if dueDate:
-            self.due: str = dueDate[0].get_text().replace("Due on ", "").strip()
-        else:
-            self.due: str = "Unavailable"
+        if not dueDateRaw:
+            self.due: str = "1999-01-01 00:00:00"
+            return self.due
+
+        # Process the data into a datetime format
+        dueDateProcessed: str = dueDateRaw[0].get_text().replace("Due on ", "").strip()
+
+        month: str = dueDateProcessed.split(" ")[0]
+        day: str = dueDateProcessed.split(" ")[1].replace(",", "")
+        year: str = dueDateProcessed.split(" ")[2]
+        time: str = dueDateProcessed.split(" ")[3]
+        add24Hours: bool = True if dueDateProcessed.split(" ")[4].lower() == "pm" else False
+
+        # Create the time
+        time = time + ":00"
+        if add24Hours and int(time.split(":")[0]) < 12:
+            time = str(int(time.split(":")[0]) + 12) + ":" + time.split(":")[1] + ":00"
+
+        # Convert the month to a number
+        months: dict[str, str] = {
+            "jan": "01",
+            "feb": "02",
+            "mar": "03",
+            "apr": "04",
+            "may": "05",
+            "jun": "06",
+            "jul": "07",
+            "aug": "08",
+            "sep": "09",
+            "oct": "10",
+            "nov": "11",
+            "dec": "12",
+        }
+
+        # Set the due date
+        self.due = f"{year}-{months[month.lower()]}-{day} {time}"
 
         return self.due
 

@@ -134,7 +134,38 @@ class Submissions:
                         # Get the date submitted
                         date = Regex.search(r"<label>(.+)</label>", str(cells[2]))
                         if date:
-                            currentSubmission["DATE"] = date.group(1)
+                            # Process the data into a datetime format
+                            dueDateProcessed: str = date.group(1).strip()
+
+                            month: str = dueDateProcessed.split(" ")[0]
+                            day: str = dueDateProcessed.split(" ")[1].replace(",", "")
+                            year: str = dueDateProcessed.split(" ")[2]
+                            time: str = dueDateProcessed.split(" ")[3]
+                            add24Hours: bool = True if dueDateProcessed.split(" ")[4].lower() == "pm" else False # pylint: disable=line-too-long
+
+                            # Create the time
+                            time = time + ":00"
+                            if add24Hours and int(time.split(":")[0]) < 12:
+                                time = str(int(time.split(":")[0]) + 12) + ":" + time.split(":")[1] + ":00" # pylint: disable=line-too-long
+
+                            # Convert the month to a number
+                            months: dict[str, str] = {
+                                "jan": "01",
+                                "feb": "02",
+                                "mar": "03",
+                                "apr": "04",
+                                "may": "05",
+                                "jun": "06",
+                                "jul": "07",
+                                "aug": "08",
+                                "sep": "09",
+                                "oct": "10",
+                                "nov": "11",
+                                "dec": "12",
+                            }
+
+                            # Set the due date
+                            currentSubmission["DATE"] = f"{year}-{months[month.lower()]}-{day} {time}" # pylint: disable=line-too-long
 
                     # If the submission is not the start of a new submission
                     else:
