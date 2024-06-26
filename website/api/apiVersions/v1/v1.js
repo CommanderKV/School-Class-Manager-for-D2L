@@ -7,43 +7,23 @@ const router = express.Router();
 // Get the DB module
 const DB = require("./DB");
 
+// Get the helper module
+const helper = require("./helper");
+
 // Get all routes
 const users = require("./routes/users");
 const classes = require("./routes/classes");
 
 // Secuirity function to make sure user is logged in
 router.use((req, res, next) => {
-    // Check if user is logged in
-    if (
-        (req.headers.username && req.headers.password) ||
-        (req.headers.apikey)
-    ) {
-        // API Key found
-        if (req.headers.apikey) {
-            DB.checkAPIKey(req.headers.apikey)
-            .then((data) => {
-                if (data) {
-                    next();
-                } else {
-                    res.status(401).send("Unauthorized");
-                }
-            });
-            return;
-        }
+    // Check if user is logging in
+    if (req.url == "/login") {
+        next();
+        return;
 
-        // Username and password found
-        DB.checkIn(req.headers.username, req.headers.password)
-        .then((data) => {
-            if (data) {
-                next();
-            } else {
-                res.status(401).send("Unauthorized");
-            }
-        });
-    
-    // Headers not found
+    // Check if user is logged in
     } else {
-        res.status(401).send("Unauthorized");
+        helper.authenticateToken(req, res, next);
     }
 });
 
@@ -51,26 +31,45 @@ router.use((req, res, next) => {
 router.use("/users", users);
 router.use("/classes", classes);
 
-router.use("/login", (req, res) => {
-    let username = req.headers.username;
-    let password = req.headers.password;
-    DB.checkIn(username, password).then((userData) => {
-        if (userData) {
-            res.status(200).json({
-                "status": "success",
-                "userID": userData.userID,
-                "APIKey": userData.APIKey,
-                "d2lUsername": userData.d2lEmail,
-                "d2lPassword": userData.d2lPassword
-            });
+// Log user in
+router.post("/login", async (req, res) => {
+    // Get the username and password from the request
+    const bodyUsername = req.body["username"];
+    const bodyPassword = req.body["password"];
 
-        } else {
-            res.status(401).json({
-                "status": "failed",
-                "message": "Unauthorized"
-            });
+    try {
+        // Get user from database
+        let user = await DB.getUser({
+            username: bodyUsername, 
+            password: bodyPassword
+        });
+        
+        if (!user || user.length == 0) {
+            return res.status(401).json({message: "No users found"});
         }
-    });
+
+        // Go through all users and find the correct one
+        for (let i = 0; i < user.length; i++) {
+            if (user[i].password == bodyPassword) {
+                user = user[i];
+                break;
+            }
+        }
+        if (Array.isArray(user)) {
+            return res.status(401).send({message: "Invalid credentials"});
+        }
+        
+        // User is authenticated. Create a JWT token
+        const token = helper.generateToken(user);
+
+        // Send the token to the user
+        res.status(200).json({ token });
+    
+    // If there is an error, send a 500 error
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({message: `Server error contact admin. Error: ${error.message}`});
+    }
 });
 
 // Create a route to show all available functions

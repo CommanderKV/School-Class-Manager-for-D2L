@@ -1,6 +1,3 @@
-// Load dotenv to load environment variables
-require("dotenv").config();
-
 // Get mysql module
 const mysql = require("mysql2");
 
@@ -14,53 +11,115 @@ const connection = mysql.createConnection({
 });
 
 // Connect to the database
-connection.connect((err) => {
-    if (err) {
-        console.error("An error occurred while connecting to the database", err);
+connection.connect((error) => {
+    if (error) {
+        console.error(`An error occurred while connecting to the database. ${error}`);
         return;
     }
     console.log("Connected to the database");
 });
 
 // --------------------
+//   Helper functions
+// --------------------
+const helper = require("./helper");
+
+
+// --------------------
 //   Update functions
 // --------------------
 function updateCourse(course, userID) {
     return new Promise((resolve, reject) => {
+        // Check that the parameters are given
+        if (!helper.checkParams([course, userID])) {
+            reject(`updateCourse: No arguments provided. ${course}, ${userID}`);
+        }
+
         // Course does not exsit
-        getClass(course.CODE).then((data) => {
+        getClass({ courseCode: course.CODE })
+        .then((data) => {
             if (data.length === 0) {
-                // Insert the course into the database
-                var query = `INSERT INTO Courses (closed, link, name, courseCode, termShort, termLong) VALUES (${course.CLOSED}, "${course.LINK}", "${course.NAME}", "${course.CODE}", "${course.TERMS.SHORT}", "${course.TERMS.LONG}")`;
-                connection.query(query, (error, results, fields) => {
+                // Make the query
+                let [query, queryParams] = helper.makeQuery(
+                    `INSERT INTO Classes `,
+                    [
+                        course.CLOSED, 
+                        course.LINK, 
+                        course.NAME, 
+                        course.CODE, 
+                        course.TERMS.SHORT, 
+                        course.TERMS.LONG
+                    ],
+                    [
+                        "closed",
+                        "link",
+                        "name",
+                        "courseCode",
+                        "termShort",
+                        "termLong"
+                    ],
+                    ", ",
+                    ");",
+                    true
+                );
+
+                connection.query(query, queryParams, (error, results, fields) => {
                     if (error) {
-                        reject("An error occurred while adding the course", error);
-                        return;
+                        reject(`An error occurred while adding the course: ${error} Query: ${query} Params: ${queryParams}`);
                     }
                 });
-        
-                // Get the course ID
-                getClass(course.CODE).then((data) => {
-                    if (data) {
-                        console.log(data);
-                        courseID = data[0].classID;
 
-                        // Link the course to the user
-                        var query = `INSERT INTO UsersToCourses (userID, classID) VALUES (${userID}, ${courseID})`;
-                        connection.query(query, (error, results, fields) => {
-                            if (error) {
-                                reject("An error occurred while linking the course and user", error);
-                                return;
-                            }
-                            resolve(courseID);
-                        });
+                // Get the course ID
+                getClass({ 
+                    link: course.LINK, 
+                    name: course.NAME, 
+                    courseCode: course.CODE, 
+                }).then((data) => {
+                    // Check if the course was found
+                    if (data != null){
+                        if (data.length == 1) {
+                            // Get the course ID
+                            let courseID = data[0].classID;
+
+                            // Make the query
+                            let [query, queryParams] = helper.makeQuery(
+                                `INSERT INTO UsersToClasses `,
+                                [userID, courseID],
+                                ["userID", "classID"],
+                                ", ",
+                                ");",
+                                true
+                            );
+
+                            // Link the course to the user
+                            connection.query(query, queryParams, (error, results, fields) => {
+                                if (error) {
+                                    reject(`An error occurred while linking the course and user. ${error}`);
+                                    return;
+                                }
+                                resolve(courseID);
+                            });
+                        } else if (data.length == 0) {
+                            console.log(`Failed to get course ID no courses found: ${data}`)
+
+                        } else {
+                            console.log(`Failed to get course ID too many courses found. ${data}`)
+                        }
+                    
+                    // Course was not found
                     } else {
                         reject("Failed to get course ID");
                     }
+                })
+                .catch((error) => {
+                    reject(`An error occurred while getting the course ID. ${error}`);
                 });
 
             // Course does exist
             } else {
+                // Get the first class that was returned (Should not be more than one class returned)
+                data = data[0];
+
                 // Check if an update is needed
                 if (
                     data.closed != course.CLOSED || 
@@ -70,115 +129,327 @@ function updateCourse(course, userID) {
                     data.termLong != course.TERMS.LONG
                 ) {
                     // Update the course
-                    const query = `UPDATE Courses SET closed = ${course.CLOSED}, link = "${course.LINK}", name = "${course.NAME}", termShort = "${course.TERMS.SHORT}", termLong = "${course.TERMS.LONG}" WHERE courseID = "${data.courseID}"`;
-                    connection.query(query, (error, results, fields) => {
+                    let [query, queryParams] = helper.makeQuery(
+                        `UPDATE Courses SET `,
+                        [
+                            course.CLOSED,
+                            course.LINK,
+                            course.NAME,
+                            course.TERMS.SHORT,
+                            course.TERMS.LONG
+                        ],
+                        [
+                            "closed",
+                            "link",
+                            "\`name\`",
+                            "termShort",
+                            "termLong"
+                        ],
+                        ", ",
+                        ` WHERE courseID = ?;`,
+                        false
+                    );
+                    queryParams.push(data.courseID);
+
+                    // Execute the query
+                    connection.query(query, queryParams, (error, results, fields) => {
                         if (error) {
-                            reject("An error occurred while updating the course", error);
+                            reject(`An error occurred while updating the course. ${error}`);
                             return;
                         }
-                        resolve(data.courseID);
+                        resolve(data.classID);
                     });
                 }
-                resolve(data.courseID);
+                resolve(data.classID);
             }
+        }).catch((error) => {
+            reject(`An error occurred while getting the course. ${error}`)  
         });
     });
 }
 
-function updateAssignment(assignment, submissionURL, classID) {
+function updateAssignment({
+    link=null,
+    name=null,
+    due=null,
+    instructions=null,
+    grade=null, 
+    courseID=null,
+    submissionURL=null
+    }) {
     return new Promise((resolve, reject) => {
+        // Check that the parameters are given
+        if (!helper.checkParams([
+            link, 
+            name, 
+            due, 
+            instructions, 
+            grade, 
+            courseID, 
+            submissionURL])) {
+            reject(`updateAssignment: No arguments provided. ${link}, ${name}, ${due}, ${instructions}, ${grade}, ${courseID}, ${submissionURL}`);
+        }
+
+        if (courseID == null) {
+            reject("updateAssignment: No course ID provided");
+        }
+
+
         // Check if assignment exists already
-        getAssignment(assignment.LINK).then((data) => {
+        getAssignment({
+            link: link, 
+            name: name, 
+            dueDate: due, 
+            instructions: instructions, 
+            grade: grade, 
+            submissionURL: submissionURL, 
+            classID: courseID
+        }).then((data) => {
             // Assignment does not exist
-            if (data.length === 0) {
+            if (data == null || data.length === 0) {
+                // Create the query
+                let [query, queryParams] = helper.makeQuery(
+                    `INSERT INTO Assignments `,
+                    [
+                        link,
+                        submissionURL,
+                        name,
+                        due,
+                        instructions,
+                        grade,
+                        courseID
+                    ],
+                    [
+                        "link",
+                        "submissionURL",
+                        "name",
+                        "dueDate",
+                        "instructions",
+                        "grade",
+                        "classID"
+                    ],
+                    ", ",
+                    ");",
+                    true,
+                );
+
                 // Insert the assignment into the database
-                const query = `INSERT INTO Assignments (classID, link, submissionURL, name, dueDate, instructions) VALUES (${classID}, "${assignment.LINK}", "${submissionURL}""${assignment.NAME}", "${assignment.DUE}", "${assignment.INSTRUCTIONS}")`;
-                connection.query(query, (error, results, fields) => {
+                connection.query(query, queryParams, (error, results, fields) => {
+                    // Something went wrong while adding the assignment
                     if (error) {
-                        reject("An error occurred while adding the assignment", error);
+                        reject(`An error occurred while adding the assignment.\n\t[QUERY] "${query}" ${error} CourseID: ${courseID}`);
+                    
+                    // Assignment was added successfully
                     } else {
                         // Get the assignment ID
-                        getAssignment(assignment.LINK).then((data) => {
-                            if (data.length === 0) {
-                                reject("Failed to get assignment ID");
+                        let [query, queryParams] = helper.makeQuery(
+                            `SELECT assignmentID FROM Assignments WHERE `,
+                            [
+                                link,
+                                submissionURL,
+                                name,
+                                due,
+                                instructions,
+                                grade,
+                                courseID
+                            ],
+                            [
+                                "link",
+                                "submissionURL",
+                                "name",
+                                "dueDate",
+                                "instructions",
+                                "grade",
+                                "classID"
+                            ],
+                            " AND "
+                        );
+
+                        // Get the assignment ID
+                        connection.query(query, queryParams, (error, results, fields) => {
+                            if (error) {
+                                reject(`An error occurred while getting the assignment ID. ${error}`);
+                                return;
                             }
-                            resolve(data.assignmentID);
+
+                            if (results.length === 0) {
+                                reject(`Failed to get assignment ID. ${results}`);
+                            } else if (results.length > 1) {
+                                reject(`Too many assignments found. ${results}`);
+                            } else {
+                                resolve(results[0].assignmentID);
+                            }
                         });
                     }
                 });
 
             // Assignment does exist
             } else {
+                // Get the first class that was returned (Should not be more than one class returned)
+                data = data[0];
+
                 // Check if an update is needed
                 if (
-                    data.link != assignment.LINK || 
+                    data.link != link || 
                     data.submissionURL != submissionURL ||
-                    data.name != assignment.NAME || 
-                    data.dueDate != assignment.DUE ||
-                    data.instructions != assignment.INSTRUCTIONS ||
-                    data.grade != assignment.GRADE
+                    data.name != name || 
+                    data.dueDate != due ||
+                    data.instructions != instructions ||
+                    data.grade != grade
                 ) {
-                    // Update the assignment
-                    const query = `UPDATE Assignments SET link = "${assignment.LINK}", submissionURL = "${submissionURL}" name = "${assignment.NAME}", dueDate = "${assignment.DUE}", instructions = "${assignment.INSTRUCTIONS}", grade = "${assignment.GRADE}" WHERE assignmentID = "${data.assignmentID}"`;
-                    connection.query(query, (error, results, fields) => {
+                    let [query, queryParams] = helper.makeQuery(
+                        `UPDATE Assignments SET `,
+                        [
+                            link != data.link ? link : null,
+                            submissionURL != data.submissionURL ? submissionURL : null,
+                            name != data.name ? name : null,
+                            due != data.dueDate ? due : null,
+                            instructions != data.instructions ? instructions : null,
+                            grade != data.grade ? grade : null
+                        ],
+                        [
+                            "link",
+                            "submissionURL",
+                            "name",
+                            "dueDate",
+                            "instructions",
+                            "grade"
+                        ],
+                        ", ",
+                        " WHERE assignmentID = ?;"
+                    );
+                    queryParams.push(data.assignmentID);
+                    
+                    connection.query(query, queryParams, (error, results, fields) => {
                         if (error) {
-                            reject("An error occurred while updating the assignment", error);
+                            reject(`An error occurred while updating the assignment. ${error}`);
                         } else {
-                            resolve(assignmentID);
+                            resolve(data.assignmentID);
                         }
                     });
                 } else {
                     resolve(data.assignmentID);
                 }
             }
+        })
+        .catch((error) => {
+            reject(`An error occurred while getting the assignment. ${error} ${error.stack}`);
         });
     });
 }
 
-function updateAttachment(attachment, assignmentID=null, submissionID=null) {
+function updateAttachment({ attachmentID=null, assignmentID=null, submissionID=null, link=null, size=null, name=null }) {
     // Both IDS cannot be null
-    if (assignmentID == null && submissionID == null) {
+    if (!helper.checkParams([assignmentID, submissionID])) {
         return new Promise((resolve, reject) => {
-            reject("No assignment or submission ID provided");
+            reject(`updateAttachment: No assignment or submission ID provided`);
         });
     }
 
     // Update the attachment
     return new Promise((resolve, reject) => {
+        // Make the query
+        let [query, queryParams] = helper.makeQuery(
+            `SELECT * FROM Attachments WHERE `,
+            [attachmentID, link, size, name],
+            ["attachmentID", "link", "size", "name"],
+            " AND "
+        );
+
         // Check if attachment exists already
-        const query = `SELECT * FROM Attachments WHERE link = "${attachment.LINK}"`;
-        connection.query(query, (error, results, fields) => {
+        connection.query(query, queryParams, (error, results, fields) => {
             if (error) {
-                reject("An error occurred while getting the attachment", error);
+                reject(`An error occurred while getting the attachment. ${error}`);
                 return;
             }
 
             // Attachment does not exist
             if (results.length === 0) {
                 // Insert the attachment into the database
-                const query = `INSERT INTO Attachments (submissionID, assignmentID, link, size) VALUES (${submissionID}, ${assignmentID}, "${attachment.LINK}", "${attachment.NAME}", "${attachment.SIZE}")`;
-                connection.query(query, (error, results, fields) => {
+                let [query, queryParams] = helper.makeQuery(
+                    `INSERT INTO Attachments `,
+                    [link, size, name],
+                    ["link", "size", "name"],
+                    ", ",
+                    ");",
+                    true
+                );
+                connection.query(query, queryParams, (error, results, fields) => {
                     if (error) {
-                        reject("An error occurred while adding the attachment", error);
+                        reject(`An error occurred while adding the attachment. ${error} Querry: ${query} Params: ${queryParams}`);
                         return;
                     }
-                    resolve(true);
+
+                    // Get the attachment ID
+                    let [query, queryParams] = helper.makeQuery(
+                        `SELECT attachmentID FROM Attachments WHERE `,
+                        [link, size, name],
+                        ["link", "size", "name"],
+                        " AND "
+                    );
+                    connection.query(query, queryParams, (error, results, fields) => {
+                        if (error) {
+                            reject(`An error occurred while getting the attachment ID. ${error}`);
+                            return;
+                        }
+                        // Save attachment ID
+                        let attachmentID = results[0].attachmentID;
+
+                        var query, queryParams;
+                        if (submissionID != null && submissionID != undefined) {
+                            [query, queryParams] = helper.makeQuery(
+                                `INSERT INTO AttachmentLinkToAssignment `
+                                [attachmentID, assignmentID],
+                                ["attachmentID", "assignmentID"],
+                                ", ",
+                                ");",
+                                true
+                            )
+                        } else if (assignmentID != null && assignmentID != undefined) {
+                            [query, queryParams] = helper.makeQuery(
+                                `INSERT INTO AttachmentLinkToSubmission `
+                                [attachmentID, submissionID],
+                                ["attachmentID", "submissionID"],
+                                ", ",
+                                ");",
+                                true
+                            )
+                        } else {
+                            reject("updateAttachment: No assignment or submission ID provided");
+                        }
+
+                        // Link the attachment to the assignment
+                        connection.query(query, queryParams, (error, results, fields) => {
+                            if (error) {
+                                reject(`An error occurred while linking the attachment and assignment. ${error}`);
+                                return;
+                            }
+                            resolve(true);
+                        });
+                    });
                 });
 
             // Attachment does exist
             } else {
                 // Check if an update is needed
                 if (
-                    results[0].submissionID != submissionID ||
-                    results[0].assignmentID != assignmentID ||
-                    results[0].link != attachment.LINK || 
-                    results[0].size != attachment.SIZE
+                    results[0].name != name ||
+                    results[0].link != link || 
+                    results[0].size != size
                 ) {
                     // Update the attachment
-                    const query = `UPDATE Attachments SET submissionID = ${submissionID}, assignmentID = ${assignmentID} link = "${attachment.LINK}", size = "${attachment.SIZE}" WHERE attachmentID = "${results[0].attachmentID}"`;
-                    connection.query(query, (error, results, fields) => {
+                    let [query, queryParams] = helper.makeQuery(
+                        `UPDATE Attachments SET `,
+                        [link, size, name],
+                        ["link", "size", "name"],
+                        ", ",
+                        " WHERE attachmentID = ?;"
+                    );
+                    
+                    queryParams.push(results[0].attachmentID);
+                    connection.query(query, queryParams, (error, results, fields) => {
                         if (error) {
-                            reject("An error occurred while updating the attachment", error);
+                            reject(`An error occurred while updating the attachment. ${error}`);
                             return;
                         }
                         resolve(true);
@@ -191,31 +462,61 @@ function updateAttachment(attachment, assignmentID=null, submissionID=null) {
     });
 }
 
-function updateSubmission(submission, assignmentID) {
+function updateSubmission({submissionID=null, assignmentID=null, link=null, comment=null, d2lSubmissionID=null, date=null}) {
     return new Promise((resolve, reject) => {
+        // Check for parameters
+        if (!helper.checkParams([submissionID, assignmentID, link, comment, d2lSubmissionID, date])) {
+            reject(`updateSubmission: No arguments provided ${submissionID}, ${assignmentID}, ${link}, ${comment}, ${d2lSubmissionID}, ${date}`);
+        }
+
+        if (submissionID == null && assignmentID == null) {
+            reject("updateSubmission: No submission or assignment ID provided");
+        } else if (submissionID != null && assignmentID != null) {
+            reject("updateSubmission: Both submission and assignment ID provided");
+        } else if (link == null) {
+            reject("updateSubmission: No link provided");
+        }
+
         // Check if submission exists already
-        const query = `SELECT * FROM Submissions WHERE link = "${submissionURl}"`;
-        connection.query(query, (error, results, fields) => {
+        let [query, queryParams] = helper.makeQuery(
+            `SELECT * FROM Submissions WHERE `,
+            [submissionID, assignmentID, link, comment, d2lSubmissionID, date],
+            ["submissionID", "assignmentID", "link", "comment", "d2lSubmissionID", "date"],
+            " AND "
+        );
+        connection.query(query, queryParams, (error, results, fields) => {
             if (error) {
-                reject("An error occurred while getting the submission", error);
+                reject(`An error occurred while getting the submission. ${error}`);
                 return;
             }
 
             // Submission does not exist
             if (results.length === 0) {
                 // Insert the submission into the database
-                const query = `INSERT INTO Submissions (assignmentID, comment, date, d2lSubmissionID) VALUES (${assignmentID}, "${submission.COMMENT}", "${submission.DATE}", ${submission.ID})`;
-                connection.query(query, (error, results, fields) => {
+                let [query, queryParams] = helper.makeQuery(
+                    `INSERT INTO Submissions `,
+                    [assignmentID, comment, date, d2lSubmissionID, link],
+                    ["assignmentID", "comment", "date", "d2lSubmissionID", "link"],
+                    ", ",
+                    ");",
+                    true
+                );
+                connection.query(query, queryParams, (error, results, fields) => {
                     if (error) {
-                        reject("An error occurred while adding the submission", error);
+                        reject(`An error occurred while adding the submission. ${error}`);
                         return;
                     }
                     
                     // Get the submission ID
-                    const query = `SELECT submissionID FROM Submissions WHERE assignmentID = ${assignmentID} AND d2lSubmissionID = ${submission.ID}`;
-                    connection.query(query, (error, results, fields) => {
+                    let [query, queryParams] = helper.makeQuery(
+                        `SELECT submissionID FROM Submissions WHERE `,
+                        [assignmentID, submission.ID],
+                        ["assignmentID", "d2lSubmissionID"],
+                        " AND "
+                    );
+                    connection.query(query, queryParams, (error, results, fields) => {
                         if (error) {
-                            reject("An error occurred while getting the submission ID", error);
+                            reject(`An error occurred while getting the submission ID. ${error}`);
                             return;
                         }
                         resolve(results[0].submissionID);
@@ -231,10 +532,23 @@ function updateSubmission(submission, assignmentID) {
                     results[0].date != submission.DATE
                 ) {
                     // Update the submission
-                    const query = `UPDATE Submissions SET d2lSubmissionID = "${submission.ID}", comment = "${submission.COMMENT}", date = "${submission.DATE}" WHERE submissionID = "${results[0].submissionID}"`;
-                    connection.query(query, (error, results, fields) => {
+                    let [query, queryParams] = helper.makeQuery(
+                        `UPDATE Submissions SET `,
+                        [
+                            assignmentID != results[0].assignmentID ? assignmentID : null, 
+                            submission.COMMENT != results[0].comment ? comment : null, 
+                            submission.DATE != results[0].date ? submission.DATE : null, 
+                            submission.ID != results[0].d2lSubmissionID ? submission.ID : null
+                        ],
+                        ["assignmentID", "comment", "date", "d2lSubmissionID"],
+                        ", ",
+                        " WHERE submissionID = ?;",
+                    );
+                    queryParams.push(results[0].submissionID);
+
+                    connection.query(query, queryParams, (error, results, fields) => {
                         if (error) {
-                            reject("An error occurred while updating the submission", error);
+                            reject(`An error occurred while updating the submission. ${error}`);
                             return;
                         }
                         resolve(results[0].submissionID);
@@ -251,61 +565,76 @@ function updateSubmission(submission, assignmentID) {
 // -----------------
 //   Get functions
 // -----------------
-function getUser(userID) {
+function getUser({ 
+    userID=null, 
+    username=null, 
+    password=null, 
+    email=null, 
+    d2lEmail=null, 
+    d2lPassword=null, 
+    apiKey=null 
+    }) {
     // Create a promise for the return
     return new Promise((resolve, reject) => {
+        // Make sure at least one argument is provided
+        if (!helper.checkParams([userID, username, password, email, [d2lEmail, d2lPassword], apiKey])) {
+            reject(`getUser: No arguments provided ${userID}, ${username}, ${password}, ${email}, ${d2lEmail}, ${d2lPassword}, ${apiKey}`);
+        }
+
         // Create the query
-        const query = `SELECT * FROM Users WHERE userID = ${userID}`;
+        let [ query, queryParams ] = helper.makeQuery(
+            `SELECT * FROM Users WHERE `,
+            [userID, username, password, email, d2lEmail, d2lPassword, apiKey],
+            [ "userID", "username", "password", "email", "d2lEmail", "d2lPassword", "APIKey"],
+            " AND "
+        );
+
+        if (query == null) {
+            reject(`getUser: Querry failed: ${queryParams}`);
+        }
 
         // Execute the query
-        connection.query(query, (error, results, fields) => {
+        connection.query(query, queryParams, (error, results, fields) => {
             if (error) {
-                reject("An error occurred while getting the user" + error);
+                reject(`An error occurred while getting the user. ${error}`);
                 return;
             }
-            resolve(results[0]);
+            resolve(results);
         });
     });
 }
 
-function getUserClasses(userID) {
-    // Create the query
-    const query = `SELECT classID FROM UsersToClasses WHERE userID = "${userID}"`;
+function getUserToClassLink({userID=null, classID=null, linkID=null}) {
+    // Check if at least one parameter is provided
+    if (!helper.checkParams([userID, classID, linkID])) {
+        return `getUserToClassLink: No arguments provided ${userID}, ${classID}, ${linkID}`;
+    }
+
+    // Setup the query
+    let [query, queryParams] = helper.makeQuery(
+        "SELECT * FROM UsersToClasses WHERE ",
+        [userID, classID, linkID],
+        {userID: "userID", classID: "classID", linkID: "linkID"}
+    )
 
     // Execute the query
-    result = connection.query(query, (error, results, fields) => {
+    result = connection.query(query, queryParams, (error, results, fields) => {
         if (error) {
-            console.error("An error occurred while getting the user classes", error);
+            console.error(`An error occurred while getting the user classes. ${error}`);
             return;
         }
         return results;
     });
-
-    // Get all classes
-    const classes = [];
-    for (let i = 0; i < result.length; i++) {
-        const query = `SELECT * FROM Classes WHERE classID = "${result[i].classID}"`;
-        connection.query(query, (error, results, fields) => {
-            if (error) {
-                console.error("An error occurred while getting the user classes", error);
-                return;
-            }
-            classes.push(results);
-        });
-    }
-
-    // Return the result
-    return result;
 }
 
-function getUserAssignments(classID) {
+function getClassAssignments(classID) {
     // Create the query
-    const query = `SELECT * FROM Assignments WHERE classID = "${classID}"`;
+    const query = `SELECT * FROM Assignments WHERE classID = ?`;
 
     // Execute the query
-    result = connection.query(query, (error, results, fields) => {
+    result = connection.query(query, [classID], (error, results, fields) => {
         if (error) {
-            console.error("An error occurred while getting the user assignments", error);
+            console.error(`An error occurred while getting the user assignments. ${error}`);
             return;
         }
         return results;
@@ -315,100 +644,82 @@ function getUserAssignments(classID) {
     return result;
 }
 
-function getUserData(userID) {
-    // Get all classes the user is enrolled in
-    const userClasses = getUserClasses(userID);
-
-    // Get all assignments for the user
-    for(let i=0; i<userClasses.length; i++) {
-        userClasses["assignments"] = getUserAssignments(userClasses[i].classID);
-    }
-    
-    // Return the user data
-    return userClasses;
-}
-
-function getClass(courseCode) {
-    // Create the query
-    const query = `SELECT * FROM Classes WHERE courseCode = "${courseCode}"`;
-
+function getClass({classID=null, courseCode=null, link=null, name=null}) {
     // Execute the query
     return new Promise((resolve, reject) => {
-        connection.query(query, (error, results, fields) => {
-            if (error) {
-                reject("An error occurred while getting the class", error);
-                return;
-            }
-            resolve(results);
-        });
-    })
-}
+        // Check if the parameters are provided
+        if (!helper.checkParams([classID, courseCode, link, name])) {
+            resolve(`getClass: No arguments provided. ${classID}, ${courseCode}, ${link}, ${name}`);
+        }
 
-function getAssignment(assignmentLink) {
-    // Create the query
-    const query = `SELECT * FROM Assignments WHERE link = "${assignmentLink}"`;
+        // Create the query
+        let [query, queryParams] = helper.makeQuery(
+            `SELECT * FROM Classes WHERE `,
+            [classID, courseCode, link, name],
+            ["classID", "courseCode", "link", "name"],
+            " AND "
+        );
 
-    // Execute the query
-    return new Promise((resolve, reject) => {
-        connection.query(query, (error, results, fields) => {
+        // Execute the querry
+        connection.query(query, queryParams, (error, results, fields) => {
             if (error) {
-                reject("An error occurred while getting the assignment", error);
-                return;
+                reject(`An error occurred while getting the class. ${error}\n${error.stack}`);
             }
             resolve(results);
         });
     });
 }
 
-// Security functions
-function checkUser(username, password) {
-    // Create the query
-    const query = `SELECT * FROM Users WHERE username = "${username}" AND password = "${password}"`;
-
+function getAssignment({ 
+    assignmentID=null, 
+    classID=null, 
+    link=null, 
+    submissionURL=null, 
+    name=null, 
+    dueDate=null, 
+    instructions=null, 
+    grade=null 
+    }) {
     // Execute the query
     return new Promise((resolve, reject) => {
-        connection.query(query, (error, results, fields) => {
+        // Check that there are parameters that exsit
+        if (!helper.checkParams([assignmentID, classID, link, submissionURL, [name, dueDate], instructions, grade])) {
+            reject(`getAssignment: No arguments provided. ${assignmentID}, ${classID}, ${link}, ${submissionURL}, ${name}, ${dueDate}, ${instructions}, ${grade}`);
+        }
+
+        // Create the query
+        let [query, queryParams] = helper.makeQuery(
+            `SELECT * FROM Assignments WHERE `,
+            [
+                assignmentID, 
+                classID, 
+                link, 
+                submissionURL, 
+                name, 
+                dueDate, 
+                instructions, 
+                grade
+            ],
+            [
+                "assignmentID", 
+                "classID", 
+                "link", 
+                "submissionURL", 
+                "name", 
+                "dueDate", 
+                "instructions", 
+                "grade"
+            ],
+            " AND "
+        );
+
+        // Execute the query
+        connection.query(query, queryParams,(error, results, fields) => {
             if (error) {
-                console.error("An error occurred while checking the user" + error);
-                reject(false);
+                reject(`${error} query: ${query} params: ${queryParams}`);
                 return;
             }
-            resolve(results[0]);
-        });
-    });
-}
-
-function checkAPIKey(apiKey) {
-    // Create the query
-    const query = `SELECT * FROM Users WHERE APIKey = "${apiKey}"`;
-
-    // Execute the query
-    return new Promise((resolve, reject) => {
-        connection.query(query, (error, results, fields) => {
-            if (error) {
-                console.error("An error occurred while checking the API key" + error);
-                reject(false);
-                return;
-            }
-            resolve(results[0]);
-        });
-    });
-}
-
-function checkIn(username, password) {
-    return new Promise((masterResolve, masterReject) => {
-        // Check if user is in the database
-        checkUser(username, password).then((data) => {
-            // User is not in the database
-            if (data === false) {
-                // Do not allow access
-                masterReject(false);
-            
-            // User is in the database
-            } else {
-                // Allow access
-                masterResolve(data);
-            }
+            resolve(results);
         });
     });
 }
@@ -419,11 +730,8 @@ module.exports = {
     updateAttachment,
     updateSubmission,
     getUser,
-    getUserClasses,
-    getUserAssignments,
-    getUserData,
     getClass,
     getAssignment,
-    checkIn,
-    checkAPIKey
+    getUserToClassLink,
+    getClassAssignments,
 };

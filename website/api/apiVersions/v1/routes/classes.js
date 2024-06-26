@@ -12,19 +12,32 @@ const child_process = require("child_process");
 
 // Get the fs module
 const fs = require("fs");
+const helper = require("../helper");
 
+
+// Features to add:
+// - Add a estimated time of completion 
+//   based off of the averagetime time 
+//   it takes to load a course.
 let progressTracker = {};
 
 // ---------------------
 //   Utility functions
 // ---------------------
-async function runUpdate(username, password, userID, apiKey) {
+async function runUpdate(userID, apiKey) {
+    // Check parameters
+    if (!helper.checkParams([userID, apiKey])) {
+        throw new Error(`classes.runUpdate: No arguments set ${userID} | ${apiKey}`);
+    }
+
     // Setup progress tracker
     progressTracker[apiKey] = {
         "status": "initalizing",
         "progress": 1,
-        "steps": 6,
-        "output": [],
+        "steps": 5,
+        "output": [
+            "Initalizing..."
+        ],
         "error": ""
     };
 
@@ -32,13 +45,37 @@ async function runUpdate(username, password, userID, apiKey) {
     let scriptPath = "../../courseScraper/main.py";
 
     // Get users d2l username and password
-    let user = await DB.getUser(userID)
-    .then((user) => {return user;})
-    .catch((err) => {console.log(err); return null;})
+    const user = await DB.getUser({ apiKey: apiKey })
+    .then((user) => {
+        if (user.length == 1) {
+            return user[0];
+        } else if (user.length == 0) {
+            return null;
+        } else {
+            throw new Error("Multiple users found"); // Should never happen
+        }
+    })
+    .catch((err) => {console.log(err); throw err;})
+
+    // Check if the user was found
     if (!user) {
+        // Update the progress tracker if we have no users
         progressTracker[apiKey].status = "Failed";
         progressTracker[apiKey].output.push("User not found");
         progressTracker[apiKey].error = "User not found";
+
+        // Clear the progress tracker after 5 minutes
+        setTimeout(() => {
+            // Remove tracker
+            delete progressTracker.apiKey;
+        }, 5 * 60 * 1000);
+        return;
+
+    // Check if multiple users were found
+    } else if (user.length > 1) {
+        progressTracker[apiKey].status = "Failed";
+        progressTracker[apiKey].output.push("Multiple users found");
+        progressTracker[apiKey].error = "Multiple users found";
 
         // Clear the progress tracker after 5 minutes
         setTimeout(() => {
@@ -48,23 +85,24 @@ async function runUpdate(username, password, userID, apiKey) {
     }
 
     // Setup the course path
-    let coursePath = __dirname+`\\${apiKey}.json`;
+    const coursePath = __dirname+`\\${apiKey}.json`;
 
     // Setup args
     let args = [
         scriptPath, 
-        username, 
-        password, 
+        user.d2lEmail, 
+        user.d2lPassword, 
         coursePath
     ];
+
 
     // Update the progress tracker
     progressTracker[apiKey].status = "starting"
     progressTracker[apiKey].progress += 1;
+    progressTracker[apiKey].output.push("Starting script");
 
-
-    // Run the script
-    return new Promise(() => {
+    return new Promise((masterResolve, masterReject) => {
+        // Run the script
         new Promise((resolve, reject) => {
             // Define vars
             let buffer = "";
@@ -75,6 +113,7 @@ async function runUpdate(username, password, userID, apiKey) {
             // Update the progress tracker
             progressTracker[apiKey].status = "running";
             progressTracker[apiKey].progress += 1;
+            progressTracker[apiKey].output.push("Script started");
 
             // When the script outputs data
             pythonProcess.stdout.on("data", (data) => {
@@ -99,7 +138,7 @@ async function runUpdate(username, password, userID, apiKey) {
                     // Add the line to the output
                     progressTracker[apiKey].output.push(line);
                 });
-                console.log(data.toString());
+                // console.log(data.toString());
             });
 
             // When the script outputs an error
@@ -113,14 +152,29 @@ async function runUpdate(username, password, userID, apiKey) {
             // When the script is done
             pythonProcess.on("close", (code) => {
                 if (code !== 0) {
+                    // Update the progress tracker
                     progressTracker[apiKey].status = "Failed";
                     progressTracker[apiKey].output.push("Script failed");
                     progressTracker[apiKey].error = "Script failed";
+
+                    // Remove temp data in 5 minutes
+                    setTimeout(() => {
+                        // Delete tracker
+                        delete progressTracker.apiKey;
+                        
+                        // Remove the file
+                        fs.unlinkSync(coursePath);
+                    }, 5 * 60 * 1000);
+
+                    // Reject the promise
                     reject("Script failed");
                     return;
                 }
+
+                // Resolve the promise
                 progressTracker[apiKey].status = "Script completed";
                 progressTracker[apiKey].progress += 1;
+                progressTracker[apiKey].output.push("Script completed");
                 resolve();
             });
         })
@@ -130,6 +184,7 @@ async function runUpdate(username, password, userID, apiKey) {
             // Update the progress tracker
             progressTracker[apiKey].status = "Updating database";
             progressTracker[apiKey].progress += 1;
+            progressTracker[apiKey].output.push("Updating database");
             
             // Get the json data
             let jsonDir = coursePath;
@@ -140,52 +195,7 @@ async function runUpdate(username, password, userID, apiKey) {
             courses.forEach((course) => {
                 
                 // Update the course
-                DB.updateCourse(course, userID).then((courseID) => {
-
-                    // Add all assignments
-                    course.ASSIGNMENTS.forEach((assignment) => {
-                        
-                        // Add the assignment
-                        DB.updateAssignment(assignment, assignment.SUBMISSIONS.URL, courseID).then((assignmentID) => {
-
-                            // Add all attachments
-                            assignment.ATTACHMENTS.forEach((attachment) => {
-                                
-                                // Add the attachment
-                                DB.updateAttachment(attachment, assignmentID=assignmentID)
-                                .catch((err) => {console.log(err);})
-                            });
-
-                            // Add all the submissions
-                            assignment.SUBMISSIONS.SUBMISSIONS.forEach((submission) => {
-
-                                // Add the submission
-                                submission = DB.updateSubmission(submission, assignment.NAME).then((submissionID) => {
-
-                                    // Add all the attachments
-                                    submission.FILES.forEach((attachment) => {
-
-                                        // Add the attachment
-                                        DB.updateSubmissionAttachment(attachment, submissionID=submissionID)
-                                        .catch((err) => {console.log(err);})
-
-                                    });
-                                }).catch((err) => {console.log(err);});
-                            });
-                        })
-                        .catch((err) => {
-                            console.log(err);
-                            progressTracker[apiKey].status = "Failed";
-                            progressTracker[apiKey].output.push(err);
-                            progressTracker[apiKey].error = err;
-
-                            // Clear the progress tracker after 5 minutes
-                            setTimeout(() => {
-                                delete progressTracker.apiKey;
-                            }, 5 * 60 * 1000);
-                        });
-                    });
-                })
+                DB.updateCourse(course, userID)
                 .catch((err) => {
                     console.log(err);
                     progressTracker[apiKey].status = "Failed";
@@ -194,18 +204,119 @@ async function runUpdate(username, password, userID, apiKey) {
 
                     // Clear the progress tracker after 5 minutes
                     setTimeout(() => {
+                        // Delete tracker
                         delete progressTracker.apiKey;
+
+                        // Remove the file
+                        fs.unlinkSync(coursePath);
                     }, 5 * 60 * 1000);
+                    masterResolve("Failed to update course");
+                })
+                .then((courseID) => {
+                    if (courseID == null) {
+                        console.log("CourseID is null");
+                        return;
+                    } else if (courseID == undefined) {
+                        console.log("CourseID is undefined");
+                        return;
+                    }
+                    
+
+                    // Add all assignments
+                    if (course.ASSIGNMENTS != null) {
+                        course.ASSIGNMENTS.forEach((assignment) => {
+
+                            // Add the assignment
+                            if (assignment.SUBMISSIONS != null) {
+                                submissionURL = assignment.SUBMISSIONS.URL
+                            } else {
+                                submissionURL = null
+                            };
+                            DB.updateAssignment({
+                                link: assignment.LINK, 
+                                name: assignment.NAME,
+                                due: assignment.DUE,
+                                instructions: assignment.INSTRUCTIONS,
+                                grade: assignment.GRADE,
+                                courseID: courseID,
+                                submissionURL: submissionURL
+                            })
+                            .then((assignmentID) => {
+
+                                // Add all attachments
+                                if (assignment.ATTACHMENTS != null) {
+                                    assignment.ATTACHMENTS.forEach((attachment) => {
+                                        
+                                        // Add the attachment
+                                        DB.updateAttachment({
+                                            assignmentID: assignmentID,
+                                            link: attachment.LINK,
+                                            name: attachment.NAME,
+                                            size: attachment.SIZE,
+                                        })
+                                        .catch((err) => {console.log(err);});
+                                    });
+
+                                // Add all the submissions
+                                } else if (assignment.SUBMISSIONS != null) {
+                                    assignment.SUBMISSIONS.SUBMISSIONS.forEach((submission) => {
+
+                                        // Add the submission
+                                        submission = DB.updateSubmission({
+                                            assignmentID: assignmentID,
+                                            d2lSubmissionID: submission.ID, 
+                                            comment: assignment.COMMENT,
+                                            date: submission.DATE,
+                                        }).then((submissionID) => {
+
+                                            // Add all the attachments
+                                            if (submission.FILES == null) {
+                                                return;
+                                            }
+                                            submission.FILES.forEach((attachment) => {
+
+                                                // Add the attachment
+                                                DB.updateSubmissionAttachment(attachment, submissionID=submissionID)
+                                                .catch((err) => {console.log(err);})
+
+                                            });
+                                        }).catch((err) => {console.log(err);});
+                                    });
+                                }
+                            })
+                            .catch((error) => {
+                                progressTracker[apiKey].status = "Failed";
+                                progressTracker[apiKey].output.push(error);
+                                progressTracker[apiKey].error = error;
+
+                                // Clear the progress tracker after 5 minutes
+                                setTimeout(() => {
+                                    // Delete tracker
+                                    delete progressTracker.apiKey;
+
+                                    // Remove the file
+                                    fs.unlinkSync(coursePath);
+                                }, 5 * 60 * 1000);
+
+                                masterReject(`Failed to update assignment. courseID: ${courseID} Error: ${error}`);
+                            });
+                        });
+                    }
                 });
             });
 
             // Update the progress tracker
             progressTracker[apiKey].status = "Completed";
             progressTracker[apiKey].progress += 1;
+            progressTracker[apiKey].output.push("Completed");
 
             // Clear the progress tracker after 5 minutes
             setTimeout(() => {
+                // Remove the tracker
                 delete progressTracker.apiKey;
+
+                // Remove the file
+                fs.unlinkSync(coursePath);
             }, 5 * 60 * 1000);
         })
         .catch((err) => {
@@ -216,7 +327,11 @@ async function runUpdate(username, password, userID, apiKey) {
 
             // Clear the progress tracker after 5 minutes
             setTimeout(() => {
+                // Remove the tracker
                 delete progressTracker.apiKey;
+
+                // Remove the file
+                fs.unlinkSync(coursePath);
             }, 5 * 60 * 1000);
         });
     });
@@ -234,42 +349,15 @@ router.use((req, res, next) => {
 });
 
 router.post("/update", (req, res, next) => {
-    if (
-        !req.headers.d2lusername || 
-        !req.headers.d2lpassword || 
-        !req.headers.userid ||
-        !req.headers.apikey
-    ) {
-        console.log(req.headers);
-        if (!req.headers.APIKey) {
-            res.status(400).json({
-                "status": "failed",
-                "message": "Missing apiKey"
-            });
-            console.log("Missing apiKey")
+    // Get data out of token
+    const token = req.headers.authorization.split(" ")[1];
+    const data = helper.verifyToken(token);
 
-        } else if (!req.headers.d2lUsername) {
-            res.status(400).json({
-                "status": "failed",
-                "message": "Missing d2lUsername"
-            });
-            console.log("Missing d2lUsername")
-
-        } else if (!req.headers.d2lPassword) {
-            res.status(400).json({
-                "status": "failed",
-                "message": "Missing d2lPassword"
-            });
-            console.log("Missing d2lPassword")
-
-        } else if (!req.headers.userID) {
-            res.status(400).json({
-                "status": "failed",
-                "message": "Missing userID"
-            });
-            console.log("Missing userID")
-        }
-        
+    if (progressTracker[data.data.apiKey]) {
+        res.status(409).json({
+            "status": "failed",
+            "message": "Update already in progress"
+        });
         return;
     }
 
@@ -283,28 +371,34 @@ router.post("/update", (req, res, next) => {
 
     // Run the update function 
     runUpdate(
-        req.headers.d2lusername, 
-        req.headers.d2lpassword, 
-        req.headers.userid, 
-        req.headers.apikey
+        data.data.userID, 
+        `${data.data.apiKey}`
     ).catch((err) => {
         console.log(`Update: ${err}`);
+        console.log(err.stack);
     });
 
     
 });
 
 router.get("/update", (req, res, next) => {
+    // Get the token
+    const token = req.headers.authorization.split(" ")[1];
+
+    // Decode the token
+    const data = helper.verifyToken(token);
+
     // Send the current progress back
-    if (!progressTracker[req.headers.apikey]) {
+    if (!progressTracker[data.data.apiKey]) {
         res.status(404).json({
             "status": "failed",
             "message": "No progress found"
         });
         return;
     }
-
-    res.status(200).json(progressTracker[req.headers.apikey]);
+    
+    // Send data back
+    res.status(200).json(progressTracker[data.data.apiKey]);
 });
 
 
