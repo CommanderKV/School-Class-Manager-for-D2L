@@ -1,6 +1,17 @@
 -- Make database
-CREATE DATABASE classes;
+--CREATE DATABASE classes;
 USE classes;
+
+DROP TABLE IF EXISTS 
+`AttachmentLinkToSubmission`, 
+`AttachmentLinkToAssignment`,
+`Assignments`, 
+`Attachments`, 
+`Classes`, 
+`Feedback`, 
+`Submissions`, 
+`Users`, 
+`UsersToClasses`;
 
 -- Make tables
 CREATE TABLE Users (
@@ -9,10 +20,9 @@ CREATE TABLE Users (
     password VARCHAR(255) NOT NULL,
     email VARCHAR(200) NOT NULL,
     d2lEmail VARCHAR(200) NOT NULL,
-    d2lPassword VARCHAR(255) NOT NULL
-)
-
-ALTER TABLE Users AUTO_INCREMENT = 1000;
+    d2lPassword VARCHAR(255) NOT NULL,
+    APIKey CHAR(36) DEFAULT (UUID()) NOT NULL
+) AUTO_INCREMENT = 1000;
 
 CREATE TABLE Classes (
     classID INT AUTO_INCREMENT PRIMARY KEY,
@@ -22,9 +32,8 @@ CREATE TABLE Classes (
     courseCode VARCHAR(100) NOT NULL,
     termShort VARCHAR(20) NOT NULL,
     termLong VARCHAR(100) NOT NULL
-)
+) AUTO_INCREMENT = 1000
 
-ALTER TABLE Classes AUTO_INCREMENT = 1;
 
 CREATE TABLE UsersToClasses (
     linkID INT AUTO_INCREMENT PRIMARY KEY,
@@ -34,37 +43,65 @@ CREATE TABLE UsersToClasses (
     FOREIGN KEY (classID) REFERENCES Classes(classID)
 )
 
-
 CREATE TABLE Assignments (
     assignmentID INT AUTO_INCREMENT PRIMARY KEY,
     classID INT NOT NULL,
-    link VARCHAR(255) NOT NULL,
+    link VARCHAR(255) DEFAULT NULL,
+    submissionURL VARCHAR(255) DEFAULT NULL,
     name VARCHAR(100) NOT NULL,
     dueDate DATETIME NOT NULL,
+    instructions TEXT DEFAULT NULL,
+    grade VARCHAR(30) DEFAULT "Not Graded",
     FOREIGN KEY (classID) REFERENCES Classes(classID)
-)
-
-ALTER TABLE Assignments AUTO_INCREMENT = 1;
+) AUTO_INCREMENT = 1;
 
 CREATE TABLE Submissions (
     submissionID INT AUTO_INCREMENT PRIMARY KEY,
     assignmentID INT NOT NULL,
     link VARCHAR(255) NOT NULL,
-    comment VARCHAR(1000),
+    comment VARCHAR(1000) DEFAULT NULL,
     d2lSubmissionID INT NOT NULL,
+    date DATETIME NOT NULL,
     FOREIGN KEY (assignmentID) REFERENCES Assignments(assignmentID)
-)
+) AUTO_INCREMENT = 1;
 
-ALTER TABLE Submissions AUTO_INCREMENT = 1;
+CREATE TABLE Feedback (
+    feedbackID INT AUTO_INCREMENT PRIMARY KEY,
+    submissionID INT NOT NULL,
+    html VARCHAR(255) DEFAULT NULL,
+    date DATETIME NOT NULL,
+    FOREIGN KEY (submissionID) REFERENCES Submissions(submissionID)
+) AUTO_INCREMENT = 1;
 
 CREATE TABLE Attachments (
     attachmentID INT AUTO_INCREMENT PRIMARY KEY,
-    submissionID INT, -- If NULL, it is an assignment attachment
-    assignmentID INT, -- If NULL, it is a submission attachment
     link VARCHAR(255) NOT NULL,
-    size INT NOT NULL,
-    FOREIGN KEY (submissionID) REFERENCES Submissions(submissionID),
-    FOREIGN KEY (assignmentID) REFERENCES Assignments(assignmentID)
-)
+    size VARCHAR(15) NOT NULL,
+    name VARCHAR(255) NOT NULL
+) AUTO_INCREMENT = 1;
 
-ALTER TABLE Attachments AUTO_INCREMENT = 1;
+CREATE TABLE AttachmentLinkToSubmission (
+    AttachmentLinkToSubmissionID INT AUTO_INCREMENT PRIMARY KEY,
+    attachmentID INT NOT NULL,
+    submissionID INT NOT NULL,
+    FOREIGN KEY (attachmentID) REFERENCES Attachments(attachmentID),
+    FOREIGN KEY (submissionID) REFERENCES Submissions(submissionID)
+);
+
+CREATE TABLE AttachmentLinkToAssignment (
+    AttachmentLinkToAssignmentID INT AUTO_INCREMENT PRIMARY KEY,
+    attachmentID INT NOT NULL,
+    assignmentID INT NOT NULL,
+    FOREIGN KEY (attachmentID) REFERENCES Attachments(attachmentID),
+    FOREIGN KEY (assignmentID) REFERENCES Assignments(assignmentID)
+);
+
+-- Insert some test data
+
+SELECT * FROM Users;
+
+SELECT * FROM Classes;
+
+SELECT * FROM Attachments;
+
+SELECT * FROM Assignments;
