@@ -1,4 +1,4 @@
-# Descriptioon:
+# Description:
   This is used to get all courses, assignments, grades, and syllabuses from D2L.
 
 ## How to run:
