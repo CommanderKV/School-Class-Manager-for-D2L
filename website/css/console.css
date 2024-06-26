@@ -1,0 +1,121 @@
+:root {
+    --progress-bar-inside-color: #00ff00;
+    --progress-bar-outside-color: #999999;
+    --api-option-buttons-width: 20%;
+    --api-option-buttons-height: 50px;
+    --api-option-buttons-font-size: 1.3em;
+    --api-option-buttons-border-radius: 10px;
+    --api-option-buttons-border-width: 1px;
+    --api-option-buttons-border-color: #ee7e27;
+    --api-console-background-color: #000000;
+    --api-console-color: #00ff00;
+    --api-console-font-size: 1.3em;
+}
+
+.hidden {
+    display: none;
+}
+
+#api {
+    height: 50vh;
+}
+
+/* Api header */
+.api-header > button {
+    width: var(--api-option-buttons-width);
+    height: var(--api-option-buttons-height);
+
+    padding: 10px;
+    margin: 10px;
+
+    border: var(--api-option-buttons-border-width) solid var(--api-option-buttons-border-color);
+    border-left-width: 0px;
+    border-right-width: 0px;
+    border-radius: var(--api-option-buttons-border-radius);
+
+    background-color: var(--api-option-buttons-border-color);
+
+    cursor: pointer;
+    font-weight: bold;
+    font-size: var(--api-option-buttons-font-size);
+
+    transition-property: background-color, transform;
+    transition-timing-function: ease-in-out;
+    transition-duration: 0.2s, 0.3s;
+}
+
+
+/* Console styling */
+#consoleContainer {
+    background-color: var(--api-console-background-color);
+    color: var(--api-console-color);
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+
+    border-radius: 15px;
+    padding: 10px;
+}
+#console {
+    display: flex;
+    flex-direction: column;
+
+    width: 100%;
+    height: auto;
+}
+#consoleHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: -webkit-fill-available;
+    margin: 5px;
+    font-size: calc(var(--api-console-font-size) + 0.2em);
+}
+#consoleHeader > label,
+#consoleHeader > div {
+    min-width: 250px;
+}
+#logs {
+    margin-left: 10px;
+    padding-left: 10px;
+    width: -webkit-fill-available;
+    height: 40vh;
+    
+    scroll-behavior: smooth;
+
+    overflow-y: auto;
+}
+#logs > ol {
+    padding-left: 0;
+    margin-left: 0;
+    width: 100%;
+    list-style: none;
+    font-size: var(--api-console-font-size);
+}
+
+/* Progress bar */
+#progressBarContainer {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+
+    margin: 10px;
+    gap: 5px;
+}
+progress {
+    width: 100%;
+    height: 20px;
+    border-radius: 10px;
+}
+progress::-webkit-progress-bar {
+    background-color: var(--progress-bar-outside-color);
+    border-radius: 10px;
+}
+progress::-webkit-progress-value {
+    background-color: var(--progress-bar-inside-color);
+    border-radius: 10px;
+}
+progress::-moz-progress-bar {
+    background-color: var(--progress-bar-inside-color);
+    border-radius: 10px;
+}

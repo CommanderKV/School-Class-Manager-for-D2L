@@ -1,0 +1,35 @@
+:root {
+    --search-bar-border-color: #dddddd;
+
+}
+
+/* Adjust the search feild */
+.search-bar {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+
+    width: 100%;
+    height: auto;
+}
+
+.search-bar > input {
+    width: 90%;
+    height: 50px;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 10px;
+
+    font-size: 1.2em;
+
+    border: 4px solid var(--search-bar-border-color);
+    box-shadow: 6px 6px 8px 0px var(--card-shadow-color);
+}
+
+.search-bar > input:focus-visible {
+    outline: none;
+    border: 4px solid var(--card-border-color);
+}
+

@@ -1,0 +1,58 @@
+:root {
+    --option-button-border-radius: 10px;
+    --option-button-border-width: 1px;
+    --option-button-border-color: #ee7e27;
+    --option-button-background-color: #ee7e27;
+    --option-button-hover-color: #ff9e5e;
+}
+
+.options {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 10px;
+    margin-top: 0px;
+}
+.option-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 50px;
+}
+.option-buttons > button {
+    height: 50px;
+    width: 20%;
+
+    padding: 10px;
+
+    border: var(--option-button-border-width) solid var(--option-button-border-color);
+    border-left-width: 0px;
+    border-right-width: 0px;
+    background-color: var(--option-button-background-color);
+
+    cursor: pointer;
+    
+    font-weight: bold;
+    font-size: 1.5em;
+
+    transition-property: background-color, transform;
+    transition-timing-function: ease-in-out;
+    transition-duration: 0.2s, 0.3s;
+}
+.option-buttons > button:first-child {
+    border-left-width: var(--option-button-border-width);
+    border-bottom-left-radius: var(--option-button-border-radius);
+}
+.option-buttons > button:last-child {
+    border-right-width: var(--option-button-border-width);
+    border-bottom-right-radius: var(--option-button-border-radius);
+}
+.option-buttons > button:hover {
+    background-color: var(--option-button-hover-color);
+    transform: scale(1.025);
+}
+.option-buttons > button.active {
+    background-color: var(--option-button-hover-color);
+}
