@@ -485,7 +485,7 @@ class Assignment:
             "DUE": self.due,
             "INSTRUCTIONS": self.instructions,
             "ATTACHMENTS": self.attachments,
-            "SUBMISSIONS": self.submissions.__dict__ if self.submissions else None,
+            "SUBMISSIONS": self.submissions.toDict() if self.submissions else None,
             "GRADE": self.grade,
             "FEEDBACK": self.feedback
         }
