@@ -1,7 +1,7 @@
 // Filter the search dropdown based on the user's input
 function filterFunction(className) {
     // Get the input value and convert it to uppercase
-    let input = document.getElementByClass("search-input");
+    let input = document.getElementById("search-input");
     let filter = input.value.toUpperCase();
 
     // Get the dropdown container and the cards
