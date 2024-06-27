@@ -15,7 +15,7 @@ from playwright.sync_api import Locator, Page
 from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
 from customPrint import print # pylint: disable=redefined-builtin,import-error
 
-from submission import Submissions # pylint: disable=import-error
+from submission import Submissions, convertTime # pylint: disable=import-error
 
 
 class Assignment:
@@ -195,35 +195,8 @@ class Assignment:
         # Process the data into a datetime format
         dueDateProcessed: str = dueDateRaw[0].get_text().replace("Due on ", "").strip()
 
-        month: str = dueDateProcessed.split(" ")[0]
-        day: str = dueDateProcessed.split(" ")[1].replace(",", "")
-        year: str = dueDateProcessed.split(" ")[2]
-        time: str = dueDateProcessed.split(" ")[3]
-        add24Hours: bool = True if dueDateProcessed.split(" ")[4].lower() == "pm" else False
-
-        # Create the time
-        time = time + ":00"
-        if add24Hours and int(time.split(":")[0]) < 12:
-            time = str(int(time.split(":")[0]) + 12) + ":" + time.split(":")[1] + ":00"
-
-        # Convert the month to a number
-        months: dict[str, str] = {
-            "jan": "01",
-            "feb": "02",
-            "mar": "03",
-            "apr": "04",
-            "may": "05",
-            "jun": "06",
-            "jul": "07",
-            "aug": "08",
-            "sep": "09",
-            "oct": "10",
-            "nov": "11",
-            "dec": "12",
-        }
-
         # Set the due date
-        self.due = f"{year}-{months[month.lower()]}-{day} {time}"
+        self.due = convertTime(dueDateProcessed)
 
         return self.due
 

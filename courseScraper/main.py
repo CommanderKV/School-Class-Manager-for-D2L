@@ -124,7 +124,7 @@ def getCourses(page: Page) -> list[Course]:
         # Append the course object to the courses list
         print(f"[ignore][Success] {newCourse.name} loaded!")
         courses.append(newCourse)
-        
+
         del newCourse
 
     print("[Completed] Course details loaded!")

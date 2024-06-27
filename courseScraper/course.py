@@ -228,7 +228,6 @@ class Course:
                     newAssignment.fill(assignment, page)
 
                     # Add the assignment to the list of assignments
-                    print(f"Adding assignment: {newAssignment.name} to assignments {[assignment.name for assignment in self.assignments]}...")
                     self.assignments.append(newAssignment)
 
                 del assignmentsSoup

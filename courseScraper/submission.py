@@ -137,35 +137,8 @@ class Submissions:
                             # Process the data into a datetime format
                             dueDateProcessed: str = date.group(1).strip()
 
-                            month: str = dueDateProcessed.split(" ")[0]
-                            day: str = dueDateProcessed.split(" ")[1].replace(",", "")
-                            year: str = dueDateProcessed.split(" ")[2]
-                            time: str = dueDateProcessed.split(" ")[3]
-                            add24Hours: bool = True if dueDateProcessed.split(" ")[4].lower() == "pm" else False # pylint: disable=line-too-long
-
-                            # Create the time
-                            time = time + ":00"
-                            if add24Hours and int(time.split(":")[0]) < 12:
-                                time = str(int(time.split(":")[0]) + 12) + ":" + time.split(":")[1] + ":00" # pylint: disable=line-too-long
-
-                            # Convert the month to a number
-                            months: dict[str, str] = {
-                                "jan": "01",
-                                "feb": "02",
-                                "mar": "03",
-                                "apr": "04",
-                                "may": "05",
-                                "jun": "06",
-                                "jul": "07",
-                                "aug": "08",
-                                "sep": "09",
-                                "oct": "10",
-                                "nov": "11",
-                                "dec": "12",
-                            }
-
                             # Set the due date
-                            currentSubmission["DATE"] = f"{year}-{months[month.lower()]}-{day} {time}" # pylint: disable=line-too-long
+                            currentSubmission["DATE"] = convertTime(dueDateProcessed)
 
                     # If the submission is not the start of a new submission
                     else:
@@ -287,3 +260,46 @@ class Submissions:
             "URL": self.url,
             "SUBMISSIONS": self.submissions
         }
+
+
+def convertTime(timeIn: str):
+    """
+    # Description:
+        Converts the time to the format "YYYY-MM-DD HH:MM:SS"
+
+    ## Args:
+        - time (str): 
+            The time to convert
+
+    ## Returns:
+        str: 
+            The converted time
+    """
+    month: str = timeIn.split(" ")[0]
+    day: str = timeIn.split(" ")[1].replace(",", "")
+    year: str = timeIn.split(" ")[2]
+    time: str = timeIn.split(" ")[3]
+    add24Hours: bool = True if timeIn.split(" ")[4].lower() == "pm" else False # pylint: disable=simplifiable-if-expression
+
+    # Create the time
+    time = time + ":00"
+    if add24Hours and int(time.split(":")[0]) < 12:
+        time = str(int(time.split(":")[0]) + 12) + ":" + time.split(":")[1] + ":00"
+
+    # Convert the month to a number
+    months: dict[str, str] = {
+        "jan": "01",
+        "feb": "02",
+        "mar": "03",
+        "apr": "04",
+        "may": "05",
+        "jun": "06",
+        "jul": "07",
+        "aug": "08",
+        "sep": "09",
+        "oct": "10",
+        "nov": "11",
+        "dec": "12",
+    }
+
+    return f"{year}-{months[month.lower()]}-{day} {time}"
