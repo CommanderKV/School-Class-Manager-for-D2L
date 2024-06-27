@@ -397,7 +397,7 @@ function updateAttachment({ attachmentID=null, assignmentID=null, submissionID=n
                         let attachmentID = results[0].attachmentID;
 
                         var query, queryParams;
-                        if (submissionID != null && submissionID != undefined) {
+                        if (attachmentID != null && assignmentID != null) {
                             [query, queryParams] = helper.makeQuery(
                                 `INSERT INTO AttachmentLinkToAssignment `
                                 [attachmentID, assignmentID],
@@ -406,7 +406,7 @@ function updateAttachment({ attachmentID=null, assignmentID=null, submissionID=n
                                 ");",
                                 true
                             )
-                        } else if (assignmentID != null && assignmentID != undefined) {
+                        } else if (attachmentID != null && assignmentID != null) {
                             [query, queryParams] = helper.makeQuery(
                                 `INSERT INTO AttachmentLinkToSubmission `
                                 [attachmentID, submissionID],
@@ -422,7 +422,7 @@ function updateAttachment({ attachmentID=null, assignmentID=null, submissionID=n
                         // Link the attachment to the assignment
                         connection.query(query, queryParams, (error, results, fields) => {
                             if (error) {
-                                reject(`An error occurred while linking the attachment and assignment. ${error}`);
+                                reject(`An error occurred while linking the attachment and assignment. ${query} ${queryParams} ${error} ${error.stack}`);
                                 return;
                             }
                             resolve(true);
@@ -841,4 +841,5 @@ module.exports = {
     getAssignment,
     getUserToClassLink,
     getClassAssignments,
+    getGrade
 };

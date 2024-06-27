@@ -226,6 +226,9 @@ async function runUpdate(userID, apiKey) {
                     // Add all assignments
                     if (course.ASSIGNMENTS != null) {
                         course.ASSIGNMENTS.forEach((assignment) => {
+                            if (assignment == null) {
+                                return;
+                            }
 
                             // Add the assignment
                             if (assignment.SUBMISSIONS != null) {
@@ -260,7 +263,7 @@ async function runUpdate(userID, apiKey) {
                                     });
 
                                 // Add all the submissions
-                                } else if (assignment.SUBMISSIONS != null) {
+                                } else if (assignment.SUBMISSIONS.SUBMISSIONS != null) {
                                     assignment.SUBMISSIONS.SUBMISSIONS.forEach((submission) => {
 
                                         // Add the submission
@@ -297,10 +300,14 @@ async function runUpdate(userID, apiKey) {
                                     delete progressTracker.apiKey;
 
                                     // Remove the file
-                                    fs.unlinkSync(coursePath);
+                                    try {
+                                        fs.unlinkSync(coursePath);
+                                    } catch (err) {
+                                        console.log(err);
+                                    }
                                 }, 5 * 60 * 1000);
 
-                                masterReject(`Failed to update assignment. courseID: ${courseID} Error: ${error}`);
+                                masterReject(`Failed to update assignment. courseID: ${courseID} Error: ${error} ${error.stack}`);
                             });
                         });
                     }
@@ -410,8 +417,6 @@ router.get("/update", (req, res, next) => {
 
 
 router.get("/", async (req, res) => {
-    console.log("Getting classes");
-
     // Get the token
     const token = req.headers.authorization.split(" ")[1];
 
@@ -469,7 +474,6 @@ router.get("/", async (req, res) => {
 });
 
 router.get("/assignments/:classID", async (req, res) => {
-    console.log("Getting assignments");
     // Get the token
     const token = req.headers.authorization.split(" ")[1];
 
@@ -493,9 +497,12 @@ router.get("/assignments/:classID", async (req, res) => {
     let assignments = [];
     for (let i = 0; i < result.length; i++) {
         let grade;
-        DB.getGrade({ userID: data.userID, assignmentID: result[i].assignmentID })
+        DB.getGrade({ userID: data.data.userID, assignmentID: result[i].assignmentID })
         .then((result) => {
             grade = result[0].grade;
+        }).catch((error) => {
+            console.log(error);
+            grade = null;
         });
         result[i].grade = grade;
         assignments.push(result[i]);
