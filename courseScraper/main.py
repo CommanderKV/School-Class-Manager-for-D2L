@@ -209,5 +209,6 @@ if __name__ == "__main__":
 
     else:
         # Start scraping
+        os.environ["SCRAPER_DEBUG"] = "True"
         with sync_playwright() as playwright:
             main(playwright, LINK, USERNAME, PASSWORD)
