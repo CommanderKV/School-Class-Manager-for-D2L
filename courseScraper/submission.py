@@ -271,8 +271,18 @@ class Submissions:
 
         return None
 
-    @property
-    def __dict__(self):
+    def toDict(self):
+        """
+        # Description:
+            This function converts the object to a dictionary.
+
+        ## Args:
+            None
+
+        ## Returns:
+            dict[str, str]: 
+                The dictionary representation of the object.
+        """
         return {
             "URL": self.url,
             "SUBMISSIONS": self.submissions

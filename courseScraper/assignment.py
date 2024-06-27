@@ -494,8 +494,18 @@ class Assignment:
         return self.feedback
 
 
-    @property
-    def __dict__(self):
+    def toDict(self):
+        """
+        # Description:
+            Converts the assignment object to a dictionary
+
+        ## Args:
+            None
+
+        ## Returns:
+            dict[str, str]: 
+                The dictionary of the assignment
+        """
         return {
             "NAME": self.name,
             "LINK": self.link,

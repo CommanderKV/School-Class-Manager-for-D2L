@@ -43,7 +43,7 @@ def saveToFile(courses: list[Course], filename: str) -> None:
     print("[Notice] Saving course details...")
     with open(filename, "w", encoding="utf-8") as file:
         json.dump(
-            [course.__dict__ for course in courses],
+            [course.toDict() for course in courses],
             file,
             indent=4
         )
@@ -124,6 +124,8 @@ def getCourses(page: Page) -> list[Course]:
         # Append the course object to the courses list
         print(f"[ignore][Success] {newCourse.name} loaded!")
         courses.append(newCourse)
+        
+        del newCourse
 
     print("[Completed] Course details loaded!")
 

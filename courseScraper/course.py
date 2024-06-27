@@ -93,15 +93,15 @@ class Course:
                     The list of assignments of the course.
         """
         self.baseURL: str = baseURL
-        self.link: str = link
-        self.closed: bool = closed
-        self.shortTerm: str = shortTerm
-        self.courseCode: str = courseCode
-        self.name: str = name
-        self.longTerm: str = longTerm
-        self.syllabus: str | None = syllabus
-        self.assignmentsURL: str = assignmentsURL
-        self.assignments: list[Assignment] | None = assignments
+        self.link: str = "" if not link else link
+        self.closed: bool = False if not closed else closed
+        self.shortTerm: str = "" if not shortTerm else shortTerm
+        self.courseCode: str = "" if not courseCode else courseCode
+        self.name: str = "" if not name else name
+        self.longTerm: str = "" if not longTerm else longTerm
+        self.syllabus: str | None = None if not syllabus else syllabus
+        self.assignmentsURL: str = "" if not assignmentsURL else assignmentsURL
+        self.assignments: list[Assignment] | None = [] if not assignments else assignments
 
     def fill(self, course: tuple[str, str], page: Page) -> None: # pylint: disable=too-many-branches
         """
@@ -120,6 +120,7 @@ class Course:
                 If the course does not have a span element.
         """
         print("[Notice] Obtaining course details...")
+
         # Save start page
         startPage = page.url
 
@@ -206,12 +207,12 @@ class Course:
 
             # Check if there are any assignments
             soup = BeautifulSoup(page.inner_html("*"), 'html.parser')
-            assignments = soup.select(
+            assignmentsSoup = soup.select(
                 "table.d2l-table.d2l-grid.d_gd > tbody > tr:not(:first-child)"
             )
 
             # Check that we have assignments
-            if assignments:
+            if assignmentsSoup:
                 # Go through each assignment
                 for assignment in page.locator(
                     "table.d2l-table.d2l-grid.d_gd > tbody > tr:not(:first-child)"
@@ -227,8 +228,11 @@ class Course:
                     newAssignment.fill(assignment, page)
 
                     # Add the assignment to the list of assignments
+                    print(f"Adding assignment: {newAssignment.name} to assignments {[assignment.name for assignment in self.assignments]}...")
                     self.assignments.append(newAssignment)
 
+                del assignmentsSoup
+                del newAssignment
                 # Print out logs
                 print("\t[Success] Obtained assignments!")
 
@@ -238,35 +242,34 @@ class Course:
                 self.assignments = None
                 print("\t[Warning] No assignments found.")
 
-            # Print out logs
-            print("\t[Success] Obtained assignments!")
-
         else:
             # Throw an error if the course does not have a span element
-            raise ValueError(f"No text in d2l-card '''{course.inner_html()}'''")
+            raise ValueError(f"No text in d2l-card '''{course}'''")
 
         print("[Completed] Course details obtained!")
 
         # Go to the start page
         page.goto(startPage)
 
-    @property
-    def __dict__(self):
+    def toDict(self):
         """
         # Description:
             This function returns the dictionary of the course.
+
+        ## Args:
+            None
     
         ## Returns:
             - dict: 
                 The dictionary of the course.
         """
         # Make all the assignments into a dictionary
-        assignments = []
+        _assignments = []
         if self.assignments:
             for assignment in self.assignments:
-                assignments.append(assignment.__dict__)
+                _assignments.append(assignment.toDict())
         else:
-            assignments = None
+            _assignments = None
 
         # Return the dictionary of the course
         return {
@@ -280,7 +283,7 @@ class Course:
             },
             "SYLLABUS-URL": self.syllabus,
             "ASSIGNMENTS-URL": self.assignmentsURL,
-            "ASSIGNMENTS": assignments,
+            "ASSIGNMENTS": _assignments,
         }
 
 
@@ -328,9 +331,9 @@ if __name__ == "__main__":
             newCourse.fill(randomCourse, testPage)
 
             with open("test.json", "w", encoding="utf-8") as file:
-                print(newCourse.__dict__)
+                print(newCourse.toDict())
                 json.dump(
-                    newCourse.__dict__,
+                    newCourse.toDict(),
                     file,
                     ensure_ascii=False,
                     indent=4
