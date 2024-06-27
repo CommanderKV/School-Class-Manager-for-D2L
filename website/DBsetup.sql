@@ -51,7 +51,6 @@ CREATE TABLE Assignments (
     name VARCHAR(100) NOT NULL,
     dueDate DATETIME NOT NULL,
     instructions TEXT DEFAULT NULL,
-    grade VARCHAR(30) DEFAULT "Not Graded",
     FOREIGN KEY (classID) REFERENCES Classes(classID)
 ) AUTO_INCREMENT = 1;
 
@@ -95,6 +94,15 @@ CREATE TABLE AttachmentLinkToAssignment (
     FOREIGN KEY (attachmentID) REFERENCES Attachments(attachmentID),
     FOREIGN KEY (assignmentID) REFERENCES Assignments(assignmentID)
 );
+
+CREATE TABLE Grades (
+    gradeID INT AUTO_INCREMENT PRIMARY KEY,
+    userID INT NOT NULL,
+    assignmentID INT NOT NULL,
+    grade VARCHAR(30) NOT NULL,
+    FOREIGN KEY (userID) REFERENCES Users(userID),
+    FOREIGN KEY (assignmentID) REFERENCES Assignments(assignmentID)
+) AUTO_INCREMENT = 1;
 
 -- Insert some test data
 

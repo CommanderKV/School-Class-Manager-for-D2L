@@ -175,7 +175,8 @@ function updateAssignment({
     instructions=null,
     grade=null, 
     courseID=null,
-    submissionURL=null
+    submissionURL=null,
+    userID=null
     }) {
     return new Promise((resolve, reject) => {
         // Check that the parameters are given
@@ -186,7 +187,9 @@ function updateAssignment({
             instructions, 
             grade, 
             courseID, 
-            submissionURL])) {
+            submissionURL,
+            userID
+        ])) {
             reject(`updateAssignment: No arguments provided. ${link}, ${name}, ${due}, ${instructions}, ${grade}, ${courseID}, ${submissionURL}`);
         }
 
@@ -200,8 +203,7 @@ function updateAssignment({
             link: link, 
             name: name, 
             dueDate: due, 
-            instructions: instructions, 
-            grade: grade, 
+            instructions: instructions,
             submissionURL: submissionURL, 
             classID: courseID
         }).then((data) => {
@@ -216,7 +218,6 @@ function updateAssignment({
                         name,
                         due,
                         instructions,
-                        grade,
                         courseID
                     ],
                     [
@@ -225,7 +226,6 @@ function updateAssignment({
                         "name",
                         "dueDate",
                         "instructions",
-                        "grade",
                         "classID"
                     ],
                     ", ",
@@ -250,7 +250,6 @@ function updateAssignment({
                                 name,
                                 due,
                                 instructions,
-                                grade,
                                 courseID
                             ],
                             [
@@ -259,7 +258,6 @@ function updateAssignment({
                                 "name",
                                 "dueDate",
                                 "instructions",
-                                "grade",
                                 "classID"
                             ],
                             " AND "
@@ -277,6 +275,10 @@ function updateAssignment({
                             } else if (results.length > 1) {
                                 reject(`Too many assignments found. ${results}`);
                             } else {
+                                // Insert the grade
+                                updateGrade({ grade: grade, assignmentID: results[0].assignmentID, userID: userID}).catch((error) => {
+                                    reject(`An error occurred while adding the grade. ${error}`);
+                                });
                                 resolve(results[0].assignmentID);
                             }
                         });
@@ -294,9 +296,10 @@ function updateAssignment({
                     data.submissionURL != submissionURL ||
                     data.name != name || 
                     data.dueDate != due ||
-                    data.instructions != instructions ||
-                    data.grade != grade
+                    data.instructions != instructions
                 ) {
+
+                    // Update the assignment
                     let [query, queryParams] = helper.makeQuery(
                         `UPDATE Assignments SET `,
                         [
@@ -305,7 +308,6 @@ function updateAssignment({
                             name != data.name ? name : null,
                             due != data.dueDate ? due : null,
                             instructions != data.instructions ? instructions : null,
-                            grade != data.grade ? grade : null
                         ],
                         [
                             "link",
@@ -313,7 +315,6 @@ function updateAssignment({
                             "name",
                             "dueDate",
                             "instructions",
-                            "grade"
                         ],
                         ", ",
                         " WHERE assignmentID = ?;"
@@ -561,10 +562,115 @@ function updateSubmission({submissionID=null, assignmentID=null, link=null, comm
     });
 }
 
+function updateGrade({ grade=null, assignmentID=null, userID=null }) {
+    // Check if the parameters are provided
+    if (!helper.checkParams([grade, assignmentID, userID], 3)) {
+        return new Promise((resolve, reject) => {
+            reject(`updateGrade: No arguments provided. ${grade}, ${assignmentID}, ${userID}`);
+        });
+    }
+
+    // Make the query
+    let [query, queryParams] = helper.makeQuery(
+        `SELECT * FROM Grades WHERE `,
+        [grade, assignmentID, userID],
+        ["grade", "assignmentID", "userID"],
+        " AND "
+    );
+
+    // Check if the grade exists
+    return new Promise((resolve, reject) => {
+        connection.query(query, queryParams, (error, results, fields) => {
+            if (error) {
+                reject(`An error occurred while getting the grade. ${error}`);
+                return;
+            }
+
+            // Grade does not exist
+            if (results.length === 0) {
+                // Insert the grade into the database
+                let [query, queryParams] = helper.makeQuery(
+                    `INSERT INTO Grades `,
+                    [grade, assignmentID, userID],
+                    ["grade", "assignmentID", "userID"],
+                    ", ",
+                    ");",
+                    true
+                );
+                connection.query(query, queryParams, (error, results, fields) => {
+                    if (error) {
+                        reject(`An error occurred while adding the grade. ${error}`);
+                        return;
+                    }
+                    resolve(true);
+                });
+
+            // Grade does exist
+            } else {
+                // Check if an update is needed
+                if (results[0].grade != grade) {
+                    // Update the grade
+                    let [query, queryParams] = helper.makeQuery(
+                        `UPDATE Grades SET `,
+                        [grade],
+                        ["grade"],
+                        ", ",
+                        " WHERE assignmentID = ? AND userID = ?;",
+                    );
+                    queryParams.push(assignmentID);
+                    queryParams.push(userID);
+
+                    connection.query(query, queryParams, (error, results, fields) => {
+                        if (error) {
+                            reject(`An error occurred while updating the grade. ${error}`);
+                            return;
+                        }
+                        resolve(true);
+                    });
+                } else {
+                    resolve(true);
+                }
+            }
+        });
+    });
+}
+
 
 // -----------------
 //   Get functions
 // -----------------
+function getGrade({ gradeID=null, assignmentID=null, userID=null }) {
+    // Check if the parameters are provided
+    if (!helper.checkParams([gradeID, [assignmentID, userID]], 1)) {
+        return new Promise((resolve, reject) => {
+            reject(`getGrade: No arguments provided. ${gradeID}, ${assignmentID}, ${userID}`);
+        });
+    }
+
+    // Make the query
+    let [query, queryParams] = helper.makeQuery(
+        `SELECT * FROM Grades WHERE `,
+        [gradeID, assignmentID, userID],
+        ["gradeID", "assignmentID", "userID"],
+        " AND "
+    );
+
+    // Check if the grade exists
+    return new Promise((resolve, reject) => {
+        connection.query(query, queryParams, (error, results, fields) => {
+            if (error) {
+                reject(`An error occurred while getting the grade. ${error}`);
+                return;
+            }
+            if (results.length > 1) {
+                reject(`Too many grades found. ${results}`);
+            }
+
+            resolve(results);
+        });
+    });
+}
+
 function getUser({ 
     userID=null, 
     username=null, 
@@ -604,44 +710,45 @@ function getUser({
     });
 }
 
-function getUserToClassLink({userID=null, classID=null, linkID=null}) {
-    // Check if at least one parameter is provided
-    if (!helper.checkParams([userID, classID, linkID])) {
-        return `getUserToClassLink: No arguments provided ${userID}, ${classID}, ${linkID}`;
-    }
-
-    // Setup the query
-    let [query, queryParams] = helper.makeQuery(
-        "SELECT * FROM UsersToClasses WHERE ",
-        [userID, classID, linkID],
-        {userID: "userID", classID: "classID", linkID: "linkID"}
-    )
-
-    // Execute the query
-    result = connection.query(query, queryParams, (error, results, fields) => {
-        if (error) {
-            console.error(`An error occurred while getting the user classes. ${error}`);
-            return;
+async function getUserToClassLink({userID=null, classID=null, linkID=null}) {
+    return new Promise((resolve, reject) => {
+        // Check if at least one parameter is provided
+        if (!helper.checkParams([userID, classID, linkID])) {
+            reject(`getUserToClassLink: No arguments provided ${userID}, ${classID}, ${linkID}`);
         }
-        return results;
+
+        // Setup the query
+        let [query, queryParams] = helper.makeQuery(
+            "SELECT * FROM UsersToClasses WHERE ",
+            [userID, classID, linkID],
+            ["userID", "classID", "linkID"]
+        )
+
+        // Execute the query
+        connection.query(query, queryParams, (error, results, fields) => {
+            if (error) {
+                console.error(`An error occurred while getting the user classes. ${error}`);
+                return false;
+            }
+            resolve(results);
+        });
     });
 }
 
-function getClassAssignments(classID) {
-    // Create the query
-    const query = `SELECT * FROM Assignments WHERE classID = ?`;
+async function getClassAssignments(classID) {
+    return new Promise((resolve, reject) => {
+        // Create the query
+        const query = `SELECT * FROM Assignments WHERE classID = ?`;
 
-    // Execute the query
-    result = connection.query(query, [classID], (error, results, fields) => {
-        if (error) {
-            console.error(`An error occurred while getting the user assignments. ${error}`);
-            return;
-        }
-        return results;
+        // Execute the query
+        connection.query(query, [classID], (error, results, fields) => {
+            if (error) {
+                console.error(`An error occurred while getting the user assignments. ${error}`);
+                reject(`An error occurred while getting the user assignments. ${error}`);
+            }
+            resolve(results);
+        });
     });
-    
-    // Return the result
-    return result;
 }
 
 function getClass({classID=null, courseCode=null, link=null, name=null}) {

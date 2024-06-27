@@ -11,7 +11,9 @@ const logsContainer = document.querySelector("#logs > ol");
 // Get the console header container
 const consoleHeader = document.getElementById("consoleHeader");
 
-let token;
+if (window.token == null) {
+    window.token = getToken();
+}
 
 async function getToken () {
     let data = await fetch(
@@ -49,7 +51,7 @@ async function initalRequest() {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "authorization": "Bearer " + token
+            "authorization": "Bearer " + window.token
         },
     })
     .catch((error) => {
@@ -101,7 +103,7 @@ async function updateStatus(lastOutputLength) {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
-            "authorization": "Bearer " + token
+            "authorization": "Bearer " + window.token
         }
     })
     .catch((error) => {

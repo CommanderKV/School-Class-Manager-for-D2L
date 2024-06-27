@@ -7,8 +7,70 @@ const containers = document.querySelectorAll('.main-container');
 const pageTitle = document.querySelector('#pageTitle');
 
 
+async function checkToken() {
+    if (window.token == null) {
+        window.token = await getToken();
+    }
+}
+
+async function checkStatus(status) {
+    switch (status) {
+        case 403:
+            console.error("Unauthorized");
+            window.token = await getToken();
+            console.log(window.token);
+            break;
+
+        case 404:
+            console.error("Not found");
+            break;
+
+        case 401:
+            console.error("Forbidden");
+            break;
+
+        default:
+            console.error("Unknown error");
+            break;
+    }
+}
+
+// Get the token
+async function getToken () {
+    // Login
+    let data = await fetch(
+        "http://localhost:3000/api/v1/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify
+        ({
+            "username": "CommanderKV",
+            "password": "admin",
+        }),
+
+    // Catch any errors
+    }).catch((error) => {
+        console.error(error);
+        return null;
+    });
+
+    if (data.status != 200) {
+        checkStatus(data.status);
+        return null;
+    }
+
+    // Get the result as json
+    let result = await data.json();
+
+    // Return the token
+    return result.token;
+}
+
+
 // Create a card element
-function createCard(id) {
+function createCourseCard(name, code, overallGrade, term, assignments) {
     /*  <div class="card">
             <div class="card-header">
                 <!-- Image here? -->
@@ -83,7 +145,7 @@ function createCard(id) {
 
     // Create the label
     const label = document.createElement("label");
-    label.innerText = `Doc Automation Course ${id}`;
+    label.innerText = name;
     header.appendChild(label);
 
     // Create the header details
@@ -98,20 +160,20 @@ function createCard(id) {
     // Create the course code
     const courseCode = document.createElement("span");
     courseCode.classList.add("course-code");
-    courseCode.innerText = "COMP-1112G-WAB";
+    courseCode.innerText = code;
     detailsDiv.appendChild(courseCode);
 
     // Create the course grade
     const courseGrade = document.createElement("span");
     courseGrade.classList.add("course-grade");
     courseGrade.classList.add("good");
-    courseGrade.innerText = "100%";
+    courseGrade.innerText = overallGrade + "%";
     detailsDiv.appendChild(courseGrade);
 
     // Create the course term
     const courseTerm = document.createElement("span");
     courseTerm.classList.add("course-term");
-    courseTerm.innerText = "2024W";
+    courseTerm.innerText = term;
     headerDetails.appendChild(courseTerm);
 
     // Create the card body
@@ -125,8 +187,12 @@ function createCard(id) {
     assignmentList.id = "card-assignment-list";
     body.appendChild(assignmentList);
 
+    if (assignments.length == 0) {
+        return card;
+    }
+
     // Creat the assignments
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < assignments.length; i++) {
         // Creat the container
         const assignment = document.createElement("li");
         assignmentList.appendChild(assignment);
@@ -142,12 +208,12 @@ function createCard(id) {
 
         // Create the name
         const assignmentName = document.createElement("span");
-        assignmentName.innerText = "Assignment 1: Work on this";
+        assignmentName.innerText = assignments[i].name;
         assignmentDetails.appendChild(assignmentName);
 
         // Create the due date
         const assignmentDue = document.createElement("span");
-        assignmentDue.innerText = "Due: 2024:01:01 00:00:00";
+        assignmentDue.innerText = "Due: " + assignments[i].due;
         assignmentDetails.appendChild(assignmentDue);
     }
     
@@ -155,13 +221,120 @@ function createCard(id) {
     return card;
 }
 
+async function addCards(container) {
+    // Check for vaild login
+    await checkToken();
 
-// Go through each container and add cards
-for (var i = 0; i < cardContainers.length; i++) {
-    // Add a hundred cards to the container for testing
-    for (var j=0; j < 100; j++) {
-        cardContainers[i].appendChild(createCard(j));
+    // Check if the containers ID is one of the following
+    console.log(`Adding cards to ${container.id}`)
+    let cardHolder = container.querySelector(".cards");
+    switch (container.id) {
+        case "courses":
+            // Get the courses
+            const courseResult = await fetch("http://localhost:3000/api/v1/classes", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "authorization": `Bearer ${window.token}`
+                }
+            }).catch((error) => {
+                console.error(error);
+                return null;
+            });
+
+            if (courseResult.status != 200) {
+                checkStatus(courseResult.status);
+                return;
+            }
+
+            console.log(`Courses: ${courseResult}`)
+
+            // Get the result as json
+            const courseResultJson = await courseResult.json();
+            console.log(courseResultJson)
+
+            let cards = [];
+            // Create a card for each course 
+            for (let i = 0; i < courseResultJson.courses.length; i++) {
+                // Get the assignments for this course
+                const assignmentResult = await fetch(`http://localhost:3000/api/v1/classes/assignments/${courseResultJson.courses[i].classID}`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "authorization": `Bearer ${window.token}`
+                    }
+                }).catch((error) => {
+                    console.error(error);
+                    return null;
+                });
+
+                // Check if data exsists
+                if (assignmentResult.status != 200) {
+                    checkStatus(assignmentResult.status);
+                    continue;
+                } else if (assignmentResult == null || assignmentResult == undefined) {
+                    console.log("No assignments found");
+                    continue;
+                }
+
+                // Get the result as json
+                const assignmentsJson = await assignmentResult.json();
+
+                // Check if the assignments are empty
+                /*if (assignmentsJson.assignments.length == 0) {
+                    cards.push(createCourseCard(
+                        courseResultJson.courses[i].name,
+                        courseResultJson.courses[i].courseCode,
+                        courseResultJson.courses[i].overallGrade ? courseResultJson.courses[i].overallGrade : "N/A",
+                        courseResultJson.courses[i].termShort,
+                        []
+                    ));
+                    continue;
+                }*/
+               console.log(assignmentsJson.assignments)
+
+                // Add cards
+                let assignments = [];
+                for (let j = 0; j < assignmentsJson.assignments.length; j++) {
+                    assignments.push({
+                        name: assignmentsJson.assignments[j].name,
+                        due: assignmentsJson.assignments[j].dueDate
+                    });
+                }
+
+                // Create the card
+                const data = createCourseCard(
+                    courseResultJson.courses[i].name,
+                    courseResultJson.courses[i].courseCode,
+                    courseResultJson.courses[i].overallGrade ? courseResultJson.courses[i].overallGrade : "N/A",
+                    courseResultJson.courses[i].termShort,
+                    assignments
+                )
+
+                // Add the card to the container
+                cards.push(data);
+                
+                delete data;
+                delete assignments;
+                delete assignmentsJson;
+                delete assignmentResult;
+            }
+
+            // Add the cards to the container
+            for (let i = 0; i < cards.length; i++) {
+                cardHolder.appendChild(cards[i]);
+            }
+
+            break;
+        
+        case "assignments":
+
+            break;
     }
+}
+
+for (var i = 0; i < containers.length; i++) {
+    addCards(containers[i]);
 }
 
 // Add event listeners to the buttons

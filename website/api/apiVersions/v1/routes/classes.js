@@ -190,6 +190,7 @@ async function runUpdate(userID, apiKey) {
             let jsonDir = coursePath;
             let jsonData = fs.readFileSync(jsonDir, "utf-8");
             let courses = JSON.parse(jsonData);
+            console.log(courses);
 
             // Add all courses and link it to the user
             courses.forEach((course) => {
@@ -239,7 +240,8 @@ async function runUpdate(userID, apiKey) {
                                 instructions: assignment.INSTRUCTIONS,
                                 grade: assignment.GRADE,
                                 courseID: courseID,
-                                submissionURL: submissionURL
+                                submissionURL: submissionURL,
+                                userID: userID
                             })
                             .then((assignmentID) => {
 
@@ -343,7 +345,12 @@ async function runUpdate(userID, apiKey) {
 
 // Log a request
 router.use((req, res, next) => {
-    req.url = req.url.replace("/classes/", "/");
+    if (req.url == "/classes/") {
+        req.url = req.url.replace("/classes/", "/");
+    } else if (req.url == "/classes") {
+        req.url = req.url.replace("/classes", "/");
+    }
+
     //console.log(`Request made to classes: ${req.url}`);
     next();
 });
@@ -402,14 +409,111 @@ router.get("/update", (req, res, next) => {
 });
 
 
-router.get("/", (req, res) => {
-    console.log("Getting functions");
+router.get("/", async (req, res) => {
+    console.log("Getting classes");
+
+    // Get the token
+    const token = req.headers.authorization.split(" ")[1];
+
+    // Decode the token
+    const data = helper.verifyToken(token);
+
+    // Make courses list
+    let courses = [];
+
+    // Get the classes
+    let courseIDs = await DB.getUserToClassLink({ userID: data.data.userID });
+    
+    if (!courseIDs) {
+        res.status(200).json({
+            "status": "Failed",
+            "courses": []
+        });
+        return;
+    } else if (courseIDs == null) {
+        res.status(200).json({
+            "status": "success No courses found",
+            "courses": []
+        });
+        return;
+    }
+
+
+    // Go through the class IDs
+    for (let i = 0; i < courseIDs.length; i++) {
+        // Get the current courseID
+        courseID = courseIDs[i].classID;
+
+        // Get the course
+        DB.getClass({ classID: courseID })
+        .then((course) => {
+            // Add the course to the courses list
+            courses.push(course[0]);
+        });
+    }
+
+    // Wait for all courses to be added
+    while (courses.length < courseIDs.length) {
+        await new Promise((resolve, reject) => {
+            setTimeout(() => {
+                resolve();
+            }, 100);
+        });
+    }
+
+    // Send the courses back 
     res.status(200).json({
-        "functions": {
-            "update": [
-                "/:userID"
-            ]
-        }
+        "status": "success",
+        "courses": courses
+    }); 
+});
+
+router.get("/assignments/:classID", async (req, res) => {
+    console.log("Getting assignments");
+    // Get the token
+    const token = req.headers.authorization.split(" ")[1];
+
+    // Decode the token
+    const data = helper.verifyToken(token);
+
+    // Get the course code
+    const classID = req.params.classID;
+
+    // Get the assignments
+    const result = await DB.getClassAssignments(classID)
+
+    if (!result) {
+        res.status(200).json({
+            "status": "failed",
+            "assignments": []
+        });
+        return;
+    }
+
+    let assignments = [];
+    for (let i = 0; i < result.length; i++) {
+        let grade;
+        DB.getGrade({ userID: data.userID, assignmentID: result[i].assignmentID })
+        .then((result) => {
+            grade = result[0].grade;
+        });
+        result[i].grade = grade;
+        assignments.push(result[i]);
+    }
+
+
+    while (assignments.length < result.length) {
+        await new Promise((resolve, reject) => {
+            setTimeout(() => {
+                resolve();
+            }, 100);
+        });
+    }
+
+    // Send the course back
+    res.status(200).json({
+        "status": "success",
+        "assignments": assignments
     });
 });
 
