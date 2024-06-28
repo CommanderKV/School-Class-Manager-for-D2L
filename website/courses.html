@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <title>Courses</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" type="text/css" href="css/card.css">
+        <link rel="stylesheet" type="text/css" href="css/search.css">
+        <link rel="stylesheet" type="text/css" href="css/options.css">
+        <link rel="stylesheet" type="text/css" href="css/loading.css">
+        <style>
+            body {
+                margin: 0px;
+            }
+            .main-container {
+                margin: 10px;
+                display: none;
+            }
+            .main-container.selected {
+                display: block;
+            }
+
+            #pageTitle {
+                font-size: 3em;
+            }
+        </style>
+        <script src="js/cards.js" defer></script>
+        <script src="js/filter.js" defer></script>
+    </head>
+    <body>
+        <header>
+            <div class="options">
+                <div class="option-links">
+                    <a href="api.html">Api</a>
+                    <a href="courses.html" class="active">Courses</a>
+                    <a href="assignments.html">Assignments</a>
+                    <a href="grades.html">Grades</a>
+                    <a href="settings.html">Settings</a>
+                    <a href="index.html">Log Out</a>
+                </div>
+                <h1>My Courses</h1>
+            </div>
+        </header>
+        <main>
+            <div id="courses" class="main-container selected">
+                <div class="card-holder">
+                    <div class="search-bar">
+                        <input type="text" id="search-input" placeholder="Search for a course..." onkeyup="filterFunction()">
+                    </div>
+                    <div class="cards courses no-scrollbar">
+                        <!-- Loading animation gets removed after content loads -->
+                        <div id="loadingAnimation" class="loader-container">
+                            <div class="loader">
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer>
+
+        </footer>
+    </body>
+</html>

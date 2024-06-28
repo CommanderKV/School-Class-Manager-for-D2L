@@ -6,6 +6,7 @@
         <link rel="stylesheet" type="text/css" href="css/search.css">
         <link rel="stylesheet" type="text/css" href="css/options.css">
         <link rel="stylesheet" type="text/css" href="css/console.css">
+        <link rel="stylesheet" type="text/css" href="css/loading.css">
         <script src="js/cards.js" defer></script>
         <script src="js/filter.js" defer></script>
         <script src="js/control.js" defer></script>
@@ -70,7 +71,7 @@
                                 <progress id="progressBar" value="0" max="100"></progress>
                             </div>
                         </div>
-                        <div id="logs">
+                        <div id="logs" class="no-scrollbar">
                             <ol></ol>
                         </div>
                     </div>
@@ -83,7 +84,15 @@
                     <div class="search-bar">
                         <input type="text" id="search-input" placeholder="Search for a course..." onkeyup="filterFunction('courses')">
                     </div>
-                    <div class="cards courses no-scrollbar"></div>
+                    <div class="cards courses no-scrollbar">
+                        <div id="loadingAnimation" class="loader-container">
+                            <div class="loader">
+                              <div></div>
+                              <div></div>
+                              <div></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
