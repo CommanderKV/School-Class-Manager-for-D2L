@@ -268,13 +268,14 @@ async function runUpdate(userID, apiKey) {
                                         return;
                                     }
 
+                                    console.log(assignment.SUBMISSIONS.SUBMISSIONS);
                                     assignment.SUBMISSIONS.SUBMISSIONS.forEach((submission) => {
 
                                         // Add the submission
-                                        submission = DB.updateSubmission({
+                                        DB.updateSubmission({
                                             assignmentID: assignmentID,
                                             d2lSubmissionID: submission.ID, 
-                                            comment: assignment.COMMENT,
+                                            comment: submission.COMMENT,
                                             date: submission.DATE,
                                         }).then((submissionID) => {
 
@@ -482,6 +483,30 @@ router.get("/", async (req, res) => {
         "status": "success",
         "courses": courses
     }); 
+});
+
+router.get("/allData", async (req, res) => {
+    // Get the token
+    const token = req.headers.authorization.split(" ")[1];
+
+    // Decode the token
+    const data = helper.verifyToken(token);
+
+    // Get the data
+    //DB.getAllCourseData(data.data.userID)
+    DB.getAllDataFast(data.data.userID)
+    .then((allData) => {
+        res.status(200).json({
+            "status": "success",
+            "data": allData
+        });
+    })
+    .catch((err) => {
+        res.status(200).json({
+            "status": "failed",
+            "message": err
+        });
+    });
 });
 
 router.get("/assignments/:classID", async (req, res) => {

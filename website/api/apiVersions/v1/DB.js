@@ -398,23 +398,13 @@ function updateAttachment({ attachmentID=null, assignmentID=null, submissionID=n
 
                         var query, queryParams;
                         if (attachmentID != null && assignmentID != null) {
-                            [query, queryParams] = helper.makeQuery(
-                                `INSERT INTO AttachmentLinkToAssignment `
-                                [attachmentID, assignmentID],
-                                ["attachmentID", "assignmentID"],
-                                ", ",
-                                ");",
-                                true
-                            )
-                        } else if (attachmentID != null && assignmentID != null) {
-                            [query, queryParams] = helper.makeQuery(
-                                `INSERT INTO AttachmentLinkToSubmission `
-                                [attachmentID, submissionID],
-                                ["attachmentID", "submissionID"],
-                                ", ",
-                                ");",
-                                true
-                            )
+                            query = `INSERT INTO AttachmentLinkToAssignment (attachmentID, assignmentID) VALUES (?, ?);`; 
+                            queryParams = [attachmentID, assignmentID];
+
+                        } else if (attachmentID != null && submissionID != null) {
+                            query = `INSERT INTO AttachmentLinkToSubmission (attachmentID, submissionID) VALUES (?, ?);`;
+                            queryParams = [attachmentID, submissionID];
+                            
                         } else {
                             reject("updateAttachment: No assignment or submission ID provided");
                         }
@@ -422,7 +412,7 @@ function updateAttachment({ attachmentID=null, assignmentID=null, submissionID=n
                         // Link the attachment to the assignment
                         connection.query(query, queryParams, (error, results, fields) => {
                             if (error) {
-                                reject(`An error occurred while linking the attachment and assignment. ${query} ${queryParams} ${error} ${error.stack}`);
+                                reject(`An error occurred while linking the attachment and assignment. "${query}",  "${queryParams}", Error: ${error} ${error.stack}`);
                                 return;
                             }
                             resolve(true);
@@ -474,6 +464,8 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
             reject("updateSubmission: No submission or assignment ID provided");
         } else if (submissionID != null && assignmentID != null) {
             reject("updateSubmission: Both submission and assignment ID provided");
+        } if (date == null) {
+            reject("updateSubmission: No date provided");
         }
 
         // Check if submission exists already
@@ -545,11 +537,15 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
                     );
                     queryParams.push(results[0].submissionID);
 
-                    connection.query(query, queryParams, (error, results, fields) => {
+                    connection.query(query, queryParams, (error, results2, fields) => {
                         if (error) {
                             reject(`An error occurred while updating the submission. ${error}`);
                             return;
                         }
+                        if (results2.length === 0) {
+                            resolve(null);
+                        }
+
                         resolve(results[0].submissionID);
                     });
                 } else {
@@ -856,6 +852,213 @@ function getSubmissions({assignmentID=null}) {
 
 }
 
+function getAttachments({submissionID=null, assignmentID=null, attachmentID=null}) {
+    return new Promise((resolve, reject) => {
+        // Check if the parameters are provided
+        if (!helper.checkParams([submissionID, assignmentID, attachmentID])) {
+            reject(`getAttachments: No arguments provided. ${submissionID}, ${assignmentID}, ${attachmentID}`);
+        }
+
+        let query, queryParams;
+        if (submissionID != null) {
+            // Create the query
+            query = `SELECT attachmentID FROM AttachmentLinkToSubmission WHERE submissionID = ?;`;
+            queryParams = [submissionID];
+            
+        } else if (assignmentID != null) {
+            // Create the query
+            query = `SELECT attachmentID FROM AttachmentLinkToAssignment WHERE assignmentID = ?;`;
+            queryParams = [assignmentID];
+
+        } else if (attachmentID != null) {
+            // Create the query
+            query = `SELECT * FROM Attachments WHERE attachmentID = ?;`;
+            queryParams = [attachmentID];
+
+        } else {
+            reject("getAttachments: No submission or attachment ID provided");
+        }
+
+        // Execute the query
+        connection.query(query, queryParams, (error, results, fields) => {
+            if (error) {
+                reject(`An error occurred while getting the attachments. ${error}`);
+                return;
+            }
+            resolve(results);
+        });
+    });
+}
+
+function getAllCourseData(userID) {
+    return new Promise(async (resolve, reject) => {
+        // Get the classes
+        let courseIDs = await getUserToClassLink({userID: userID});
+        if (courseIDs == null) {
+            reject("getAllCourseData: No course IDs found");
+        }
+
+        // Get the classes
+        let classes = [];
+        for (let i=0; i<courseIDs.length; i++) {
+            let classID = courseIDs[i].classID;
+            let course = await getClass({classID: classID});
+            if (course == null) {
+                continue;
+            }
+
+            // Get the assignments
+            let assignments = await getClassAssignments(classID);
+            if (assignments == null) {
+                continue;
+            }
+
+            for (let j=0; j<assignments.length; j++) {
+                // Get the grade
+                let grade = await getGrade(
+                    {
+                        assignmentID: assignments[j].assignmentID, 
+                        userID: userID
+                    }
+                );
+                
+                assignments[j].grade = grade;
+
+                // Get the submissions
+                let submissions = await getSubmissions(
+                    {
+                        assignmentID: assignments[j].assignmentID
+                    }
+                );
+                for (let k=0; k<submissions.length; k++) {
+                    // Get the attachments
+                    let attachments = await getAttachments(
+                        {
+                            submissionID: submissions[k].submissionID
+                        }
+                    );
+                    submissions[k].attachments = attachments;
+                }
+                assignments[j].submissions = submissions;
+
+                // Get the attachments
+                let attachments = await getAttachments(
+                    {
+                        assignmentID: assignments[j].assignmentID
+                    }
+                );
+                assignments[j].attachments = attachments;
+            }
+            course[0].assignments = assignments;
+            classes.push(course[0]);
+        }
+        resolve(classes);
+    });
+}
+
+function getAllDataFast(userID) {
+    return new Promise((resolve, reject) => {
+        // Make sure we have the required parameters
+        if (!helper.checkParams([userID])) {
+            reject("getAllDataFast: No arguments provided");
+        }
+        
+        // Make the query
+        let query = `SELECT 
+    Classes.name AS className,
+    Classes.courseCode,
+    Classes.link AS classLink,
+    Classes.termShort,
+    Classes.closed,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'name', Assignments.name,
+            'link', Assignments.link,
+            'dueDate', Assignments.dueDate,
+            'instructions', Assignments.instructions,
+            'attachments', AssignmentAttachments.attachmentsJSON,
+            'submissions', AssignmentSubmissions.submissionsJSON,
+            'feedback', AssignmentsFeedback.feedbackJSON,
+            'grade', Grades.grade,
+            'submissionURL', Assignments.submissionURL
+        )
+    ) AS assignments
+FROM Classes
+JOIN Assignments ON Classes.classID = Assignments.classID
+LEFT JOIN Grades ON Assignments.assignmentID = Grades.assignmentID
+LEFT JOIN (
+    SELECT 
+        Assignments.assignmentID,
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'link', Attachments.link,
+                'size', Attachments.size,
+                'name', Attachments.name
+            )
+        ) AS attachmentsJSON
+    FROM Attachments
+    JOIN AttachmentLinkToAssignment ON Attachments.attachmentID = AttachmentLinkToAssignment.attachmentID
+    JOIN Assignments ON AttachmentLinkToAssignment.assignmentID = Assignments.assignmentID
+    GROUP BY Assignments.assignmentID
+) AS AssignmentAttachments ON Assignments.assignmentID = AssignmentAttachments.assignmentID
+LEFT JOIN (
+    SELECT 
+        Submissions.assignmentID,
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'submissionID', Submissions.submissionID,
+                'comment', Submissions.comment, 
+                'date', Submissions.date,
+                'attachments', SubmissionAttachments.attachmentsJSON
+            )
+        ) AS submissionsJSON
+    FROM Submissions
+    LEFT JOIN (
+        SELECT 
+            AttachmentLinkToSubmission.submissionID,
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'link', Attachments.link,
+                    'size', Attachments.size,
+                    'name', Attachments.name
+                )
+            ) AS attachmentsJSON
+        FROM Attachments
+        JOIN AttachmentLinkToSubmission ON Attachments.attachmentID = AttachmentLinkToSubmission.attachmentID
+        GROUP BY AttachmentLinkToSubmission.submissionID
+    ) AS SubmissionAttachments ON Submissions.submissionID = SubmissionAttachments.submissionID
+    GROUP BY Submissions.assignmentID
+) AS AssignmentSubmissions ON Assignments.assignmentID = AssignmentSubmissions.assignmentID
+LEFT JOIN (
+    SELECT 
+        Assignments.assignmentID,
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'html', Feedback.html,
+                'date', Feedback.date
+            )
+        ) AS feedbackJSON
+    FROM Feedback
+    JOIN Submissions ON Feedback.submissionID = Submissions.submissionID
+    JOIN Assignments ON Submissions.assignmentID = Assignments.assignmentID
+    GROUP BY Assignments.assignmentID
+) AS AssignmentsFeedback ON AssignmentsFeedback.assignmentID = Assignments.assignmentID
+INNER JOIN UsersToClasses ON Classes.classID = UsersToClasses.classID
+INNER JOIN Users ON UsersToClasses.userID = Users.userID
+WHERE Users.userID = ?
+GROUP BY Classes.classID;`;
+
+        // Execute the query
+        connection.query(query, [userID], (error, results, fields) => {
+            if (error) {
+                reject(`An error occurred while getting the data. ${error}`);
+                return;
+            }
+            resolve(results);
+        });
+    });
+}
+
 module.exports = {
     updateCourse,
     updateAssignment,
@@ -867,5 +1070,8 @@ module.exports = {
     getUserToClassLink,
     getClassAssignments,
     getGrade,
-    getSubmissions
+    getSubmissions,
+    getAttachments,
+    getAllCourseData,
+    getAllDataFast
 };

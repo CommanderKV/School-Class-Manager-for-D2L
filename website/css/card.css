@@ -63,10 +63,10 @@
     flex-direction: column;
     justify-content: space-between;
 
-    max-width: 550px;
+    max-width: 600px;
     max-height: 700px;
     height: 100%;
-    width: auto;
+    width: 100%;
 
     margin: 40px;
     
@@ -95,6 +95,10 @@
 }
 .card .closed-label {
     color: var(--card-closed-label-color);
+}
+.card a {
+    color: black;
+    text-decoration: none;
 }
 
 /* Card header */
@@ -125,18 +129,19 @@
 div.col {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     width: -webkit-fill-available;
 }
 div.row {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
     width: -webkit-fill-available;
 }
 div.row.small,
 div.col.small {
     width: auto
+}
+div.space-between {
+    justify-content: space-between;
 }
 
 /* Set course grade color based on grade(done with js) */
@@ -197,10 +202,12 @@ div.col.small {
 .card-body .instructions {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    justify-content: flex-start;
+    align-items: flex-start;
+
     margin: 10px;
     padding: 10px;
+
     border-radius: 15px;
     background-color: #fff;
     border: 1px solid var(--card-border-color);
@@ -211,4 +218,16 @@ div.col.small {
     font-weight: bold;
     color: var(--course-title-color);
     margin-bottom: 10px;
+}
+
+.card-body .instructions .instructions-content {
+    overflow-y: auto;
+    overflow-x: auto;
+    width: -webkit-fill-available;
+}
+
+.instructions-content .submitted {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
 }
