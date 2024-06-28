@@ -3,6 +3,7 @@
 USE classes;
 
 DROP TABLE IF EXISTS 
+`Grades`,
 `AttachmentLinkToSubmission`, 
 `AttachmentLinkToAssignment`,
 `Assignments`, 
@@ -57,7 +58,6 @@ CREATE TABLE Assignments (
 CREATE TABLE Submissions (
     submissionID INT AUTO_INCREMENT PRIMARY KEY,
     assignmentID INT NOT NULL,
-    link VARCHAR(255) NOT NULL,
     comment VARCHAR(1000) DEFAULT NULL,
     d2lSubmissionID INT NOT NULL,
     date DATETIME NOT NULL,
@@ -113,3 +113,8 @@ SELECT * FROM Classes;
 SELECT * FROM Attachments;
 
 SELECT * FROM Assignments;
+
+SELECT * FROM Grades
+
+SELECT * FROM Submissions;
+
