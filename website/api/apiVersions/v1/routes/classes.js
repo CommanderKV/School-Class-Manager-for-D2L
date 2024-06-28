@@ -145,7 +145,7 @@ async function runUpdate(userID, apiKey) {
             pythonProcess.stderr.on("data", (data) => {
                 progressTracker[apiKey].status = "Failed";
                 progressTracker[apiKey].output.push(data.toString());
-                progressTracker[apiKey].error = data.toString();
+                progressTracker[apiKey].error = `Script sent: ${data.toString()}`;
                 console.log(data.toString());
             });
 
@@ -201,7 +201,7 @@ async function runUpdate(userID, apiKey) {
                     console.log(err);
                     progressTracker[apiKey].status = "Failed";
                     progressTracker[apiKey].output.push(err);
-                    progressTracker[apiKey].error = err;
+                    progressTracker[apiKey].error = `Updating course encounterd: ${err}`;
 
                     // Clear the progress tracker after 5 minutes
                     setTimeout(() => {
@@ -263,7 +263,11 @@ async function runUpdate(userID, apiKey) {
                                     });
 
                                 // Add all the submissions
-                                } else if (assignment.SUBMISSIONS.SUBMISSIONS != null) {
+                                } else if (assignment.SUBMISSIONS != null) {
+                                    if (assignment.SUBMISSIONS.SUBMISSIONS == null) {
+                                        return;
+                                    }
+
                                     assignment.SUBMISSIONS.SUBMISSIONS.forEach((submission) => {
 
                                         // Add the submission
@@ -281,7 +285,14 @@ async function runUpdate(userID, apiKey) {
                                             submission.FILES.forEach((attachment) => {
 
                                                 // Add the attachment
-                                                DB.updateSubmissionAttachment(attachment, submissionID=submissionID)
+                                                DB.updateAttachment(
+                                                    {
+                                                        assignmentID: assignmentID,
+                                                        submissionID: submissionID,
+                                                        link: attachment.LINK,
+                                                        size: attachment.SIZE,
+                                                        name: attachment.NAME 
+                                                    })
                                                 .catch((err) => {console.log(err);})
 
                                             });
@@ -292,7 +303,7 @@ async function runUpdate(userID, apiKey) {
                             .catch((error) => {
                                 progressTracker[apiKey].status = "Failed";
                                 progressTracker[apiKey].output.push(error);
-                                progressTracker[apiKey].error = error;
+                                progressTracker[apiKey].error = `Updating assignment encounterd: ${error}`;
 
                                 // Clear the progress tracker after 5 minutes
                                 setTimeout(() => {
@@ -332,7 +343,7 @@ async function runUpdate(userID, apiKey) {
             console.log(err);
             progressTracker[apiKey].status = "Failed";
             progressTracker[apiKey].output.push(err);
-            progressTracker[apiKey].error = err;
+            progressTracker[apiKey].error = `Encountered general error: ${err}`;
 
             // Clear the progress tracker after 5 minutes
             setTimeout(() => {
@@ -494,21 +505,36 @@ router.get("/assignments/:classID", async (req, res) => {
         return;
     }
 
+    // Get the grade for the assignment
     let assignments = [];
     for (let i = 0; i < result.length; i++) {
+        // Get the grade
         let grade;
         DB.getGrade({ userID: data.data.userID, assignmentID: result[i].assignmentID })
         .then((result) => {
+            // Set the grade
             grade = result[0].grade;
         }).catch((error) => {
+            // Log the error
             console.log(error);
             grade = null;
         });
+
+        // Set the grade
         result[i].grade = grade;
         assignments.push(result[i]);
     }
 
+    // Get all the submissions for the assignments
+    for (let i = 0; i < assignments.length; i++) {
+        // Get the submissions
+        let submissions = await DB.getSubmissions({ assignmentID: assignments[i].assignmentID });
 
+        // Add the submissions to the assignment
+        assignments[i].submissions = submissions;
+    }
+
+    // Wait for all assignments to be added
     while (assignments.length < result.length) {
         await new Promise((resolve, reject) => {
             setTimeout(() => {

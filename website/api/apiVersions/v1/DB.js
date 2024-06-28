@@ -463,26 +463,24 @@ function updateAttachment({ attachmentID=null, assignmentID=null, submissionID=n
     });
 }
 
-function updateSubmission({submissionID=null, assignmentID=null, link=null, comment=null, d2lSubmissionID=null, date=null}) {
+function updateSubmission({submissionID=null, assignmentID=null, comment=null, d2lSubmissionID=null, date=null}) {
     return new Promise((resolve, reject) => {
         // Check for parameters
-        if (!helper.checkParams([submissionID, assignmentID, link, comment, d2lSubmissionID, date])) {
-            reject(`updateSubmission: No arguments provided ${submissionID}, ${assignmentID}, ${link}, ${comment}, ${d2lSubmissionID}, ${date}`);
+        if (!helper.checkParams([submissionID, assignmentID, comment, d2lSubmissionID, date])) {
+            reject(`updateSubmission: No arguments provided ${submissionID}, ${assignmentID}, ${comment}, ${d2lSubmissionID}, ${date}`);
         }
 
         if (submissionID == null && assignmentID == null) {
             reject("updateSubmission: No submission or assignment ID provided");
         } else if (submissionID != null && assignmentID != null) {
             reject("updateSubmission: Both submission and assignment ID provided");
-        } else if (link == null) {
-            reject("updateSubmission: No link provided");
         }
 
         // Check if submission exists already
         let [query, queryParams] = helper.makeQuery(
             `SELECT * FROM Submissions WHERE `,
-            [submissionID, assignmentID, link, comment, d2lSubmissionID, date],
-            ["submissionID", "assignmentID", "link", "comment", "d2lSubmissionID", "date"],
+            [submissionID, assignmentID, comment, d2lSubmissionID, date],
+            ["submissionID", "assignmentID", "comment", "d2lSubmissionID", "date"],
             " AND "
         );
         connection.query(query, queryParams, (error, results, fields) => {
@@ -496,8 +494,8 @@ function updateSubmission({submissionID=null, assignmentID=null, link=null, comm
                 // Insert the submission into the database
                 let [query, queryParams] = helper.makeQuery(
                     `INSERT INTO Submissions `,
-                    [assignmentID, comment, date, d2lSubmissionID, link],
-                    ["assignmentID", "comment", "date", "d2lSubmissionID", "link"],
+                    [assignmentID, comment, date, d2lSubmissionID],
+                    ["assignmentID", "comment", "date", "d2lSubmissionID"],
                     ", ",
                     ");",
                     true
@@ -511,7 +509,7 @@ function updateSubmission({submissionID=null, assignmentID=null, link=null, comm
                     // Get the submission ID
                     let [query, queryParams] = helper.makeQuery(
                         `SELECT submissionID FROM Submissions WHERE `,
-                        [assignmentID, submission.ID],
+                        [assignmentID, submissionID],
                         ["assignmentID", "d2lSubmissionID"],
                         " AND "
                     );
@@ -528,18 +526,18 @@ function updateSubmission({submissionID=null, assignmentID=null, link=null, comm
             } else {
                 // Check if an update is needed
                 if (
-                    results[0].d2lSubmissionID != submission.ID || 
-                    results[0].comment != submission.COMMENT || 
-                    results[0].date != submission.DATE
+                    results[0].d2lSubmissionID != submissionID || 
+                    results[0].comment != comment || 
+                    results[0].date != date
                 ) {
                     // Update the submission
                     let [query, queryParams] = helper.makeQuery(
                         `UPDATE Submissions SET `,
                         [
                             assignmentID != results[0].assignmentID ? assignmentID : null, 
-                            submission.COMMENT != results[0].comment ? comment : null, 
-                            submission.DATE != results[0].date ? submission.DATE : null, 
-                            submission.ID != results[0].d2lSubmissionID ? submission.ID : null
+                            comment != results[0].comment ? comment : null, 
+                            date != results[0].date ? date : null, 
+                            submissionID != results[0].d2lSubmissionID ? submissionID : null
                         ],
                         ["assignmentID", "comment", "date", "d2lSubmissionID"],
                         ", ",
@@ -831,6 +829,33 @@ function getAssignment({
     });
 }
 
+function getSubmissions({assignmentID=null}) {
+    return new Promise((resolve, reject) => {
+        // Check if the parameters are provided
+        if (!helper.checkParams([assignmentID])) {
+            reject(`getSubmissions: No arguments provided. ${assignmentID}`);
+        }
+
+        // Create the query
+        let [query, queryParams] = helper.makeQuery(
+            `SELECT * FROM Submissions WHERE `,
+            [assignmentID],
+            ["assignmentID"],
+            " AND "
+        );
+
+        // Execute the query
+        connection.query(query, queryParams, (error, results, fields) => {
+            if (error) {
+                reject(`An error occurred while getting the submissions. ${error}`);
+                return;
+            }
+            resolve(results);
+        });
+    });
+
+}
+
 module.exports = {
     updateCourse,
     updateAssignment,
@@ -841,5 +866,6 @@ module.exports = {
     getAssignment,
     getUserToClassLink,
     getClassAssignments,
-    getGrade
+    getGrade,
+    getSubmissions
 };
