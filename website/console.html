@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <title>API Console</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" type="text/css" href="css/console.css">
+        <link rel="stylesheet" type="text/css" href="css/options.css">
+        <link rel="stylesheet" type="text/css" href="css/main.css"> 
+        <script src="js/control.js" defer></script>
+    </head>
+    <body>
+        <header>
+            <div class="options">
+                <div class="option-links">
+                    <a href="console.html" class="active">Api</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="assignments.html">Assignments</a>
+                    <a href="grades.html">Grades</a>
+                    <a href="settings.html">Settings</a>
+                    <a href="index.html">Log Out</a>
+                </div>
+                <h1 id="pageTitle">API Console</h1>
+            </div>
+        </header>
+        <main>
+            <div id="api" class="main-container">
+                <div class="api-header">
+                    <button id="startUpdate">Update classes</button>
+                    <button id="clearConsole">Clear logs</button>
+                </div>
+                <div id="consoleContainer">
+                    <div id="console">
+                        <div id="consoleHeader">
+                            <div>
+                                <span>Status:</span>
+                                <span id="consoleStatus">Inactive</span>
+                            </div>
+                            <span id="consoleCountDown" class="hidden">Updating in:</span>
+                            <div id="progressBarContainer">
+                                <label for="progressBar">Completion</label>
+                                <progress id="progressBar" value="0" max="100"></progress>
+                            </div>
+                        </div>
+                        <div id="logs" class="no-scrollbar">
+                            <ol></ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer>
+
+        </footer>
+    </body>
+</html>

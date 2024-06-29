@@ -1,13 +1,13 @@
 :root {
-    --card-background-color: #f8f8f8;
-    --card-border-color: #e3e9f1;
-    --card-shadow-color: rgba(0,0,0,0.2);
+    --card-background-color: #1b171e;
+    --card-border-color: transparent;
+    --card-shadow-color: transparent;
     
-    --card-closed-background-color: #c8c8c8;
+    --card-closed-background-color: #35181d;
     --card-closed-label-color: #ff0000;
 
     --course-title-size: 2em;
-    --course-title-color: #000000;
+    --course-title-color: var(--html-text-color);
 
     --course-details-size: 1.1em;
     --course-details-color: #7c7c7c;
@@ -16,6 +16,8 @@
     --course-grade-good-color: #00ff00;
     --course-grade-okay-color: #ffcc00;
     --course-grade-bad-color: #ff0000;
+
+    --card-section-background-color: #221b2b;
 }
 
 /* Hide scrollbar */
@@ -48,7 +50,7 @@
     padding: 35px;
 
     width: calc(100% - 70px);
-    max-height: 650px;
+    max-height: 100%;
     
     overflow-y: auto;
     overflow-x: visible;
@@ -145,9 +147,9 @@ div.space-between {
 }
 
 /* Set course grade color based on grade(done with js) */
-.course-grade.bad {color: var(--course-grade-bad-color);}
-.course-grade.okay {color: var(--course-grade-okay-color);}
-.course-grade.good {color: var(--course-grade-good-color);}
+.bad {color: var(--course-grade-bad-color);}
+.okay {color: var(--course-grade-okay-color);}
+.good {color: var(--course-grade-good-color);}
 .course-grade {
     font-size: var(--course-grade-size);
 }
@@ -171,7 +173,7 @@ div.space-between {
 .card-body-list li {
     margin: 10px 0;
     padding: 10px;
-    background-color: #fff;
+    background-color: var(--card-section-background-color);
     border-radius: 15px;
 
     border: 1px solid var(--card-border-color);
@@ -180,16 +182,37 @@ div.space-between {
     transition-property: transform, box-shadow;
     transition-duration: 0.2s;
     transition-timing-function: ease-in-out;
+    color: var(--course-title-color);
 }
 .card-body-list li:hover {
     cursor: pointer;
     box-shadow: 0px 4px 4px 0px var(--card-shadow-color);
-    transform: scale(1.05);
+    transform: scale(1.025);
 }
+
+/* Submission label styling */
+.card-body-list > div {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+.card-body-list > div > label {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--course-title-color);
+    margin-bottom: 10px;
+}
+
+/* Card body styling */
 .card-body-details {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    color: var(--course-title-color);
+}
+.card-body-details a {
+    color: blue;
+    text-decoration: underline;
 }
 .card-body-details span.due {
     color: #ff0000;
@@ -199,7 +222,7 @@ div.space-between {
 }
 
 /* Card instructions */
-.card-body .instructions {
+.instructions {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -209,25 +232,74 @@ div.space-between {
     padding: 10px;
 
     border-radius: 15px;
-    background-color: #fff;
+    background-color: var(--card-section-background-color);
     border: 1px solid var(--card-border-color);
     box-shadow: 0px 2px 2px 0px var(--card-shadow-color);
+    color: var(--course-title-color);
+
+    transition-property: transform, box-shadow;
+    transition-duration: 0.2s;
+    transition-timing-function: ease-in-out;
 }
-.card-body .instructions > label {
+.instructions:hover {
+    box-shadow: 0px 4px 4px 0px var(--card-shadow-color);
+    transform: scale(1.025);
+}
+.instructions > label {
     font-size: 1.5em;
     font-weight: bold;
     color: var(--course-title-color);
     margin-bottom: 10px;
 }
-
-.card-body .instructions .instructions-content {
+.instructions .instructions-content {
     overflow-y: auto;
     overflow-x: auto;
     width: -webkit-fill-available;
 }
-
+.instructions-content a {
+    color: blue;
+    text-decoration: underline;
+}
 .instructions-content .submitted {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+}
+
+/* Attachment styling */
+.attachments {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    gap: 10px;
+
+    margin: 10px;
+    padding: 10px;
+
+    border-radius: 15px;
+    background-color: var(--card-section-background-color);
+    border: 1px solid var(--card-border-color);
+    box-shadow: 0px 2px 2px 0px var(--card-shadow-color);
+
+    transition-property: transform, box-shadow;
+    transition-duration: 0.2s;
+    transition-timing-function: ease-in-out;
+    color: var(--course-title-color);
+}
+.attachments:hover {
+    box-shadow: 0px 4px 4px 0px var(--card-shadow-color);
+    transform: scale(1.025);
+}
+.attachments > label {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--course-title-color);
+    margin-bottom: 10px;
+
+}
+.attachments a {
+    color: blue;
+    text-decoration: underline;
 }

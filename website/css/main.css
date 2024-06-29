@@ -1,0 +1,29 @@
+:root {
+    --html-background-color: #121212;
+    --html-text-color: #f8f8f8;
+}
+html {
+    background-color: var(--html-background-color);
+    font-size: 1.1em;
+}
+body {
+    margin: 0px;
+}
+
+.main-container {
+    margin: 10px;
+}
+
+#pageTitle {
+    margin-top: 100px; /* Used to get below page navigation */
+    font-size: 3em;
+    color: var(--html-text-color);
+}
+
+.no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}

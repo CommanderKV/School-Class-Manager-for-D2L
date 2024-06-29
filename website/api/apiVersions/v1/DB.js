@@ -11,13 +11,26 @@ const connection = mysql.createConnection({
 });
 
 // Connect to the database
-connection.connect((error) => {
-    if (error) {
-        console.error(`An error occurred while connecting to the database. ${error}`);
-        return;
-    }
-    console.log("Connected to the database");
-});
+connect();
+
+function isConnected() {
+    return connection.ping((error) => {
+        if (error) {
+            return false;
+        }
+        return true;
+    });
+}
+
+function connect() {
+    connection.connect((error) => {
+        if (error) {
+            console.error(`An error occurred while connecting to the database. ${error}`);
+            return;
+        }
+        console.log("Connected to the database");
+    });
+}
 
 // --------------------
 //   Helper functions
@@ -518,7 +531,7 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
             } else {
                 // Check if an update is needed
                 if (
-                    results[0].d2lSubmissionID != submissionID || 
+                    results[0].d2lSubmissionID != d2lSubmissionID || 
                     results[0].comment != comment || 
                     results[0].date != date
                 ) {
@@ -529,7 +542,7 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
                             assignmentID != results[0].assignmentID ? assignmentID : null, 
                             comment != results[0].comment ? comment : null, 
                             date != results[0].date ? date : null, 
-                            submissionID != results[0].d2lSubmissionID ? submissionID : null
+                            d2lSsubmissionID != results[0].d2lSubmissionID ? d2lSubmissionID : null
                         ],
                         ["assignmentID", "comment", "date", "d2lSubmissionID"],
                         ", ",
@@ -1060,6 +1073,8 @@ GROUP BY Classes.classID;`;
 }
 
 module.exports = {
+    connect,
+    isConnected,
     updateCourse,
     updateAssignment,
     updateAttachment,

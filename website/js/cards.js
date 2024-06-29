@@ -6,7 +6,9 @@ const containers = document.querySelectorAll('.main-container');
 
 
 async function checkToken() {
+    // Check if we have one already or need to get a new one
     if (sessionStorage.getItem("token")) {
+        // Check if the token is older than 4 hours
         if (JSON.parse(sessionStorage.getItem("token")).time < new Date().getTime() - (4 * 60 * 60 * 1000)) {
             sessionStorage.setItem("token", JSON.stringify(
                 {
@@ -14,8 +16,44 @@ async function checkToken() {
                     date: new Date().getTime()
                 }
             ));
+        
+        // The token is set and not expired
+        } else {
+            // Test token
+            let result = await fetch("http://localhost:3000/api/v1/login/test", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "authorization": `Bearer ${JSON.parse(sessionStorage.getItem("token")).token}`
+                }
+            }).catch((error) => {
+                console.error(error);
+                return null;
+            });
+
+            // Get the data
+            let resultJson = await result.json();
+
+            // Check response
+            if (result.status != 200) {
+                checkStatus(result.status, resultJson);
+                return null;
+            }
+
+            // Reset the token if it is invalid
+            if (resultJson.message != "Token is valid") {
+                sessionStorage.setItem("token", JSON.stringify(
+                    {
+                        token: await getToken(),
+                        date: new Date().getTime()
+                    }
+                ));
+            }
         }
+    
+    // Token is not set
     } else {
+        // Set token
         sessionStorage.setItem("token", JSON.stringify(
             {
                 token: await getToken(),
@@ -28,7 +66,7 @@ async function checkToken() {
 async function checkStatus(status) {
     switch (status) {
         case 403:
-            console.error("Unauthorized");
+            console.error("Unauthorized Obtaing a new token");
             let token = await getToken();
             sessionStorage.setItem("token", JSON.stringify(
                 {
@@ -115,6 +153,7 @@ function createCourseCard(name, code, overallGrade, term, closed, assignments) {
 
     // Create the label
     const label = document.createElement("label");
+    label.classList.add("course-name");
     label.innerText = name;
     header.appendChild(label);
 
@@ -221,7 +260,7 @@ function createCourseCard(name, code, overallGrade, term, closed, assignments) {
 }
 
 // Create a card element for an assignment
-function createAssignmentCard(name, due, grade, className, courseCode, instructions, submissions, submissionURL) {
+function createAssignmentCard(name, due, grade, className, courseCode, instructions, submissions, submissionURL, attachments, assignmentLink) {
     // Function to format the date
     function formatDateTime(dateTime) {
         const date = new Date(dateTime);
@@ -244,6 +283,11 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
     const header = document.createElement("div");
     header.classList.add("card-header");
     card.appendChild(header);
+
+    // Add the event listner to the card
+    header.addEventListener("click", () => {
+        window.open(assignmentLink);
+    });
 
     // Create the label
     const label = document.createElement("label");
@@ -276,13 +320,61 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
     // Create the course grade
     const courseGrade = document.createElement("span");
     courseGrade.classList.add("course-grade");
-    courseGrade.classList.add("good");
-    courseGrade.innerText = grade + "%";
+
+    // Get the grade value
+    let gradeValue = grade.toString().split(" ");
+    gradeValue = ((gradeValue[0]) / gradeValue[2]) * 100;
+    gradeValue = Math.round(gradeValue * 100) / 100;
+
+    // Check for the grade
+    if (gradeValue) {
+        if (gradeValue >= 80) {
+            courseGrade.classList.add("good");
+        } else if (gradeValue >= 70) {
+            courseGrade.classList.add("okay");
+        } else if (gradeValue < 70) {
+            courseGrade.classList.add("bad");
+        }
+        courseGrade.innerText = gradeValue + "%";
+    } else {
+        courseGrade.classList.add("bad");
+        courseGrade.innerText = "No grade"
+    }
+
+    // Add the grade to the card
     detailsDiv.appendChild(courseGrade);
 
     // Create the assignment due date
     const courseTerm = document.createElement("span");
-    courseTerm.innerText = `Due: ${formatDateTime(due)}`;
+
+    // Check if the date is the default date
+    if (Date.parse(due) == 915166800000) {
+        courseTerm.innerText = "No due date";
+        courseTerm.classList.add("bad");
+
+    } else {
+        // Check if time has passed
+        if (Date.parse(due) < new Date().getTime()) {
+            if (submissions != null) {
+                if ( submissions.length == 0 && gradeValue == null) {
+                    courseTerm.classList.add("bad");
+                }
+            
+            // If there are no submissions
+            } else {
+                if (gradeValue == null) {
+                    courseTerm.classList.add("bad");
+                }
+            }
+        
+        // If the due date is less than 48 hours away
+        } else if (Date.parse(due) < new Date().getTime() + (48 * 60 * 60 * 1000)) {
+            courseTerm.classList.add("okay");
+        }
+
+        // Add the text
+        courseTerm.innerText = `Due: ${formatDateTime(due)}`;
+    }
     headerDetails.appendChild(courseTerm);
 
     // Create the card body
@@ -309,6 +401,45 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
         instructionsDiv.appendChild(instructionsContent);
     }
 
+    if (attachments != null) {
+        if (attachments.length > 0) {
+            // Create the attachments body
+            const attachmentsDiv = document.createElement("div");
+            attachmentsDiv.classList.add("attachments");
+            body.appendChild(attachmentsDiv);
+
+            // Create the attachments label
+            const attachmentsLabel = document.createElement("label");
+            attachmentsLabel.innerText = "Attachments";
+            attachmentsDiv.appendChild(attachmentsLabel);
+
+            // Sort attachments by size
+            attachments.sort((a, b) => {
+                return a.size.split(" ")[0] - b.size.split(" ")[0];
+            });
+
+            // Go through the attachments
+            for (var i = 0; i < attachments.length; i++) {
+                // Create the attachment container
+                const attachment = document.createElement("div");
+                attachment.classList.add("row");
+                attachment.classList.add("space-between");
+                attachmentsDiv.appendChild(attachment);
+
+                // Create the attachment link
+                const attachmentLink = document.createElement("a");
+                attachmentLink.href = attachments[i].link;
+                attachmentLink.innerText = attachments[i].name;
+                attachment.appendChild(attachmentLink);
+
+                // Create the size of the attachment
+                const attachmentSize = document.createElement("span");
+                attachmentSize.innerText = attachments[i].size;
+                attachment.appendChild(attachmentSize);
+            }
+        }
+    }
+
     // Check if we have at least one submission
     if (submissions == null) {
         return card;
@@ -321,6 +452,15 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
     const submissionList = document.createElement("ol");
     submissionList.classList.add("card-body-list");
     body.appendChild(submissionList);
+
+    // Create the submission label Div
+    const submissionLabelDiv = document.createElement("div");
+    submissionList.appendChild(submissionLabelDiv);
+
+    // Create the submission label
+    const submissionLabel = document.createElement("label");
+    submissionLabel.innerText = "Submissions";
+    submissionLabelDiv.appendChild(submissionLabel);
 
 
     // Sort assignments by due date
@@ -364,7 +504,7 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
 
         // Create the submission ID
         const submissionName = document.createElement("span");
-        submissionName.innerText = `Submission ID: ${submissions[i].submissionID}`;
+        submissionName.innerText = `ID: ${submissions[i].submissionID}`;
         submissionDetails.appendChild(submissionName);
 
         // Create submitted div
@@ -402,9 +542,12 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
     return card;
 }
 
+
 async function getAllData() {
     // Fetch the data
-    let data = await fetch("http://localhost:3000/api/v1/classes/allData", {
+    let data;
+    do {
+    data = await fetch("http://localhost:3000/api/v1/classes/allData", {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -418,8 +561,8 @@ async function getAllData() {
     // Check the status
     if (data.status != 200) {
         checkStatus(data.status);
-        return null;
     }
+    } while (data.status == 403);
 
     // Get the data as json
     let dataJson = await data.json();
@@ -461,6 +604,12 @@ async function addCards(container) {
             // Remove the loading animation
             document.getElementById("loadingAnimation").remove();
 
+            if (courseCards.length == 0) {
+                let noCourses = document.createElement("h2");
+                noCourses.innerText = "No courses found";
+                cardHolder.appendChild(noCourses);
+            }
+
             // Add the cards to the container
             for (let i = 0; i < courseCards.length; i++) {
                 cardHolder.appendChild(courseCards[i]);
@@ -484,13 +633,21 @@ async function addCards(container) {
                         data[i].courseCode,
                         data[i].assignments[j].instructions,
                         data[i].assignments[j].submissions,
-                        data[i].assignments[j].submissionURL
+                        data[i].assignments[j].submissionURL,
+                        data[i].assignments[j].attachments,
+                        data[i].assignments[j].link
                     ));
                 }
             }
 
             // Remove the loading animation
             document.getElementById("loadingAnimation").remove();
+
+            if (assignmentCards.length == 0) {
+                let noCourses = document.createElement("h2");
+                noCourses.innerText = "No assignments found";
+                cardHolder.appendChild(noCourses);
+            }
 
             // Add the cards to the container
             for (let i = 0; i < assignmentCards.length; i++) {

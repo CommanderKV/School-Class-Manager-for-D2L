@@ -59,6 +59,9 @@ async function runUpdate(userID, apiKey) {
 
     // Check if the user was found
     if (!user) {
+        // Log the error
+        console.log(`User not found "${user}" apiKey: ${apiKey}`);
+
         // Update the progress tracker if we have no users
         progressTracker[apiKey].status = "Failed";
         progressTracker[apiKey].output.push("User not found");
@@ -190,7 +193,6 @@ async function runUpdate(userID, apiKey) {
             let jsonDir = coursePath;
             let jsonData = fs.readFileSync(jsonDir, "utf-8");
             let courses = JSON.parse(jsonData);
-            console.log(courses);
 
             // Add all courses and link it to the user
             courses.forEach((course) => {
@@ -268,7 +270,6 @@ async function runUpdate(userID, apiKey) {
                                         return;
                                     }
 
-                                    console.log(assignment.SUBMISSIONS.SUBMISSIONS);
                                     assignment.SUBMISSIONS.SUBMISSIONS.forEach((submission) => {
 
                                         // Add the submission
@@ -393,7 +394,7 @@ router.post("/update", (req, res, next) => {
         "message": "Update started"
     });
 
-    console.log("Starting update of classes");
+    console.log(`Starting update of classes for ${data.data.username}`);
 
     // Run the update function 
     runUpdate(

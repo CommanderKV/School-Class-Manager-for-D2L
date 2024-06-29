@@ -1,10 +1,16 @@
 :root {
     --search-bar-border-color: #dddddd;
-
+    --search-bar-background-color: #ffffff;
+    --search-bar-text-color: #000000;
+    --search-bar-box-shadow-color: rgba(0,0,0,0.2);
+    --search-bar-box-shadow-color-focus: rgba(0,0,0,0.4);
 }
 
 /* Adjust the search feild */
 .search-bar {
+    position: sticky;
+    top: 70px;
+    z-index: 100;
     display: flex;
     flex-direction: row;
     justify-content: center;
@@ -23,13 +29,16 @@
     border-radius: 10px;
 
     font-size: 1.2em;
+    
+    background-color: var(--search-bar-background-color);
+    color: var(--search-bar-text-color);
 
     border: 4px solid var(--search-bar-border-color);
-    box-shadow: 6px 6px 8px 0px var(--card-shadow-color);
+    box-shadow: 6px 6px 8px 0px var(--search-bar-box-shadow-color);
 }
 
 .search-bar > input:focus-visible {
     outline: none;
-    border: 4px solid var(--card-border-color);
+    border: 4px solid var(--search-bar-box-shadow-color-focus);
 }
 

@@ -16,10 +16,14 @@ const classes = require("./routes/classes");
 
 // Secuirity function to make sure user is logged in
 router.use((req, res, next) => {
+    // Check if database connection is established
+    if (!DB.isConnected()) {
+        // Connect to the database
+        DB.connect();
+    }
     // Check if user is logging in
-    if (req.url == "/login") {
+    if (req.url == "/login" || req.url == "/login/test") {
         next();
-        return;
 
     // Check if user is logged in
     } else {
@@ -69,6 +73,32 @@ router.post("/login", async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({message: `Server error contact admin. Error: ${error.message}`});
+    }
+});
+
+router.post("/login/test", async (req, res) => {
+    // Get the token from the request
+    const token = req.headers.authorization.split(" ")[1];
+
+    // Get the apiKey from the request
+    const verify = helper.verifyToken(token);
+
+    // Check if the token is valid
+    if (verify.success) {
+        // Test login
+        let user = await DB.getUser({ apiKey: verify.data.apiKey });
+        if (user.length == 0) {
+            return res.status(200).json({message: "No users found"});
+        } else if (user.length > 1) {
+            return res.status(200).json({message: "No user found"});
+        }
+
+        // Token passes all tests
+        res.status(200).json({message: "Token is valid"});
+
+    // Tokem is invalid
+    } else {
+        res.status(401).json({message: "Token is invalid"});
     }
 });
 
