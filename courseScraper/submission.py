@@ -238,7 +238,7 @@ class Submissions:
             if comment:
                 return str(comment[0]["html"])
 
-            print("\t[NOTICE] No comment found in the submission.")
+            print("\t\t\t\t[NOTICE] No comment found in the submission.")
             return None
 
 

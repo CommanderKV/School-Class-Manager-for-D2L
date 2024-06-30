@@ -47,7 +47,8 @@ class Assignment:
         self.attachments: list[dict[str, str]] | None = []
         self.instructions: str | None = None
         self.submissions: Submissions | None = None
-        self.grade: str | None = None
+        self.grade: float | None = None
+        self.weight: float | None = None
         self.feedback: dict[str, str|None] | None = None
 
 
@@ -110,6 +111,12 @@ class Assignment:
             print("\t\t\t[Notice] Grade not found!")
         else:
             print("\t\t\t[Success] Obtained grade!")
+
+        # Get the weight
+        if self._getWeight(assignment) is None:
+            print("\t\t\t[Notice] Weight not found!")
+        else:
+            print("\t\t\t[Success] Obtained weight!")
 
         # Get the feedback
         if self._getFeedback(assignment, page) is None:
@@ -360,12 +367,82 @@ class Assignment:
             return None
 
         # Set the grade
-        self.grade = ""
-        for part in partsOfGrade:
-            self.grade += part.get_text()
+        if (partsOfGrade[0].getText() == "-" or partsOfGrade[2].getText() == "-"):
+            self.grade = None
+        else:
+            self.grade = round(float(partsOfGrade[0].get_text()) / float(partsOfGrade[2].get_text()), 2)
 
         # Return the grade
         return self.grade
+
+    def _getWeight(self, assignment: Locator) -> str | None:
+        """
+        # Description:
+            Gets the weight for the assignment
+
+        ## Args:
+            - assignment (Locator): 
+                The current assignment locator
+
+        ## Returns:
+            str | None: 
+                The weight for the assignment or None if no weight found
+        """
+        # Save the url
+        startURL = assignment.page.url
+
+        # Go to the grades page
+        soup = BeautifulSoup(assignment.page.inner_html("*"), "html.parser")
+        href = soup.select("a[href^='/d2l/lms/grades/']")[0]["href"]
+        assignment.page.goto(self.baseUrl + href)
+        assignment.page.wait_for_load_state("load")
+
+        # Get the weight of the assignment
+        soup = BeautifulSoup(assignment.page.inner_html("*"), "html.parser")
+
+        # Get the grades table
+        grades = soup.select("table[type='list']")
+        if not grades:
+            # Go back to start URL
+            assignment.page.go_back()
+            assignment.page.wait_for_url(startURL)
+            assignment.page.wait_for_load_state("load")
+            return None
+
+        # Get thea ssignment names
+        rowHeaders = grades[0].select("tr:not(:first-child) th label")
+
+        # Find the row that has the assignment name
+        index: int = 0
+        for pos, row in enumerate(rowHeaders):
+            if row.get_text() == self.name:
+                index = pos
+                break
+
+        # Get the weight data from the table
+        td = grades[0].select(f"tr:nth-child({index+1}) td")
+
+        # Check if the weight col is available
+        if len(td) < 2:
+            # Go back to start URL
+            assignment.page.go_back()
+            assignment.page.wait_for_url(startURL)
+            assignment.page.wait_for_load_state("load")
+            return None
+
+        # Check if the weight is available
+        if len(td[2].select("label")) > 0:
+            self.weight = str(td[2].select("label")[0])
+        else:
+            self.weight = None
+
+        # Go back to start URL
+        assignment.page.go_back()
+        assignment.page.wait_for_url(startURL)
+        assignment.page.wait_for_load_state("load")
+
+        # Return the weight
+        return self.weight
 
     def _getFeedback(self, assignment: Locator, page: Page) -> dict[str, str] | None:
         """
@@ -387,7 +464,13 @@ class Assignment:
         pageURL = page.url
 
         # Get the feedback link
-        soup = BeautifulSoup(assignment.inner_html(), "html.parser")
+        for _ in range(5):
+            try:
+                soup = BeautifulSoup(assignment.inner_html(), "html.parser")
+                break
+            except Exception: # pylint: disable=broad-except
+                print(assignment.page.url)
+                pass
         feedbackDiv = soup.select(".d2l-table-cell-last")
 
         # Check if the feedback div is available (Should always be the case)
@@ -487,5 +570,6 @@ class Assignment:
             "ATTACHMENTS": self.attachments,
             "SUBMISSIONS": self.submissions.toDict() if self.submissions else None,
             "GRADE": self.grade,
+            "WEIGHT": self.weight,
             "FEEDBACK": self.feedback
         }
