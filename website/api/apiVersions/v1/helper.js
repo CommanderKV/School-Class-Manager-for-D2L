@@ -51,7 +51,7 @@ function authenticateToken(req, res, next) {
     const token = authHeader && authHeader.split(" ")[1];
 
     // Check if the token is set
-    if (!token) {
+    if (!token || token == null || token == "" || token == undefined) {
         // Unauthorized
         res.status(401).json({ "error": "No token set" });
         return;
@@ -63,7 +63,7 @@ function authenticateToken(req, res, next) {
     // Check if the token is valid
     if (!result.success) {
         // If not valid, return an error
-        console.log(`Token authentification error. ${result.error}`);
+        console.log(`Token authentification error. ${result.error} Token: ${token == null ? "null" : "Exsits"}`);
         res.status(403).json({ "error": result.error });
         return;
     }

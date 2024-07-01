@@ -55,7 +55,12 @@ async function runUpdate(userID, apiKey) {
             throw new Error("Multiple users found"); // Should never happen
         }
     })
-    .catch((err) => {console.log(err); throw err;})
+    .catch((err) => {
+        console.log(err);
+        if (err.message.indexOf("ECONNRESET") > -1) {
+            throw new Error("Connection issue with database");
+        }
+    })
 
     // Check if the user was found
     if (!user) {
@@ -244,6 +249,7 @@ async function runUpdate(userID, apiKey) {
                                 due: assignment.DUE,
                                 instructions: assignment.INSTRUCTIONS,
                                 grade: assignment.GRADE,
+                                weight: assignment.WEIGHT,
                                 courseID: courseID,
                                 submissionURL: submissionURL,
                                 userID: userID
@@ -343,9 +349,11 @@ async function runUpdate(userID, apiKey) {
         })
         .catch((err) => {
             console.log(err);
-            progressTracker[apiKey].status = "Failed";
-            progressTracker[apiKey].output.push(err);
-            progressTracker[apiKey].error = `Encountered general error: ${err}`;
+            if (err.message != "Script failed") {
+                progressTracker[apiKey].status = "Failed";
+                progressTracker[apiKey].output.push(err);
+                progressTracker[apiKey].error = `Encountered general error: ${err}`;
+            }
 
             // Clear the progress tracker after 5 minutes
             setTimeout(() => {
