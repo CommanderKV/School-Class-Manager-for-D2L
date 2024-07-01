@@ -370,7 +370,10 @@ class Assignment:
         if (partsOfGrade[0].getText() == "-" or partsOfGrade[2].getText() == "-"):
             self.grade = None
         else:
-            self.grade = round(float(partsOfGrade[0].get_text()) / float(partsOfGrade[2].get_text()), 2)
+            self.grade = round(
+                float(partsOfGrade[0].get_text()) / float(partsOfGrade[2].get_text()),
+                2
+            )
 
         # Return the grade
         return self.grade
@@ -432,7 +435,8 @@ class Assignment:
 
         # Check if the weight is available
         if len(td[2].select("label")) > 0:
-            self.weight = str(td[2].select("label")[0])
+            self.weight = str(td[2].select("label")[0]).replace("<label>", "").replace("</label>", "").strip()
+            
         else:
             self.weight = None
 
