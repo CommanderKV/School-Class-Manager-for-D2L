@@ -74,7 +74,6 @@ async function checkStatus(status) {
                     time: new Date().getTime()
                 }
             ));
-            console.log(sessionStorage.getItem("token").time);
             break;
 
         case 404:

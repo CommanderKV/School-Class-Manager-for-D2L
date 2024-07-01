@@ -11,6 +11,8 @@ const logsContainer = document.querySelector("#logs > ol");
 // Get the console header container
 const consoleHeader = document.getElementById("consoleHeader");
 
+let updating = false;
+
 async function checkToken() {
     // Check if we have one already or need to get a new one
     if (sessionStorage.getItem("token")) {
@@ -104,7 +106,10 @@ async function getToken () {
 function checkStatus(status, resultJson) {
     switch (status) {
         case 403:
-            token = getToken();
+            sessionStorage.setItem("token", {
+                time: Date.now(),
+                token: getToken()
+            });
             updateLogs("Token refreshed");
             break;
 
@@ -139,7 +144,7 @@ function updateLogs(log) {
 // Function to deal with inital request
 async function initalRequest() {
     // Check the token
-    checkToken();
+    await checkToken();
 
     var result, resultJson;
     do {
@@ -252,6 +257,10 @@ async function updateStatus(lastOutputLength) {
 
 // Function to start the update
 async function startUpdate() {
+    if (updating) {
+        return;
+    }
+    updating = true;
     // Set the token in the session storage
     token = await getToken();
 
@@ -283,11 +292,12 @@ async function startUpdate() {
             lastOutputLength = await updateStatus(lastOutputLength);
             if (lastOutputLength == false) {
                 exit = true;
+                updating = false;
                 clearInterval(interval);
                 consoleHeader.querySelector("#consoleCountDown").classList.add("hidden");
                 
                 // Scroll to bottom of logs
-                logs.scrollTop = logs.scrollHeight;
+                logs.scrollTo(0, logs.scrollHeight);
                 return;
             }
 
@@ -297,7 +307,7 @@ async function startUpdate() {
                 consoleHeader.querySelector("#consoleCountDown").classList.add("hidden");
                 
                 // Scroll to bottom of logs
-                logs.scrollTop = logs.scrollHeight;
+                logs.scrollTo(0, logs.scrollHeight);
                 return;
             }
             loopCounter = 0;
@@ -308,6 +318,7 @@ async function startUpdate() {
             loopCounter++;
             consoleHeader.querySelector("#consoleCountDown").innerHTML = `Updating in: ${(seconds - loopCounter) + 1}`;
         }
+        logs.scrollTo(0, logs.scrollHeight);
     }, 1000);
 
 }
