@@ -5,6 +5,7 @@
 html {
     background-color: var(--html-background-color);
     font-size: 1.1em;
+    color: var(--html-text-color);
 }
 body {
     margin: 0px;

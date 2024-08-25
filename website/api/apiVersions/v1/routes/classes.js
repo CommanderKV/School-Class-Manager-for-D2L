@@ -208,9 +208,7 @@ async function runUpdate(userID, apiKey) {
                     console.log(err);
                     progressTracker[apiKey].status = "Failed";
                     progressTracker[apiKey].output.push(err);
-                    progressTracker[apiKey].error = `Updating course encounterd: ${err}`;
-
-                    // Clear the progress tracker after 5 minutes
+                    progressTracker[apiKey].error = `Updating course encounterd: ${err}`;                    // Clear the progress tracker after 5 minutes
                     setTimeout(() => {
                         // Delete tracker
                         delete progressTracker.apiKey;
@@ -229,7 +227,6 @@ async function runUpdate(userID, apiKey) {
                         return;
                     }
                     
-
                     // Add all assignments
                     if (course.ASSIGNMENTS != null) {
                         course.ASSIGNMENTS.forEach((assignment) => {
@@ -243,6 +240,8 @@ async function runUpdate(userID, apiKey) {
                             } else {
                                 submissionURL = null
                             };
+                            
+                            console.log(`grade: ${assignment.GRADE}, weight: ${assignment.WEIGHT}, classID: ${courseID}, userID: ${userID}`);
                             DB.updateAssignment({
                                 link: assignment.LINK, 
                                 name: assignment.NAME,
@@ -280,6 +279,7 @@ async function runUpdate(userID, apiKey) {
 
                                         // Add the submission
                                         DB.updateSubmission({
+                                            userID: userID,
                                             assignmentID: assignmentID,
                                             d2lSubmissionID: submission.ID, 
                                             comment: submission.COMMENT,

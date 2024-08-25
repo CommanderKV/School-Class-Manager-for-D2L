@@ -83,7 +83,7 @@ function checkParams(params, minSet=null, recursion=false) {
     // Go through each parameter 
     for (let i = 0; i < params.length; i++) {
         // Check if the parameter is set
-        if (params[i] != null) {
+        if (params[i] != null && params[i] != undefined) {
             // Check if the parameter is a list
             if (Array.isArray(params[i]) && !recursion) {
                 // Check if all elements in the list are set

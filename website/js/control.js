@@ -17,11 +17,12 @@ async function checkToken() {
     // Check if we have one already or need to get a new one
     if (sessionStorage.getItem("token")) {
         // Check if the token is older than 4 hours
-        if (JSON.parse(sessionStorage.getItem("token")).time < new Date().getTime() - (4 * 60 * 60 * 1000)) {
+        let token = JSON.parse(sessionStorage.getItem("token"));
+        if (token.date < new Date().getTime() - (4 * 60 * 60 * 1000)) {
             sessionStorage.setItem("token", JSON.stringify(
                 {
                     token: await getToken(),
-                    date: new Date().getTime()
+                    date: new Date().getTime() 
                 }
             ));
         

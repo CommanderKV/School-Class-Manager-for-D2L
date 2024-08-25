@@ -423,22 +423,29 @@ class Assignment:
                 break
 
         # Get the weight data from the table
-        td = grades[0].select(f"tr:nth-child({index+1}) td")
+        td = grades[0].select(f"tr:nth-child({index+1}) td:not(.d2l-table-cell-first)")
 
         # Check if the weight col is available
-        if len(td) < 2:
+        if len(td) < 3:
             # Go back to start URL
             assignment.page.go_back()
             assignment.page.wait_for_url(startURL)
             assignment.page.wait_for_load_state("load")
+            self.weight = 1.0
             return None
 
         # Check if the weight is available
         if len(td[2].select("label")) > 0:
-            self.weight = str(td[2].select("label")[0]).replace("<label>", "").replace("</label>", "").strip()
-            
+            self.weight = str(td[2].select("label")[0]) \
+                .replace("</label>", "").split(">")[1].strip()
+
+            if "/" in self.weight and self.weight.split("/")[1].isdigit():
+                self.weight = float(self.weight.split("/")[1])
+
+            else:
+                self.weight = 1.0
         else:
-            self.weight = None
+            self.weight = 1.0
 
         # Go back to start URL
         assignment.page.go_back()

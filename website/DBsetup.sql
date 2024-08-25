@@ -128,6 +128,7 @@ CREATE TABLE GradesAssignmentsLinkToClasses (
 -- Insert data for user for testing
 
 
+
 SELECT
     Classes.name AS className,          -- Class name
     Classes.courseCode,                 -- Class courseCode
@@ -213,8 +214,19 @@ GROUP BY Classes.classID;                                                  -- Gr
 
 
 SELECT * FROM Classes;
+
+SELECT * FROM Attachments;
+
 SELECT * FROM Assignments;
+
 SELECT * FROM Submissions;
+
+SELECT * FROM Grades;
+
+SELECT * FROM GradesLinkToAssignments;
+
+SELECT LAST_INSERT_ID();
+
 
 SELECT 
     Grades.grade,
@@ -229,5 +241,91 @@ WHERE
     Grades.UserID = 1000 AND 
     GradesLinkToAssignments.assignmentID = 1
 GROUP BY Grades.gradeID;
+
+
+SELECT 
+    Classes.name AS className,
+    Classes.courseCode,
+    Classes.link AS classLink,
+    Classes.termShort,
+    Classes.closed,
+    JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'name', Assignments.name,
+            'link', Assignments.link,
+            'dueDate', Assignments.dueDate,
+            'instructions', Assignments.instructions,
+            'attachments', AssignmentAttachments.attachmentsJSON,
+            'submissions', AssignmentSubmissions.submissionsJSON,
+            'feedback', AssignmentsFeedback.feedbackJSON,
+            'grade', Grades.grade,
+            'submissionURL', Assignments.submissionURL
+        )
+    ) AS assignments
+FROM Classes
+JOIN Assignments ON Classes.classID = Assignments.classID
+LEFT JOIN GradesLinkToAssignments ON Assignments.assignmentID = GradesLinkToAssignments.assignmentID
+LEFT JOIN Grades ON GradesLinkToAssignments.gradeID = Grades.gradeID
+LEFT JOIN (
+    SELECT 
+        Assignments.assignmentID,
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'link', Attachments.link,
+                'size', Attachments.size,
+                'name', Attachments.name
+            )
+        ) AS attachmentsJSON
+    FROM Attachments
+    JOIN AttachmentLinkToAssignment ON Attachments.attachmentID = AttachmentLinkToAssignment.attachmentID
+    JOIN Assignments ON AttachmentLinkToAssignment.assignmentID = Assignments.assignmentID
+    GROUP BY Assignments.assignmentID
+) AS AssignmentAttachments ON Assignments.assignmentID = AssignmentAttachments.assignmentID
+LEFT JOIN (
+    SELECT 
+        Submissions.assignmentID,
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'submissionID', Submissions.submissionID,
+                'comment', Submissions.comment, 
+                'date', Submissions.date,
+                'attachments', SubmissionAttachments.attachmentsJSON
+            )
+        ) AS submissionsJSON
+    FROM Submissions
+    LEFT JOIN (
+        SELECT 
+            AttachmentLinkToSubmission.submissionID,
+            JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'link', Attachments.link,
+                    'size', Attachments.size,
+                    'name', Attachments.name
+                )
+            ) AS attachmentsJSON
+        FROM Attachments
+        JOIN AttachmentLinkToSubmission ON Attachments.attachmentID = AttachmentLinkToSubmission.attachmentID
+        GROUP BY AttachmentLinkToSubmission.submissionID
+    ) AS SubmissionAttachments ON Submissions.submissionID = SubmissionAttachments.submissionID
+    GROUP BY Submissions.assignmentID
+) AS AssignmentSubmissions ON Assignments.assignmentID = AssignmentSubmissions.assignmentID
+LEFT JOIN (
+    SELECT 
+        Assignments.assignmentID,
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'html', Feedback.html,
+                'date', Feedback.date
+            )
+        ) AS feedbackJSON
+    FROM Feedback
+    JOIN Submissions ON Feedback.submissionID = Submissions.submissionID
+    JOIN Assignments ON Submissions.assignmentID = Assignments.assignmentID
+    GROUP BY Assignments.assignmentID
+) AS AssignmentsFeedback ON AssignmentsFeedback.assignmentID = Assignments.assignmentID
+INNER JOIN UsersToClasses ON Classes.classID = UsersToClasses.classID
+INNER JOIN Users ON UsersToClasses.userID = Users.userID
+WHERE Users.userID = 1000
+GROUP BY Classes.classID;
 
 

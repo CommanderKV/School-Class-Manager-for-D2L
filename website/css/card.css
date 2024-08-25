@@ -60,6 +60,25 @@
 }
 
 /* Card styles */
+.no-cards {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+}
+.no-cards > h2 {
+    color: var(--course-title-color);
+    font-size: 2em;
+    font-weight: bold;
+    margin: 0px;
+}
+.no-cards > p {
+    color: var(--course-details-color);
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 0px;
+}
 .card {
     display: flex;
     flex-direction: column;

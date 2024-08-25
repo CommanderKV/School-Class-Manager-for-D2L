@@ -321,23 +321,33 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
     courseGrade.classList.add("course-grade");
 
     // Get the grade value
-    let gradeValue = grade.toString().split(" ");
-    gradeValue = ((gradeValue[0]) / gradeValue[2]) * 100;
-    gradeValue = Math.round(gradeValue * 100) / 100;
-
-    // Check for the grade
-    if (gradeValue) {
-        if (gradeValue >= 80) {
-            courseGrade.classList.add("good");
-        } else if (gradeValue >= 70) {
-            courseGrade.classList.add("okay");
-        } else if (gradeValue < 70) {
-            courseGrade.classList.add("bad");
-        }
-        courseGrade.innerText = gradeValue + "%";
-    } else {
+    var gradeValue;
+    if (grade == null) {
         courseGrade.classList.add("bad");
-        courseGrade.innerText = "No grade"
+        courseGrade.innerText = "No grade";
+        gradeValue = null;
+
+    } else {
+        let gradeValue = grade.toString();
+        console.log(gradeValue);
+        gradeValue = gradeValue * 100;
+        gradeValue = Math.round(gradeValue * 100) / 100;
+
+        // Check for the grade
+        if (gradeValue) {
+            if (gradeValue >= 80) {
+                courseGrade.classList.add("good");
+            } else if (gradeValue >= 70) {
+                courseGrade.classList.add("okay");
+            } else if (gradeValue < 70) {
+                courseGrade.classList.add("bad");
+            }
+            courseGrade.innerText = gradeValue + "%";
+            
+        } else {
+            courseGrade.classList.add("bad");
+            courseGrade.innerText = "No grade"
+        }
     }
 
     // Add the grade to the card
@@ -355,7 +365,7 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
         // Check if time has passed
         if (Date.parse(due) < new Date().getTime()) {
             if (submissions != null) {
-                if ( submissions.length == 0 && gradeValue == null) {
+                if (submissions.length == 0 && gradeValue == null) {
                     courseTerm.classList.add("bad");
                 }
             
@@ -584,16 +594,50 @@ async function addCards(container) {
     console.log(`Adding cards to ${container.id}`)
     let cardHolder = container.querySelector(".cards");
 
+    // Check if we have more than 0 cards
+    if (data.length == 0) {
+        // Remove the loading animation
+        document.getElementById("loadingAnimation").remove();
+
+        // Add the no data found message
+        let noCourses = document.createElement("div");
+        noCourses.classList.add("no-cards");
+
+        let msg = document.createElement("h2");
+        msg.innerText = "No data found";
+
+        let suggestion = document.createElement("p");
+        suggestion.innerText = "Try fetching the data again from the api tab";
+
+        noCourses.appendChild(msg);
+        noCourses.appendChild(suggestion);
+        cardHolder.appendChild(noCourses);
+        return;
+    }
+
     switch (container.id) {   
         case "courses":
             // Create the cards
             let courseCards = [];
             for (let i = 0; i < data.length; i++) {
+
+                // Calculate the overall grade
+                let overallGrade = 0;
+                let totalWeight = 0;
+                for (let j = 0; j < data[i].assignments.length; j++) {
+                    if (data[i].assignments[j].grade) {
+                        overallGrade += data[i].assignments[j].grade * data[i].assignments[j].weight;
+                        totalWeight += data[i].assignments[j].weight;
+                    }
+                }
+
+                overallGrade = Math.round((overallGrade / totalWeight) * 100);
+
                 // Create the card
                 courseCards.push(createCourseCard(
                     data[i].className,
                     data[i].courseCode,
-                    data[i].overallGrade ? data[i].overallGrade : "N/A",
+                    data[i].overallGrade ? data[i].overallGrade : overallGrade ? overallGrade : "N/A",
                     data[i].termShort,
                     data[i].closed,
                     data[i].assignments
@@ -602,12 +646,6 @@ async function addCards(container) {
 
             // Remove the loading animation
             document.getElementById("loadingAnimation").remove();
-
-            if (courseCards.length == 0) {
-                let noCourses = document.createElement("h2");
-                noCourses.innerText = "No courses found";
-                cardHolder.appendChild(noCourses);
-            }
 
             // Add the cards to the container
             for (let i = 0; i < courseCards.length; i++) {
@@ -641,12 +679,6 @@ async function addCards(container) {
 
             // Remove the loading animation
             document.getElementById("loadingAnimation").remove();
-
-            if (assignmentCards.length == 0) {
-                let noCourses = document.createElement("h2");
-                noCourses.innerText = "No assignments found";
-                cardHolder.appendChild(noCourses);
-            }
 
             // Add the cards to the container
             for (let i = 0; i < assignmentCards.length; i++) {
