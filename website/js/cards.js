@@ -551,6 +551,82 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
     return card;
 }
 
+// Create a card element for a grade
+function createGradeCard(classData) {
+    // Create container
+    const card = document.createElement("div");
+    card.classList.add("card");
+
+    // Create the header
+    const header = document.createElement("div");
+    header.classList.add("card-header");
+    card.appendChild(header);
+
+    // Add the class name
+    const label = document.createElement("label");
+    label.innerText = classData.className;
+    header.appendChild(label);
+
+    // Create the header details
+    const headerDetails = document.createElement("div");
+    headerDetails.classList.add("card-header-details");
+    header.appendChild(headerDetails);
+
+    // Add the course code
+    const courseCode = document.createElement("span");
+    courseCode.classList.add("course-code");
+    courseCode.innerText = classData.courseCode;
+    headerDetails.appendChild(courseCode);
+
+    // Add the card body
+    const body = document.createElement("div");
+    body.classList.add("card-body");
+    card.appendChild(body);
+
+    // Add the body list
+    const gradeList = document.createElement("div");
+    gradeList.classList.add("card-body-list");
+    gradeList.classList.add("no-scrollbar");
+    body.appendChild(gradeList);
+
+    // Add the grades
+    for (var i = 0; i < classData.assignments.length; i++) {
+        // Create the list
+        const gradeItem = document.createElement("li");
+        gradeList.appendChild(gradeItem);
+
+        // Create the grade div
+        const gradeDiv = document.createElement("div");
+        gradeDiv.classList.add("row");
+        gradeDiv.classList.add("space-between");
+        gradeItem.appendChild(gradeDiv);
+
+        // Create the grade name
+        const assignmentName = document.createElement("Label");
+        assignmentName.innerText = classData.assignments[i].name;
+        gradeDiv.appendChild(assignmentName);
+
+        // Create the grade value
+        let grade = Math.round(classData.assignments[i].grade * 100);
+        const assignmentGrade = document.createElement("span");
+        assignmentGrade.innerText = grade + "%";
+        gradeDiv.appendChild(assignmentGrade);
+
+        // Change the color of the grade
+        if (grade >= 80) {
+            assignmentGrade.classList.add("good");
+        } else if (grade >= 70) {
+            assignmentGrade.classList.add("okay");
+        } else {
+            assignmentGrade.classList.add("bad");
+        }
+    }
+
+    // Return the card
+    return card;
+    
+}
+
 
 async function getAllData() {
     // Fetch the data
@@ -685,6 +761,23 @@ async function addCards(container) {
                 cardHolder.appendChild(assignmentCards[i]);
             }
             break;
+    
+        case "grades":
+            // Create the cards
+            let gradeCards = [];
+
+            // Create grade cards
+            for (let i = 0; i < data.length; i++) {
+                gradeCards.push(createGradeCard(data[i]));
+            }
+
+            // Add the cards to the container
+            for (let i = 0; i < gradeCards.length; i++) {
+                cardHolder.appendChild(gradeCards[i]);
+            }
+
+            // Remove loading animation
+            document.getElementById("loadingAnimation").remove();
     }
 }
 

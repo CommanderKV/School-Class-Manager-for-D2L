@@ -100,7 +100,10 @@ async function runUpdate(userID, apiKey) {
         scriptPath, 
         user.d2lEmail, 
         user.d2lPassword, 
-        coursePath
+        coursePath,
+        user.d2lLink,
+        user.d2lUsername,
+        user.d2lPassword
     ];
 
 

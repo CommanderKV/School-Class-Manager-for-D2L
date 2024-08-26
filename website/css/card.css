@@ -188,6 +188,8 @@ div.space-between {
     list-style-type: none;
     padding: 15px;
     margin: 0;
+    
+    overflow-y: hidden;
 }
 .card-body-list li {
     margin: 10px 0;
@@ -316,7 +318,6 @@ div.space-between {
     font-weight: bold;
     color: var(--course-title-color);
     margin-bottom: 10px;
-
 }
 .attachments a {
     color: blue;

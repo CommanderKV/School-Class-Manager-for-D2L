@@ -24,9 +24,6 @@ dotenv_path=os.path.join(
 load_dotenv(dotenv_path=dotenv_path)
 
 # Access the environment variables
-LINK = "https://mycourselink.lakeheadu.ca/d2l/home"
-USERNAME = os.getenv("D2L_USERNAME")
-PASSWORD = os.getenv("D2L_PASSWORD")
 SAVEFILE = "courses.json"
 
 def saveToFile(courses: list[Course], filename: str) -> None:
@@ -194,6 +191,11 @@ def main(play: Playwright, link: str, username: str, password: str) -> None:
 # Start the program
 if __name__ == "__main__":
     if len(sys.argv) >= 3:
+        if len(sys.argv) >= 6:
+            LINK = sys.argv[4]
+            USERNAME = sys.argv[5]
+            PASSWORD = sys.argv[6]
+
         SAVEFILE = sys.argv[3] if len(sys.argv) == 4 else SAVEFILE
 
         # Check if we are being run by api
@@ -206,9 +208,3 @@ if __name__ == "__main__":
             print(f"[Notice] Username: {sys.argv[1]}")
             print(f"[Notice] Password: {sys.argv[2]}")
             main(playwright, LINK, sys.argv[1], sys.argv[2])
-
-    else:
-        # Start scraping
-        os.environ["SCRAPER_DEBUG"] = "True"
-        with sync_playwright() as playwright:
-            main(playwright, LINK, USERNAME, PASSWORD)

@@ -1128,6 +1128,60 @@ GROUP BY Classes.classID;`;
     });
 }
 
+function getUserSettings(userID) {
+    return new Promise((resolve, reject) => {
+        // Create the query
+        let query = `SELECT username, d2lEmail, d2lLink FROM Users WHERE userID = ?;`;
+
+        // Execute the query
+        connection.query(query, [userID], (error, results, fields) => {
+            if (error) {
+                reject(`An error occurred while getting the user settings. ${error}`);
+                return;
+            }
+            resolve(results);
+        });
+    });
+}
+
+function saveUserSettings(userID, data) {
+    return new Promise((resolve, reject) => {
+        // Check if the parameters are provided
+        if (!helper.checkParams([userID, data])) {
+            reject(`saveUserSettings: No arguments provided. ${userID}, ${data}`);
+        }
+
+        // Create the query
+        var query, queryParams;
+        if (data.username == null || data.password == null) {
+            if (d2lPassword != null) {
+                query = `UPDATE Users SET d2lEmail = ?, d2lLink = ?, d2lPassword = ? WHERE userID = ?;`;
+                queryParams = [data.d2lEmail, data.d2lLink, data.d2lPassword, userID];
+            } else {
+                query = `UPDATE Users SET d2lEmail = ?, d2lLink = ? WHERE userID = ?;`;
+                queryParams = [data.d2lEmail, data.d2lLink, userID];
+            }
+        } else {
+            if (d2lPassword != null) {
+                query = `UPDATE Users SET username = ?, password = ? WHERE userID = ?;`;
+                queryParams = [data.username, data.password, userID];
+            } else {
+                query = `UPDATE Users SET username = ? WHERE userID = ?;`;
+                queryParams = [data.username, userID];
+            }
+        }
+
+        // Execute the query
+        connection.query(query, queryParams, (error, results, fields) => {
+            if (error) {
+                reject(`An error occurred while saving the user settings. ${error}`);
+                return;
+            }
+            resolve(results);
+        });
+    });
+}
+
 module.exports = {
     connect,
     isConnected,
@@ -1144,5 +1198,7 @@ module.exports = {
     getSubmissions,
     getAttachments,
     getAllCourseData,
-    getAllDataFast
+    getAllDataFast,
+    getUserSettings,
+    saveUserSettings
 };

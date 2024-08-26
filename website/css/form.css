@@ -1,0 +1,42 @@
+.card > form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    padding: 20px;
+    margin: 0;
+}
+.card > form h2 {
+    margin-top: 0;
+    font-size: var(--course-title-size);
+    color: var(--course-title-color);
+}
+.card > form label {
+    margin-top: 10px;
+    font-size: var(--course-details-size);
+    color: var(--course-details-color);
+    width: 220px;
+}
+.card > form input {
+    width: 100%;
+    background: transparent;
+    outline: none;
+    border: none;
+    border-bottom: 1px solid var(--course-details-color);
+    margin-left: 20px;
+    margin-top: 12px;
+    padding: 0px;
+
+    color: var(--course-title-color);
+    height: 15px;
+}
+.card > form button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: var(--course-title-color);
+    color: purple;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
