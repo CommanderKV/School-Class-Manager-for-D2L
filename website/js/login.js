@@ -1,4 +1,3 @@
-const loginButton = document.getElementById("login");
 
 async function verifyLogin() {
     // Get the elements
@@ -28,7 +27,7 @@ async function verifyLogin() {
     
 
     // Send the data to the server
-    let response = await fetch("http://localhost:3000/api/v1/users/login", {
+    let response = await fetch("https://kyler.visserfamily.ca:3000/api/v1/users/login", {
         method: "POST",
         body: JSON.stringify(data),
         headers: {
@@ -56,3 +55,9 @@ async function verifyLogin() {
         });
     }
 }
+
+document.getElementById("loginForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    console.log("Login form submitting");
+    verifyLogin();
+});

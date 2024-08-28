@@ -16,7 +16,7 @@ async function checkToken() {
         // The token is set and not expired
         } else {
             // Test token
-            let result = await fetch("http://localhost:3000/api/v1/login/test", {
+            let result = await fetch("http://kyler.visserfamily.ca:3000/api/v1/login/test", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

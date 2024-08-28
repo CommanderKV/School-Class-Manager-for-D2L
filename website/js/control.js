@@ -17,23 +17,18 @@ async function checkToken() {
     // Check if we have one already or need to get a new one
     if (sessionStorage.getItem("token")) {
         // Check if the token is older than 4 hours
-        let token = JSON.parse(sessionStorage.getItem("token"));
-        if (token.date < new Date().getTime() - (4 * 60 * 60 * 1000)) {
-            sessionStorage.setItem("token", JSON.stringify(
-                {
-                    token: await getToken(),
-                    date: new Date().getTime() 
-                }
-            ));
+        if (JSON.parse(sessionStorage.getItem("token")).date < new Date().getTime() - (4 * 60 * 60 * 1000)) {
+            console.log("Token is older than 4 hours");
+            window.location.href = "./login.html";
         
         // The token is set and not expired
         } else {
             // Test token
-            let result = await fetch("http://localhost:3000/api/v1/login/test", {
+            let result = await fetch("http://kyler.visserfamily.ca:3000/api/v1/login/test", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "authorization": `Bearer ${JSON.parse(sessionStorage.getItem("token")).token}`
+                    "authorization": `Bearer: ${JSON.parse(sessionStorage.getItem("token")).token}`
                 }
             }).catch((error) => {
                 console.error(error);
@@ -47,61 +42,20 @@ async function checkToken() {
             if (result.status != 200) {
                 checkStatus(result.status, resultJson);
                 return null;
-            }
-
-            // Reset the token if it is invalid
-            if (resultJson.message != "Token is valid") {
-                sessionStorage.setItem("token", JSON.stringify(
-                    {
-                        token: await getToken(),
-                        date: new Date().getTime()
-                    }
-                ));
+            } else {
+                console.log("Token is valid");
             }
         }
     
     // Token is not set
     } else {
-        // Set token
-        sessionStorage.setItem("token", JSON.stringify(
-            {
-                token: await getToken(),
-                date: new Date().getTime()
-            }
-        ));
+        window.location.href = "./login.html";
     }
 }
 
 async function getToken () {
     // Login
-    let data = await fetch(
-        "http://localhost:3000/api/v1/login", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify
-        ({
-            "username": "CommanderKV",
-            "password": "admin",
-        }),
-
-    // Catch any errors
-    }).catch((error) => {
-        console.error(error);
-        return null;
-    });
-
-    if (data.status != 200) {
-        checkStatus(data.status);
-        return null;
-    }
-
-    // Get the result as json
-    let result = await data.json();
-
-    // Return the token
-    return result.token;
+    winndow.location.href = "./login.html";
 }
 
 function checkStatus(status, resultJson) {
@@ -150,7 +104,7 @@ async function initalRequest() {
     var result, resultJson;
     do {
         // Initiate the first call to the server
-        result = await fetch("http://localhost:3000/api/v1/classes/update", {
+        result = await fetch("http://kyler.visserfamily.ca:3000/api/v1/classes/update", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -184,7 +138,7 @@ async function updateStatus(lastOutputLength) {
     var result, resultJson;
     do {
         // Initiate call to server for status update
-        result = await fetch("http://localhost:3000/api/v1/classes/update", {
+        result = await fetch("http://kyler.visserfamily.ca:3000/api/v1/classes/update", {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",

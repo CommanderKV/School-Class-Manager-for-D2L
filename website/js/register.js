@@ -25,7 +25,7 @@ async function registerUser() {
         password: password
     };
 
-    let response = await fetch("http://localhost:3000/api/v1/users/register", {
+    let response = await fetch("http://kyler.visserfamily.ca:3000/api/v1/users/register", {
         method: "POST",
         body: JSON.stringify(data),
         headers: {
