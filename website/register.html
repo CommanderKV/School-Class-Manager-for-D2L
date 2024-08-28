@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+
+<html lang="en" class="no-scrollbar">
+    <head>
+        <title>Register</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <link rel="stylesheet" type="text/css" href="css/main.css">
+        <link rel="stylesheet" type="text/css" href="css/options.css">
+        <link rel="stylesheet" type="text/css" href="css/card.css">
+        <link rel="stylesheet" type="text/css" href="css/loading.css">
+        <link rel="stylesheet" type="text/css" href="css/form.css">
+
+        <script src="js/register.js" defer></script>
+    </head>
+    <body>
+        <header>
+            <div class="options">
+                <h1 id="pageTitle">Register</h1>
+            </div>
+        </header>
+        <main>
+            <div class="main-container">
+                <div class="card-holder">
+                    <div class="cards">
+                        <div class="card">
+                            <form action="">
+                                <div class="row">
+                                    <label for="email">Email</label>
+                                    <input type="text" id="email" name="email" hint="Email">
+                                </div>
+
+                                <div class="row">
+                                    <label for="username">Username</label>
+                                    <input type="text" id="username" name="username" hint="username" required>
+                                </div>
+
+                                <div class="row">
+                                    <label for="password">Password</label>
+                                    <input type="password" id="password" name="password" hint="password" required>
+                                </div>
+                                <button type="submit" id="register">Register</button>
+                            </form>
+                            <button onclick="window.location.href='login.html'">Login</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer>
+
+        </footer>
+    </body>
+</html>

@@ -21,9 +21,9 @@ CREATE TABLE Users (
     userID INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
     password VARCHAR(255) NOT NULL,
-    email VARCHAR(200) NOT NULL,
-    d2lEmail VARCHAR(200) NOT NULL,
-    d2lPassword VARCHAR(255) NOT NULL,
+    email VARCHAR(200) DEFAULT NULL,
+    d2lEmail VARCHAR(200) DEFAULT NULL,
+    d2lPassword VARCHAR(255) DEFAULT NULL,
     d2lLink VARCHAR(255) DEFAULT NULL,
     APIKey CHAR(36) DEFAULT (UUID()) NOT NULL
 ) AUTO_INCREMENT = 1000;
@@ -126,9 +126,6 @@ CREATE TABLE GradesAssignmentsLinkToClasses (
     FOREIGN KEY (classID) REFERENCES Classes(classID)
 ) AUTO_INCREMENT = 1000;
 
--- Insert data for user for testing
-
-
 
 SELECT
     Classes.name AS className,          -- Class name
@@ -225,6 +222,8 @@ SELECT * FROM Submissions;
 SELECT * FROM Grades;
 
 SELECT * FROM GradesLinkToAssignments;
+
+SELECT * FROM Users;
 
 SELECT LAST_INSERT_ID();
 

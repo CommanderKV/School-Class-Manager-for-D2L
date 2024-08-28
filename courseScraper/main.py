@@ -190,21 +190,21 @@ def main(play: Playwright, link: str, username: str, password: str) -> None:
 
 # Start the program
 if __name__ == "__main__":
-    if len(sys.argv) >= 3:
-        if len(sys.argv) >= 6:
-            LINK = sys.argv[4]
-            USERNAME = sys.argv[5]
-            PASSWORD = sys.argv[6]
-
-        SAVEFILE = sys.argv[3] if len(sys.argv) == 4 else SAVEFILE
+    if len(sys.argv) >= 4:
+        SAVEFILE = sys.argv[3] if len(sys.argv) >= 4 else SAVEFILE
 
         # Check if we are being run by api
-        if  len(sys.argv) == 4 and "api" in sys.argv[3]:
+        if len(sys.argv) == 4 and "api" in sys.argv[3]:
             os.environ["SCRAPER_DEBUG"] = "False"
             print("[Notice] Running in API mode!")
 
         # Start scraping
         with sync_playwright() as playwright:
+            os.environ["SCRAPER_DEBUG"] = "False"
+            print("[Notice] Running in API mode!")
             print(f"[Notice] Username: {sys.argv[1]}")
-            print(f"[Notice] Password: {sys.argv[2]}")
-            main(playwright, LINK, sys.argv[1], sys.argv[2])
+            print(f"[Notice] Password: {'*' * len(sys.argv[2])}")
+            main(playwright, sys.argv[4], sys.argv[1], sys.argv[2])
+
+    else:
+        print("[Error] Usage: python main.py <username> <password> <savefile> <link>")

@@ -24,6 +24,8 @@ router.use((req, res, next) => {
     // Check if user is logging in
     if (req.url == "/login" || req.url == "/login/test") {
         next();
+    } else if (req.url == "/users/register" || req.url == "/users/login" ) {
+        next();
 
     // Check if user is logged in
     } else {

@@ -101,9 +101,7 @@ async function runUpdate(userID, apiKey) {
         user.d2lEmail, 
         user.d2lPassword, 
         coursePath,
-        user.d2lLink,
-        user.d2lUsername,
-        user.d2lPassword
+        user.d2lLink
     ];
 
 
@@ -199,8 +197,25 @@ async function runUpdate(userID, apiKey) {
             
             // Get the json data
             let jsonDir = coursePath;
-            let jsonData = fs.readFileSync(jsonDir, "utf-8");
-            let courses = JSON.parse(jsonData);
+            let jsonData;
+            let courses = null;
+            try {
+                jsonData = fs.readFileSync(jsonDir, "utf-8");
+                courses = JSON.parse(jsonData);
+            } catch (err) {
+                console.log(err);
+                progressTracker[apiKey].status = "Failed";
+                progressTracker[apiKey].output.push(err);
+                progressTracker[apiKey].error = `Reading JSON file encounterd: ${err}`;
+                masterReject("Failed to read JSON file");
+            }
+
+            if (courses == null || courses == undefined) {
+                progressTracker[apiKey].status = "Failed";
+                progressTracker[apiKey].output.push("No courses found");
+                progressTracker[apiKey].error = `No courses found in JSON file`;
+                masterReject("Failed to read JSON file");
+            }
 
             // Add all courses and link it to the user
             courses.forEach((course) => {
@@ -244,7 +259,7 @@ async function runUpdate(userID, apiKey) {
                                 submissionURL = null
                             };
                             
-                            console.log(`grade: ${assignment.GRADE}, weight: ${assignment.WEIGHT}, classID: ${courseID}, userID: ${userID}`);
+                            // console.log(`grade: ${assignment.GRADE}, weight: ${assignment.WEIGHT}, classID: ${courseID}, userID: ${userID}`);
                             DB.updateAssignment({
                                 link: assignment.LINK, 
                                 name: assignment.NAME,

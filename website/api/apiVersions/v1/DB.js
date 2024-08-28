@@ -131,8 +131,7 @@ function updateCourse(course, userID) {
                         reject(`An error occurred while adding the course: ${error} Query: ${query} Params: ${queryParams}`);
                         return;
                     }
-                    console.log(JSON.stringify(results));
-                    resolve(results[0].classID);
+                    resolve(results[1][0].classID);
                 });
 
             // Course does exist
@@ -257,8 +256,6 @@ function updateAssignment({
 
                 // Insert the assignment into the database
                 connection.query(query, queryParams, (error, results, fields) => {
-                    console.log("Adding assignment");
-                    console.log(results);
                     // Something went wrong while adding the assignment
                     if (error) {
                         reject(`An error occurred while adding the assignment.\n\t[QUERY] "${query}" ${error} CourseID: ${courseID}`);
@@ -266,7 +263,6 @@ function updateAssignment({
                     // Assignment was added successfully
                     } else {
                         // Insert the grade
-                        console.log("Updating grade");
                         updateGrade({ 
                             grade: grade, 
                             weight: weight, 
@@ -328,7 +324,6 @@ function updateAssignment({
                 }
 
                 // Check if the grade needs to be updated
-                console.log("Updating grade");
                 updateGrade({ 
                     grade: grade, 
                     weight: weight, 
@@ -555,9 +550,7 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
     });
 }
 
-function updateGrade({ grade=null, weight=null, classID=null, assignmentID=null, userID=null }) {
-    console.log(`updateGrade: ${grade}, ${weight}, ${classID}, ${assignmentID}, ${userID}`);
-    
+function updateGrade({ grade=null, weight=null, classID=null, assignmentID=null, userID=null }) {    
     // Check if the parameters are provided
     if (!helper.checkParams([grade, assignmentID, userID], 3)) {
         return new Promise((resolve, reject) => {
@@ -616,8 +609,6 @@ function updateGrade({ grade=null, weight=null, classID=null, assignmentID=null,
 
             // Grade does not exist
             if (results.length === 0) {
-                console.log("Adding grade");
-
                 // Insert the grade into the database
                 query = `
                 INSERT INTO Grades (grade, weight, userID) VALUES (?, ?, ?);
@@ -639,7 +630,6 @@ function updateGrade({ grade=null, weight=null, classID=null, assignmentID=null,
                     results[0].grade != grade ||
                     results[0].weight != weight
                 ) {
-                    console.log("Grade is being updated");
                     let query = `
                     UPDATE Grades
                     SET
@@ -764,9 +754,47 @@ function getUser({
         connection.query(query, queryParams, (error, results, fields) => {
             if (error) {
                 reject(`An error occurred while getting the user. ${error}`);
+                console.log(query, queryParams);
                 return;
             }
             resolve(results);
+        });
+    });
+}
+
+function createUser({email=null, username=null, password=null}) {
+    // Check if the parameters are provided
+    if (!helper.checkParams([email, [username, password]])) {
+        return new Promise((resolve, reject) => {
+            reject(`createUser: No arguments provided. ${email}, ${username}, ${password}`);
+        });
+    }
+
+    // Create the promise
+    return new Promise((resolve, reject) => {
+        // Create the query
+        let query, queryParams;
+        if (email == null) {
+            query = `INSERT INTO Users (username, password) VALUES (?, ?);`;
+            queryParams = [username, password];
+        } else {
+            query = `INSERT INTO Users (email, username, password) VALUES (?, ?, ?);`;
+            queryParams = [email, username, password];
+        }
+
+        // Execute the query
+        connection.query(query, queryParams, (error, results, fields) => {
+            if (error) {
+                reject(`An error occurred while creating the user. ${error}`);
+                return;
+            }
+
+            // Get the user
+            getUser({username: username, password: password}).then((data) => {
+                resolve(data);
+            }).catch((error) => {
+                reject(error);
+            });
         });
     });
 }
@@ -1200,5 +1228,6 @@ module.exports = {
     getAllCourseData,
     getAllDataFast,
     getUserSettings,
-    saveUserSettings
+    saveUserSettings,
+    createUser
 };
