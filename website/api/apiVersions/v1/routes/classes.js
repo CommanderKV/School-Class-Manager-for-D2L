@@ -277,8 +277,6 @@ async function runUpdate(userID, apiKey) {
                                 submissionURL = null
                             };
                             
-                            console.log(`Adding assignment. Name: ${assignment.name} userID: ${userID}, courseID: ${courseID}`);
-                            console.log(`Submissions: ${assignment.SUBMISSIONS}`);
                             DB.updateAssignment({
                                 link: assignment.LINK, 
                                 name: assignment.NAME,
@@ -306,15 +304,10 @@ async function runUpdate(userID, apiKey) {
                                         .catch((err) => {console.log(err);});
                                     });
                                 }
-                                
-                                if (assignment.SUBMISSIONS == null) {
-                                    console.log("No submissions found");
-                                }
+
                                 // Add all the submissions
                                 if (assignment.SUBMISSIONS != null) {
-                                    console.log(`Adding submissions. userID: ${userID}, assignmentID: ${assignmentID}`);
                                     if (assignment.SUBMISSIONS.SUBMISSIONS == null) {
-                                        console.log("No submissions found");
                                         return;
                                     }
 
