@@ -64,7 +64,7 @@ CREATE TABLE Submissions (
     userID INT NOT NULL,
     comment VARCHAR(1000) DEFAULT NULL,
     d2lSubmissionID INT NOT NULL,
-    date DATETIME NOT NULL,
+    date DATETIME DEFAULT NULL,
     FOREIGN KEY (assignmentID) REFERENCES Assignments(assignmentID),
     FOREIGN KEY (userID) REFERENCES Users(userID)
 ) AUTO_INCREMENT = 1;
