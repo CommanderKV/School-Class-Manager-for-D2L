@@ -16,7 +16,7 @@ async function checkToken() {
         // The token is set and not expired
         } else {
             // Test token
-            let result = await fetch("http://kyler.visserfamily.ca:3000/api/v1/login/test", {
+            let result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/login/test", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -116,11 +116,29 @@ function createCourseCard(name, code, overallGrade, term, closed, assignments) {
     detailsDiv.appendChild(courseCode);
 
     // Create the course grade
-    const courseGrade = document.createElement("span");
-    courseGrade.classList.add("course-grade");
-    courseGrade.classList.add("good");
-    courseGrade.innerText = overallGrade + "%";
-    detailsDiv.appendChild(courseGrade);
+    if (overallGrade != null && overallGrade != "N/A") { 
+        const courseGrade = document.createElement("span");
+        courseGrade.classList.add("course-grade");
+        courseGrade.innerText = overallGrade + "%";
+
+        // Change the color of the grade
+        if (overallGrade >= 80) {
+            courseGrade.classList.add("good");
+        } else if (overallGrade >= 70) {
+            courseGrade.classList.add("okay");
+        } else {
+            courseGrade.classList.add("bad");
+        }
+
+        detailsDiv.appendChild(courseGrade);
+        
+    } else {
+        const courseGrade = document.createElement("span");
+        courseGrade.classList.add("course-grade");
+        courseGrade.innerText = "No grade";
+        courseGrade.classList.add("okay");
+        detailsDiv.appendChild(courseGrade);
+    }
 
     // Create label if this course is closed
     if (closed) {
@@ -151,26 +169,38 @@ function createCourseCard(name, code, overallGrade, term, closed, assignments) {
         return card;
     }
 
-    // Sort assignments by due date
-    assignments.sort((a, b) => {
-        const currentDate = new Date();
-        const dueDateA = new Date(a.due);
-        const dueDateB = new Date(b.due);
-
-        if (dueDateA < currentDate && dueDateB < currentDate) {
-            return 0;
-        } else if (dueDateA < currentDate) {
-            return 1;
-        } else if (dueDateB < currentDate) {
-            return -1;
+    // Create a list of overdue assignments and non overdue assignments
+    var overdueAssignments = [];
+    var nonOverdueAssignments = [];
+    for (var i = 0; i < assignments.length; i++) {
+        if (new Date(assignments[i].dueDate) < new Date()) {
+            overdueAssignments.push(assignments[i]);
         } else {
-            return dueDateA - dueDateB;
+            nonOverdueAssignments.push(assignments[i]);
         }
+    }
+
+    // Sort both assignment lists by due date
+    overdueAssignments.sort((a, b) => {
+        return new Date(b.dueDate) - new Date(a.dueDate);
+    });
+    nonOverdueAssignments.sort((a, b) => {
+        /*const aDate = new Date(a.dueDate);
+        const bDate = new Date(b.dueDate);
+        const currentDate = new Date();
+
+        if (aDate < currentDate && bDate < currentDate) {
+            return 0;
+        }*/
+        return new Date(a.dueDate) - new Date(b.dueDate);
     });
 
-    // Creat the assignments
+    // Create one list with both overdue and non overdue assignments
+    assignments = nonOverdueAssignments.concat(overdueAssignments);
+
+    // Create the assignments
     for (var i = 0; i < assignments.length; i++) {
-        // Creat the container
+        // Create the container
         const assignment = document.createElement("li");
         assignmentList.appendChild(assignment);
 
@@ -178,7 +208,7 @@ function createCourseCard(name, code, overallGrade, term, closed, assignments) {
         const assignmentDiv = document.createElement("div");
         assignment.appendChild(assignmentDiv);
 
-        // Creat the details div
+        // Create the details div
         const assignmentDetails = document.createElement("div");
         assignmentDetails.classList.add("card-body-details");
         assignmentDiv.appendChild(assignmentDetails);
@@ -190,8 +220,25 @@ function createCourseCard(name, code, overallGrade, term, closed, assignments) {
 
         // Create the due date
         const assignmentDue = document.createElement("span");
-        assignmentDue.classList.add("due");
         assignmentDue.innerText = "Due: " + formatDateTime(assignments[i].dueDate);
+
+        // Add styling to the due date
+        if (assignments[i].submissions != null) {
+            assignmentDue.classList.add("good");
+        } else if (new Date(assignments[i].dueDate) < new Date()) {
+            // Overdue
+            assignmentDue.classList.add("bad");
+        
+        // Less than 48hrs away
+        } else if (new Date(assignments[i].dueDate) < new Date() + (48 * 60 * 60 * 1000)) {
+            // Getting close to due date
+            assignmentDue.classList.add("okay");
+        
+        // Due date is more than 48hrs away
+        } else {
+            assignmentDue.classList.add("due-date");
+        }
+        
         assignmentDetails.appendChild(assignmentDue);
     }
 
@@ -266,7 +313,7 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
     // Get the grade value
     var gradeValue;
     if (grade == null) {
-        courseGrade.classList.add("bad");
+        courseGrade.classList.add("okay");
         courseGrade.innerText = "No grade";
         gradeValue = null;
 
@@ -550,18 +597,25 @@ function createGradeCard(classData) {
         gradeDiv.appendChild(assignmentName);
 
         // Create the grade value
-        let grade = Math.round(classData.assignments[i].grade * 100);
-        const assignmentGrade = document.createElement("span");
-        assignmentGrade.innerText = grade + "%";
-        gradeDiv.appendChild(assignmentGrade);
+        if (classData.assignments[i].grade != null) {
+            let grade = Math.round(classData.assignments[i].grade * 100);
+            const assignmentGrade = document.createElement("span");
+            assignmentGrade.innerText = grade + "%";
+            gradeDiv.appendChild(assignmentGrade);
 
-        // Change the color of the grade
-        if (grade >= 80) {
-            assignmentGrade.classList.add("good");
-        } else if (grade >= 70) {
+            // Change the color of the grade
+            if (grade >= 80) {
+                assignmentGrade.classList.add("good");
+            } else if (grade >= 70) {
+                assignmentGrade.classList.add("okay");
+            } else {
+                assignmentGrade.classList.add("bad");
+            }
+        } else if (classData.assignments[i].grade == null) {
+            const assignmentGrade = document.createElement("span");
+            assignmentGrade.innerText = "No grade";
             assignmentGrade.classList.add("okay");
-        } else {
-            assignmentGrade.classList.add("bad");
+            gradeDiv.appendChild(assignmentGrade);
         }
     }
 
@@ -575,7 +629,7 @@ async function getAllData() {
     // Fetch the data
     let data;
     do {
-    data = await fetch("http://localhost:3000/api/v1/classes/allData", {
+    data = await fetch("https://kyler.visserfamily.ca:3000/api/v1/classes/allData", {
         method: "GET",
         headers: {
             "Content-Type": "application/json",

@@ -166,6 +166,7 @@ div.space-between {
 }
 
 /* Set course grade color based on grade(done with js) */
+.card-body-details span.due-date {color: var(--course-details-color);}
 .bad {color: var(--course-grade-bad-color);}
 .okay {color: var(--course-grade-okay-color);}
 .good {color: var(--course-grade-good-color);}
@@ -188,8 +189,6 @@ div.space-between {
     list-style-type: none;
     padding: 15px;
     margin: 0;
-    
-    overflow-y: hidden;
 }
 .card-body-list li {
     margin: 10px 0;
@@ -234,12 +233,6 @@ div.space-between {
 .card-body-details a {
     color: blue;
     text-decoration: underline;
-}
-.card-body-details span.due {
-    color: #ff0000;
-}
-.card-body-details span.completed {
-    color: #00ff00;
 }
 
 /* Card instructions */
