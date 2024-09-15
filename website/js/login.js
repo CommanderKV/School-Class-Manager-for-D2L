@@ -1,4 +1,3 @@
-
 async function verifyLogin() {
     // Get the elements
     var username = document.getElementById("username").value;
@@ -18,13 +17,11 @@ async function verifyLogin() {
         );
     
     password = await hashValue(password);
-    
-    // Prepare the data to send
+
     var data = {
         username: username,
         password: password
     };
-    
 
     // Send the data to the server
     let response = await fetch("https://kyler.visserfamily.ca:3000/api/v1/users/login", {

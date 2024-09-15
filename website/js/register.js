@@ -18,14 +18,14 @@ async function registerUser() {
         );
 
     password = await hashValue(password);
-    
+
     var data = {
         email: email || null,
         username: username,
-        password: password
+        password: password,
     };
 
-    let response = await fetch("http://kyler.visserfamily.ca:3000/api/v1/users/register", {
+    let response = await fetch("https://kyler.visserfamily.ca:3000/api/v1/users/register", {
         method: "POST",
         body: JSON.stringify(data),
         headers: {
@@ -35,12 +35,13 @@ async function registerUser() {
     
     if (response.status == 200) {
         await response.json().then((data) => {
+            console.log(data.token);
             localStorage.setItem("token", JSON.stringify({
                 token: data.token,
                 date: new Date().getTime()
                 })
             );
-            window.location.href = "./courses.html";
+            window.location.href = "./login.html";
         });
     } else {
         await response.json().then((data) => {
@@ -50,4 +51,8 @@ async function registerUser() {
     
 }
 
-register.addEventListener("click", registerUser);
+register.addEventListener("submit", (event) => {
+    event.preventDefault();
+    console.log("Register form submitting");
+    registerUser();
+});
