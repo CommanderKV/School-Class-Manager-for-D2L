@@ -11,7 +11,7 @@ const app = express();
 // Get all versions
 const v1 = require("./apiVersions/v1/v1");
 
-// Add a helmet that taked care pf most security issues
+// Add a helmet that takes care of most security issues
 app.use(helmet());
 
 // Add middleware to parse json
