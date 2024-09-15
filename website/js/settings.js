@@ -10,40 +10,9 @@ const password = document.getElementById('password');
 const confirmPassword = document.getElementById('confirmPassword');
 const userForm = document.getElementById('accountForm');
 
-// Encryption functions
-async function encryptData(key, data, iv) {
-    const encodedData = new TextEncoder().encode(data);
-    const encryptedData = await crypto.subtle.encrypt(
-        {
-            name: "AES-GCM",
-            iv: iv
-        },
-        key,
-        encodedData
-    );
-    return encryptedData;
-}
-
-function arrayBufferToBase64(buffer) {
-    var binary = "";
-    var bytes = new Uint8Array(buffer);
-    var len = bytes.byteLength;
-    for (var i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return window.btoa(binary);
-}
-
-async function generateKey() {
-    return crypto.subtle.generateKey(
-        {
-            name: "AES-GCM",
-            length: 256
-        },
-        true,
-        ["encrypt", "decrypt"]
-    );
-}
+// Get the details p
+const D2LDetails = document.getElementById('d2l-details');
+const userDetails = document.getElementById('user-details');
 
 // Get the functions for db connection
 async function checkToken() {
@@ -208,7 +177,8 @@ async function setValues() {
 // Save the values to the db
 async function saveD2L() {
     if (D2LPassword.value == "********") {
-        alert("Please enter a new password");
+        D2LDetails.innerHTML = "Enter a new password!";
+        D2LDetails.classList.add("bad");
         return;
     }
 
@@ -222,7 +192,15 @@ async function saveD2L() {
     };
 
     // Save the data
-    saveData(data);
+    if (saveData(data) == null) {
+        D2LDetails.innerHTML = "Data was not saved!";
+        D2LDetails.classList.add("bad");
+        return;
+    } 
+
+    // Display that data was saved
+    D2LDetails.innerHTML = "Data saved!";
+    D2LDetails.classList.add("good");
 }
 
 async function saveUser() {
@@ -239,13 +217,16 @@ async function saveUser() {
         );
 
     // Get the data
-    if (password.value != confirmPassword.value) {
-        alert("Passwords do not match please try again");
+    if (password.value == "********") {
+        userDetails.innerHTML = "Please enter a new password!";
+        userDetails.classList.add("bad");
         return;
-    } else if (password.value == "********") {
-        alert("Please enter a new password");
+    
+    } else if (password.value != confirmPassword.value) {
+        userDetails.innerHTML = "Passwords do not match!";
+        userDetails.classList.add("bad");
         return;
-    }
+    } 
 
     var pass = await hashValue(password.value);
     
@@ -258,7 +239,16 @@ async function saveUser() {
     };
 
     // Save the data
-    saveData(data);
+    if (saveData(data) == null) {
+        userDetails.innerHTML = "Data was not saved!";
+        userDetails.classList.add("bad");
+        return;
+    } 
+
+    // Show the user that the data was saved
+    userDetails.innerHTML = "Data saved!";
+    userDetails.classList.add("good");
+
 }
 
 
