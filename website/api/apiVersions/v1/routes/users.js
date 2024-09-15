@@ -1,8 +1,8 @@
 // Get express
 const express = require("express");
 
-// Get the crypto module
-const crypto = require("crypto");
+// Get the encryption module
+const security = require("../security");
 
 // Get router
 const router = express.Router();
@@ -12,6 +12,7 @@ const DB = require("../DB");
 
 // Get the helper module
 const helper = require("../helper");
+
 
 // --------------------------------
 //   Functions to handle requests
@@ -56,10 +57,13 @@ router.post("/saveSettings", (req, res) => {
     // Get the userID
     const userID = data.data.userID;
 
+    req.body.d2lPassword = security.encrypt(req.body.d2lPassword);
+
     // Save the settings
     DB.saveUserSettings(userID, req.body).then(() => {
         res.status(200).json({ "message": "Settings saved" });
     }).catch((error) => {
+        console.log(error);
         res.status(500).json({ "error": error });
     });
 });
@@ -76,17 +80,12 @@ router.post("/login", (req, res) => {
         return;
     }
 
-    // Convert the password to sha256
-    let password = data.password; //crypto.createHash("sha256").update(data.password).digest("hex");
-
-    console.log(password, data.username);
-
     // Get the user
-    DB.getUser({username: data.username, password: password}).then((data) => {
+    DB.getUser({username: data.username, password: data.password}).then((data) => {
         // Check if the user exists
         if (data.length == 0) {
             res.status(404).json({ "error": "User not found" });
-            console.log("User not found", data, data.username, password);
+            console.log("User not found", data, data.username, data.password);
             return;
         }
 
@@ -94,8 +93,8 @@ router.post("/login", (req, res) => {
         const token = helper.generateToken(data[0]);
 
         // Send the token
-        console.log("token: " + token);
         res.status(200).json({ "token": token });
+
     }).catch((error) => {
         console.log(error);
         res.status(500).json({ "error": error });
@@ -113,11 +112,8 @@ router.post("/register", (req, res) => {
         return;
     }
 
-    // Convert the password to sha256
-    let password = data.password; //crypto.createHash("sha256").update(data.password).digest("hex");
-
     // Create the user
-    DB.createUser({email: data.email, password: password, username: data.username}).then((user) => {
+    DB.createUser({email: data.email, password: data.password, username: data.username}).then((user) => {
         res.status(200).json(
             { 
                 "message": "User created",

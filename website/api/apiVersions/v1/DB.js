@@ -12,9 +12,9 @@ const connection = mysql.createConnection({
 });
 
 connection.addListener("error", (error) => {
-    console.log("An error occoured with the database Link: " + error + " Code: " + error.code);
+    console.log("An error occurred with the database Link: " + error + " Code: " + error.code);
     if (error.code === "PROTOCOL_CONNECTION_LOST") {
-        console.error("Database connection was closed. Atttempting reconnect.");
+        console.error("Database connection was closed. Attempting reconnect.");
         connection.end();
         connection.connect();
     
@@ -23,12 +23,12 @@ connection.addListener("error", (error) => {
         // Set interval for 5 seconds
         let counter = 1;
         setInterval(async () => {
-            // Check if we ahve tried for 5 times
+            // Check if we have tried for 5 times
             if (counter == 5) {
                 clearInterval();
                 return;
             
-            // If we havent exceeded our 5 attempts try again
+            // If we haven't exceeded our 5 attempts try again
             } else {
                 // If we are not connected attempt connect
                 if (!isConnected()) {
@@ -61,7 +61,7 @@ async function connect() {
     connection.connect((error) => {
         if (error) {
             if (error.code === "PROTOCOL_CONNECTION_LOST") {
-                console.error("Database connection was closed. Atttempting reconnect.");
+                console.error("Database connection was closed. Attempting reconnect.");
                 connection.end();
                 connection.connect();
                 if (!isConnected()) {
@@ -262,16 +262,18 @@ function updateAssignment({
                     
                     // Assignment was added successfully
                     } else {
-                        // Insert the grade
-                        updateGrade({ 
-                            grade: grade, 
-                            weight: weight, 
-                            classID: courseID, 
-                            assignmentID: results[0].insertId, 
-                            userID: userID
-                        }).catch((error) => {
-                            reject(`An error occurred while adding the grade. ${error}`);
-                        });
+                        if (grade != null) {
+                            // Insert the grade
+                            updateGrade({ 
+                                grade: grade, 
+                                weight: weight, 
+                                classID: courseID, 
+                                assignmentID: results[0].insertId, 
+                                userID: userID
+                            }).catch((error) => {
+                                reject(`An error occurred while adding the grade. ${error}`);
+                            });
+                        }
                         resolve(results[0].assignmentID);
                     }
                 });
@@ -323,16 +325,18 @@ function updateAssignment({
                     resolve(data.assignmentID);
                 }
 
-                // Check if the grade needs to be updated
-                updateGrade({ 
-                    grade: grade, 
-                    weight: weight, 
-                    classID: courseID, 
-                    assignmentID: data.assignmentID, 
-                    userID: userID
-                }).catch((error) => {
-                    reject(`An error occurred while adding the grade. ${error}`);
-                });
+                if (grade != null) {
+                    // Check if the grade needs to be updated
+                    updateGrade({ 
+                        grade: grade, 
+                        weight: weight, 
+                        classID: courseID, 
+                        assignmentID: data.assignmentID, 
+                        userID: userID
+                    }).catch((error) => {
+                        reject(`An error occurred while adding the grade. ${error}`);
+                    });
+                }
             }
         })
         .catch((error) => {
@@ -462,15 +466,14 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
     return new Promise((resolve, reject) => {
         // Check for parameters
         if (!helper.checkParams([submissionID, assignmentID, comment, d2lSubmissionID, date, userID])) {
+            console.log(`updateSubmission: No arguments provided ${submissionID}, ${assignmentID}, ${comment}, ${d2lSubmissionID}, ${date}, ${userID}`);
             reject(`updateSubmission: No arguments provided ${submissionID}, ${assignmentID}, ${comment}, ${d2lSubmissionID}, ${date}`);
         }
 
         if (submissionID == null && assignmentID == null) {
+            console.log(`updateSubmission: No submission or assignment ID provided`);
             reject("updateSubmission: No submission or assignment ID provided");
-        } else if (submissionID != null && assignmentID != null) {
-            reject("updateSubmission: Both submission and assignment ID provided");
-        } if (date == null) {
-            reject("updateSubmission: No date provided");
+
         }
 
         // Check if submission exists already
@@ -480,6 +483,7 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
             ["submissionID", "assignmentID", "comment", "d2lSubmissionID", "date", "userID"],
             " AND "
         );
+
         connection.query(query, queryParams, (error, results, fields) => {
             if (error) {
                 reject(`An error occurred while getting the submission. ${error}`);
@@ -497,11 +501,14 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
                     "); SELECT LAST_INSERT_ID() as submissionID;",
                     true
                 );
+
                 connection.query(query, queryParams, (error, results, fields) => {
                     if (error) {
+                        console.log(`Submission failed to add to DB ${error}`);
                         reject(`An error occurred while adding the submission. ${error}`);
                         return;
                     }
+
                     
                     // Return the submission ID
                     resolve(results[0].submissionID);
@@ -533,6 +540,7 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
 
                     connection.query(query, queryParams, (error, results2, fields) => {
                         if (error) {
+                            console.log(`An error occurred while updating the submission. ${error}`);
                             reject(`An error occurred while updating the submission. ${error}`);
                             return;
                         }
@@ -554,7 +562,6 @@ function updateGrade({ grade=null, weight=null, classID=null, assignmentID=null,
     // Check if the parameters are provided
     if (!helper.checkParams([grade, assignmentID, userID], 3)) {
         return new Promise((resolve, reject) => {
-            console.log(`updateGrade: No arguments provided. ${grade}, ${assignmentID}, ${userID}`);
             reject(`updateGrade: No arguments provided. ${grade}, ${assignmentID}, ${userID}`);
         });
     }
@@ -602,7 +609,7 @@ function updateGrade({ grade=null, weight=null, classID=null, assignmentID=null,
     return new Promise((resolve, reject) => {
         connection.query(query, queryParams, (error, results, fields) => {
             if (error) {
-                console.log(`An error occoured while getting the grade: ${error}, ${error.stack}, Query: ${query}, Params: ${queryParams}`);
+                console.log(`An error occurred while getting the grade: ${error}, ${error.stack}, Query: ${query}, Params: ${queryParams}`);
                 reject(`An error occurred while getting the grade. ${error}`);
                 return;
             }
@@ -747,7 +754,7 @@ function getUser({
         );
 
         if (query == null) {
-            reject(`getUser: Querry failed: ${queryParams}`);
+            reject(`getUser: Query failed: ${queryParams}`);
         }
 
         // Execute the query
@@ -1176,21 +1183,25 @@ function saveUserSettings(userID, data) {
     return new Promise((resolve, reject) => {
         // Check if the parameters are provided
         if (!helper.checkParams([userID, data])) {
+            console.log(`saveUserSettings: No arguments provided. ${userID}, ${data}`);
             reject(`saveUserSettings: No arguments provided. ${userID}, ${data}`);
         }
 
         // Create the query
         var query, queryParams;
         if (data.username == null || data.password == null) {
-            if (d2lPassword != null) {
+            // D2L settings
+            if (data.d2lPassword != null) {
                 query = `UPDATE Users SET d2lEmail = ?, d2lLink = ?, d2lPassword = ? WHERE userID = ?;`;
                 queryParams = [data.d2lEmail, data.d2lLink, data.d2lPassword, userID];
             } else {
                 query = `UPDATE Users SET d2lEmail = ?, d2lLink = ? WHERE userID = ?;`;
                 queryParams = [data.d2lEmail, data.d2lLink, userID];
             }
+
         } else {
-            if (d2lPassword != null) {
+            // User settings
+            if (data.password != null) {
                 query = `UPDATE Users SET username = ?, password = ? WHERE userID = ?;`;
                 queryParams = [data.username, data.password, userID];
             } else {
@@ -1202,6 +1213,7 @@ function saveUserSettings(userID, data) {
         // Execute the query
         connection.query(query, queryParams, (error, results, fields) => {
             if (error) {
+                console.log(`An error occurred while saving the user settings. ${error}`);
                 reject(`An error occurred while saving the user settings. ${error}`);
                 return;
             }
