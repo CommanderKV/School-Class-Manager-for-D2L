@@ -24,7 +24,7 @@ async function checkToken() {
         // The token is set and not expired
         } else {
             // Test token
-            let result = await fetch("http://kyler.visserfamily.ca:3000/api/v1/login/test", {
+            let result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/login/test", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -51,11 +51,6 @@ async function checkToken() {
     } else {
         window.location.href = "./login.html";
     }
-}
-
-async function getToken () {
-    // Login
-    winndow.location.href = "./login.html";
 }
 
 function checkStatus(status, resultJson) {
@@ -96,15 +91,15 @@ function updateLogs(log) {
     logsContainer.appendChild(logElement);
 }
 
-// Function to deal with inital request
-async function initalRequest() {
+// Function to deal with initial request
+async function initialRequest() {
     // Check the token
     await checkToken();
 
     var result, resultJson;
     do {
         // Initiate the first call to the server
-        result = await fetch("http://kyler.visserfamily.ca:3000/api/v1/classes/update", {
+        result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/classes/update", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -138,7 +133,7 @@ async function updateStatus(lastOutputLength) {
     var result, resultJson;
     do {
         // Initiate call to server for status update
-        result = await fetch("http://kyler.visserfamily.ca:3000/api/v1/classes/update", {
+        result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/classes/update", {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -163,13 +158,21 @@ async function updateStatus(lastOutputLength) {
 
     // Check if there is an error
     if (resultJson.status == "Failed" || resultJson.status == "Error") {
-        // Update the logs
-        updateLogs(resultJson.error);
+
+        if (resultJson.error == "User missing required data") {
+            updateLogs("Missing required data for user. Visit the settings page to update your information.");
+        
+        } else {
+            // Update the logs
+            updateLogs(resultJson.error);
+        }
 
         // Update header
         consoleHeader.querySelector("#consoleStatus").innerHTML = resultJson.status;
         consoleHeader.querySelector("#consoleStatus").classList = "error";
+        updating = false;
         return false;
+
     } else if (resultJson.status == "Completed") {
         if (resultJson.output.length > lastOutputLength) {
             // Update the header
@@ -216,15 +219,13 @@ async function startUpdate() {
         return;
     }
     updating = true;
-    // Set the token in the session storage
-    token = await getToken();
 
     // Change the status of the console header
     consoleHeader.querySelector("#consoleStatus").innerHTML = "Active";
     consoleHeader.querySelector("#consoleStatus").classList.add("active");
 
-    // Check if the inital request is not successful
-    if (!await initalRequest()) {
+    // Check if the initial request is not successful
+    if (!await initialRequest()) {
         return;
     }
 
@@ -243,7 +244,7 @@ async function startUpdate() {
     // Start the loop
     let interval = setInterval(async () => {
         if (loopCounter == seconds) {
-            // Check if the inital request is not successful
+            // Check if the initial request is not successful
             lastOutputLength = await updateStatus(lastOutputLength);
             if (lastOutputLength == false) {
                 exit = true;
