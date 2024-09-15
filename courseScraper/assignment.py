@@ -52,7 +52,7 @@ class Assignment:
         self.feedback: dict[str, str|None] | None = None
 
 
-    def fill(self, assignment: Locator, page: Page) -> None:
+    def fill(self, assignment: Locator, page: Page) -> None: # pylint: disable=too-many-branches
         """
         # Description:
             Fills the assignment object with the information of the assignment
@@ -412,7 +412,7 @@ class Assignment:
             assignment.page.wait_for_load_state("load")
             return None
 
-        # Get thea ssignment names
+        # Get the assignment names
         rowHeaders = grades[0].select("tr:not(:first-child) th label")
 
         # Find the row that has the assignment name
@@ -479,9 +479,10 @@ class Assignment:
             try:
                 soup = BeautifulSoup(assignment.inner_html(), "html.parser")
                 break
+
             except Exception: # pylint: disable=broad-except
                 print(assignment.page.url)
-                pass
+
         feedbackDiv = soup.select(".d2l-table-cell-last")
 
         # Check if the feedback div is available (Should always be the case)
