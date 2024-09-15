@@ -2,11 +2,48 @@
 const D2LUsername = document.getElementById('d2lUsername');
 const D2LPassword = document.getElementById('d2lPassword');
 const D2LURL = document.getElementById('d2lURL');
+const D2LForm = document.getElementById('d2lForm');
 
 // Get values to be saved for the user
 const username = document.getElementById('username');
 const password = document.getElementById('password');
 const confirmPassword = document.getElementById('confirmPassword');
+const userForm = document.getElementById('accountForm');
+
+// Encryption functions
+async function encryptData(key, data, iv) {
+    const encodedData = new TextEncoder().encode(data);
+    const encryptedData = await crypto.subtle.encrypt(
+        {
+            name: "AES-GCM",
+            iv: iv
+        },
+        key,
+        encodedData
+    );
+    return encryptedData;
+}
+
+function arrayBufferToBase64(buffer) {
+    var binary = "";
+    var bytes = new Uint8Array(buffer);
+    var len = bytes.byteLength;
+    for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+}
+
+async function generateKey() {
+    return crypto.subtle.generateKey(
+        {
+            name: "AES-GCM",
+            length: 256
+        },
+        true,
+        ["encrypt", "decrypt"]
+    );
+}
 
 // Get the functions for db connection
 async function checkToken() {
@@ -24,7 +61,7 @@ async function checkToken() {
         // The token is set and not expired
         } else {
             // Test token
-            let result = await fetch("http://kyler.visserfamily.ca:3000/api/v1/login/test", {
+            let result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/login/test", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -75,7 +112,7 @@ async function getToken () {
 async function checkStatus(status) {
     switch (status) {
         case 403:
-            console.error("Unauthorized Obtaing a new token");
+            console.error("Unauthorized Obtaining a new token");
             let token = await getToken();
             sessionStorage.setItem("token", JSON.stringify(
                 {
@@ -103,7 +140,7 @@ async function getUserData() {
     // Fetch the data
     let data;
     do {
-        data = await fetch("http://kyler.visserfamily.ca:3000/api/v1/users/userSettings", {
+        data = await fetch("https://kyler.visserfamily.ca:3000/api/v1/users/userSettings", {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -130,7 +167,7 @@ async function getUserData() {
 
 async function saveData(data) {
     // Save the data
-    let result = await fetch("http://kyler.visserfamily.ca:3000/api/v1/users/saveSettings", {
+    let result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/users/saveSettings", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -157,11 +194,11 @@ async function setValues() {
     console.log(data);
 
     // Set the values for the user
-    username.setAttribute("value", data.username);
+    username.setAttribute("value", data.username ? data.username : "");
 
     // Set the values for d2l
-    D2LUsername.setAttribute("value", data.d2lEmail);
-    D2LURL.setAttribute("value", data.d2lLink);
+    D2LUsername.setAttribute("value", data.d2lEmail ? data.d2lEmail : "");
+    D2LURL.setAttribute("value", data.d2lLink ? data.d2lLink : "");
 
     // Set the password to a default value
     password.setAttribute("value", "********");
@@ -169,7 +206,12 @@ async function setValues() {
 }
 
 // Save the values to the db
-function saveD2L() {
+async function saveD2L() {
+    if (D2LPassword.value == "********") {
+        alert("Please enter a new password");
+        return;
+    }
+
     // Get the data
     let data = {
         username: null,
@@ -183,19 +225,36 @@ function saveD2L() {
     saveData(data);
 }
 
-function saveUser() {
+async function saveUser() {
+    const hashValue = val =>
+        crypto.subtle
+            .digest('SHA-256', new TextEncoder('utf-8').encode(val))
+            .then(h => {
+                let hexes = [],
+                    view = new DataView(h);
+                for (let i = 0; i < view.byteLength; i += 4)
+                    hexes.push(('00000000' + view.getUint32(i).toString(16)).slice(-8));
+                return hexes.join('');
+            }
+        );
+
     // Get the data
     if (password.value != confirmPassword.value) {
         alert("Passwords do not match please try again");
         return;
+    } else if (password.value == "********") {
+        alert("Please enter a new password");
+        return;
     }
 
+    var pass = await hashValue(password.value);
+    
     let data = {
         username: username.value,
-        password: password.value,
+        password: pass,
         d2lEmail: null,
         d2lPassword: null,
-        d2lLink: null
+        d2lLink: null,
     };
 
     // Save the data
@@ -205,3 +264,14 @@ function saveUser() {
 
 // Set the values
 setValues();
+
+// Add the event listeners
+D2LForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    saveD2L();
+});
+
+userForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    saveUser();
+});

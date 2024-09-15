@@ -14,10 +14,13 @@ const child_process = require("child_process");
 const fs = require("fs");
 const helper = require("../helper");
 
+// Get the encryption module
+const security = require("../security");
+
 
 // Features to add:
 // - Add a estimated time of completion 
-//   based off of the averagetime time 
+//   based off of the average time 
 //   it takes to load a course.
 let progressTracker = {};
 
@@ -25,6 +28,8 @@ let progressTracker = {};
 //   Utility functions
 // ---------------------
 async function runUpdate(userID, apiKey) {
+    var fails = 0;
+
     // Check parameters
     if (!helper.checkParams([userID, apiKey])) {
         throw new Error(`classes.runUpdate: No arguments set ${userID} | ${apiKey}`);
@@ -32,11 +37,11 @@ async function runUpdate(userID, apiKey) {
 
     // Setup progress tracker
     progressTracker[apiKey] = {
-        "status": "initalizing",
+        "status": "initializing",
         "progress": 1,
         "steps": 5,
         "output": [
-            "Initalizing..."
+            "Initializing..."
         ],
         "error": ""
     };
@@ -90,6 +95,19 @@ async function runUpdate(userID, apiKey) {
             delete progressTracker.apiKey;
         }, 5 * 60 * 1000);
         return;
+    
+    // Check if the user has the required data
+    } else if (!user.d2lEmail || !user.d2lPassword || !user.d2lLink) {
+        progressTracker[apiKey].status = "Failed";
+        progressTracker[apiKey].output.push("User missing required data");
+        progressTracker[apiKey].error = "User missing required data";
+
+        // Clear the progress tracker after 1 minute
+        setTimeout(() => {
+            // Remove tracker
+            delete progressTracker.apiKey;
+        }, 1 * 60 * 1000);
+        return;
     }
 
     // Setup the course path
@@ -99,7 +117,7 @@ async function runUpdate(userID, apiKey) {
     let args = [
         scriptPath, 
         user.d2lEmail, 
-        user.d2lPassword, 
+        security.decrypt(user.d2lPassword), 
         coursePath,
         user.d2lLink
     ];
@@ -117,7 +135,7 @@ async function runUpdate(userID, apiKey) {
             let buffer = "";
             
             // Run the script
-            const pythonProcess = child_process.spawn("python", args);
+            const pythonProcess = child_process.spawn("python3.10", args);
             
             // Update the progress tracker
             progressTracker[apiKey].status = "running";
@@ -206,7 +224,7 @@ async function runUpdate(userID, apiKey) {
                 console.log(err);
                 progressTracker[apiKey].status = "Failed";
                 progressTracker[apiKey].output.push(err);
-                progressTracker[apiKey].error = `Reading JSON file encounterd: ${err}`;
+                progressTracker[apiKey].error = `Reading JSON file encountered: ${err}`;
                 masterReject("Failed to read JSON file");
             }
 
@@ -226,7 +244,7 @@ async function runUpdate(userID, apiKey) {
                     console.log(err);
                     progressTracker[apiKey].status = "Failed";
                     progressTracker[apiKey].output.push(err);
-                    progressTracker[apiKey].error = `Updating course encounterd: ${err}`;                    // Clear the progress tracker after 5 minutes
+                    progressTracker[apiKey].error = `Updating course encountered: ${err}`;                    // Clear the progress tracker after 5 minutes
                     setTimeout(() => {
                         // Delete tracker
                         delete progressTracker.apiKey;
@@ -259,7 +277,8 @@ async function runUpdate(userID, apiKey) {
                                 submissionURL = null
                             };
                             
-                            // console.log(`grade: ${assignment.GRADE}, weight: ${assignment.WEIGHT}, classID: ${courseID}, userID: ${userID}`);
+                            console.log(`Adding assignment. Name: ${assignment.name} userID: ${userID}, courseID: ${courseID}`);
+                            console.log(`Submissions: ${assignment.SUBMISSIONS}`);
                             DB.updateAssignment({
                                 link: assignment.LINK, 
                                 name: assignment.NAME,
@@ -286,10 +305,16 @@ async function runUpdate(userID, apiKey) {
                                         })
                                         .catch((err) => {console.log(err);});
                                     });
-
+                                }
+                                
+                                if (assignment.SUBMISSIONS == null) {
+                                    console.log("No submissions found");
+                                }
                                 // Add all the submissions
-                                } else if (assignment.SUBMISSIONS != null) {
+                                if (assignment.SUBMISSIONS != null) {
+                                    console.log(`Adding submissions. userID: ${userID}, assignmentID: ${assignmentID}`);
                                     if (assignment.SUBMISSIONS.SUBMISSIONS == null) {
+                                        console.log("No submissions found");
                                         return;
                                     }
 
@@ -322,14 +347,22 @@ async function runUpdate(userID, apiKey) {
                                                 .catch((err) => {console.log(err);})
 
                                             });
-                                        }).catch((err) => {console.log(err);});
+                                        }).catch((err) => {
+                                            console.log(err);
+                                            if (fails == 5) {
+                                                progressTracker[apiKey].status = "Warning";
+                                                progressTracker[apiKey].output.push(err);
+                                                progressTracker[apiKey].error = `Updating submission encountered multiple errors. Suggestion: re-run update`;
+                                            }
+                                            fails++;
+                                        });
                                     });
                                 }
                             })
                             .catch((error) => {
                                 progressTracker[apiKey].status = "Failed";
                                 progressTracker[apiKey].output.push(error);
-                                progressTracker[apiKey].error = `Updating assignment encounterd: ${error}`;
+                                progressTracker[apiKey].error = `Updating assignment encountered: ${error}`;
 
                                 // Clear the progress tracker after 5 minutes
                                 setTimeout(() => {
@@ -339,9 +372,7 @@ async function runUpdate(userID, apiKey) {
                                     // Remove the file
                                     try {
                                         fs.unlinkSync(coursePath);
-                                    } catch (err) {
-                                        console.log(err);
-                                    }
+                                    } catch (err) {}
                                 }, 5 * 60 * 1000);
 
                                 masterReject(`Failed to update assignment. courseID: ${courseID} Error: ${error} ${error.stack}`);
