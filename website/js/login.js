@@ -1,3 +1,5 @@
+const alerts = document.getElementById("alerts");
+
 async function verifyLogin() {
     // Get the elements
     var username = document.getElementById("username").value;
@@ -48,7 +50,8 @@ async function verifyLogin() {
     // User is not in the system
     } else {
         await response.json().then((data) => {
-            alert("Wrong username or password");
+            alerts.innerHTML = "Incorrect username or password!";
+            alerts.classList.add("bad");
         });
     }
 }

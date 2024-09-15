@@ -1,4 +1,5 @@
 const register = document.getElementById("register");
+const alerts = document.getElementById("register-notifications");
 
 async function registerUser() {
     var email = document.getElementById("email").value;
@@ -43,9 +44,11 @@ async function registerUser() {
             );
             window.location.href = "./login.html";
         });
+        
     } else {
         await response.json().then((data) => {
-            alert("Wrong username or password" + data.error);
+            alerts.innerHTML = "Incorrect username or password!";
+            alerts.classList.alerts("bad");
         });
     }
     
@@ -53,6 +56,5 @@ async function registerUser() {
 
 register.addEventListener("submit", (event) => {
     event.preventDefault();
-    console.log("Register form submitting");
     registerUser();
 });
