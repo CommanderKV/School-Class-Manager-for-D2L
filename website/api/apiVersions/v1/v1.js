@@ -14,13 +14,14 @@ const helper = require("./helper");
 const users = require("./routes/users");
 const classes = require("./routes/classes");
 
-// Secuirity function to make sure user is logged in
+// Security function to make sure user is logged in
 router.use((req, res, next) => {
     // Check if database connection is established
     if (!DB.isConnected()) {
         // Connect to the database
         DB.connect();
     }
+    
     // Check if user is logging in
     if (req.url == "/login" || req.url == "/login/test") {
         next();
@@ -98,7 +99,7 @@ router.post("/login/test", async (req, res) => {
         // Token passes all tests
         res.status(200).json({message: "Token is valid"});
 
-    // Tokem is invalid
+    // Token is invalid
     } else {
         res.status(401).json({message: "Token is invalid"});
     }

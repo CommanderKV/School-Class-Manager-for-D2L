@@ -155,7 +155,7 @@ def main(play: Playwright, link: str, username: str, password: str) -> None:
     page.wait_for_load_state("load")
 
     # Login
-    print("[ignore][Notice] Initalizing...")
+    print("[ignore][Notice] Initializing...")
     print("[Notice] Logging in...")
     page.get_by_label("Username*").click()
     page.get_by_label("Username*").fill(username)
@@ -165,12 +165,13 @@ def main(play: Playwright, link: str, username: str, password: str) -> None:
 
     # Navigate to the courses "page" / popup
     try:
-        page.wait_for_url("https://mycourselink.lakeheadu.ca/d2l/home")
+        page.wait_for_url(link)
         print("[Notice] Logged in!")
 
     except Exception as e:
         if page.query_selector("body > div.login-onethird > section > p"):
-            raise ValueError("Invaild login credentials!") from e
+            print("[Error] Invalid login credentials!")
+            raise ValueError("Invalid login credentials! Page: ") from e
 
         raise e
 

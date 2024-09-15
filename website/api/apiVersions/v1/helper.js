@@ -47,7 +47,6 @@ function verifyToken(token) {
 // Authenticate a token
 function authenticateToken(req, res, next) {
     // Get authorization headers
-    console.log(req.headers);
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(" ")[1];
 
@@ -57,7 +56,6 @@ function authenticateToken(req, res, next) {
         res.status(401).json({ "error": "No token set" });
         return;
     }
-    console.log("Token set: " + token);
 
     // Get the result of verifying the token
     const result = verifyToken(token);
@@ -65,7 +63,7 @@ function authenticateToken(req, res, next) {
     // Check if the token is valid
     if (!result.success) {
         // If not valid, return an error
-        console.log(`Token authentification error. ${result.error} Token: ${token == null ? "null" : token}`);
+        console.log(`Token authentication error. ${result.error} Token: ${token == null ? "null" : token}`);
         res.status(403).json({ "error": result.error });
         return;
     }
