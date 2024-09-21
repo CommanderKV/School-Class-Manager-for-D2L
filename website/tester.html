@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>My HTML Page</title>
+        <link rel="stylesheet" type="text/css" href="css/card.css">
+        <link rel="stylesheet" type="text/css" href="css/search.css">
+        <link rel="stylesheet" type="text/css" href="css/options.css">
+        <link rel="stylesheet" type="text/css" href="css/console.css">
+        <link rel="stylesheet" type="text/css" href="css/loading.css">
+        <script src="js/cards.js" defer></script>
+        <script src="js/filter.js" defer></script>
+        <script src="js/control.js" defer></script>
+        <style>
+            :root {
+                
+            }
+            body {
+                margin: 0px;
+            }
+
+            .main-container {
+                margin: 10px;
+                display: none;
+            }
+            .main-container.selected {
+                display: block;
+            }
+
+            #pageTitle {
+                font-size: 3em;
+            }
+            
+            
+
+        </style>
+    </head>
+    <body>
+        <!-- Option selector -->
+        <header>
+            <div class="options">
+                <div class="option-buttons">
+                    <button>Api</button>
+                    <button class="active">Courses</button>
+                    <button>Assignments</button>
+                    <button>Grades</button>
+                    <button>Settings</button>
+                    <button>Log Out</button>
+
+                </div>
+
+                <h1 id="pageTitle">My Courses</h1>
+            </div>
+        </header>
+
+        <main>
+            <div id="api" class="main-container">
+                <div class="api-header">
+                    <button id="startUpdate">Start update</button>
+                    <button id="clearConsole">Clear logs</button>
+                </div>
+                <div id="consoleContainer">
+                    <div id="console">
+                        <div id="consoleHeader">
+                            <div>
+                                <span>Status:</span>
+                                <span id="consoleStatus">Inactive</span>
+                            </div>
+                            <span id="consoleCountDown" class="hidden">Updating in:</span>
+                            <div id="progressBarContainer">
+                                <label for="progressBar">Completion</label>
+                                <progress id="progressBar" value="0" max="100"></progress>
+                            </div>
+                        </div>
+                        <div id="logs" class="no-scrollbar">
+                            <ol></ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="courses" class="main-container selected">
+                <!-- Add a search bar -->
+                <div class="card-holder">
+                    <div class="search-bar">
+                        <input type="text" id="search-input" placeholder="Search for a course..." onkeyup="filterFunction('courses')">
+                    </div>
+                    <div class="cards courses no-scrollbar">
+                        <div id="loadingAnimation" class="loader-container">
+                            <div class="loader">
+                              <div></div>
+                              <div></div>
+                              <div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="assignments" class="main-container">
+                <!-- Add a search bar -->
+                <div class="card-holder">
+                    <div class="search-bar">
+                        <input type="text" id="search-input" placeholder="Search for an assignment..." onkeyup="filterFunction('assignments')">
+                    </div>
+                    <div class="cards assignments no-scrollbar"></div>
+                </div>
+            </div>
+        </main>
+        <footer></footer>
+    </body>
+</html>

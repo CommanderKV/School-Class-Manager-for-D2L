@@ -90,11 +90,12 @@ function updateCourse(course, userID) {
     return new Promise((resolve, reject) => {
         // Check that the parameters are given
         if (!helper.checkParams([course, userID])) {
+            console.log(`updateCourse: No arguments provided. ${course}, ${userID}`);
             reject(`updateCourse: No arguments provided. ${course}, ${userID}`);
             return;
         }
 
-        // Course does not exsit
+        // Course does not exist
         getClass({ courseCode: course.CODE, link: course.LINK, name: course.NAME})
         .then((data) => {
             if (data.length === 0) {
@@ -138,6 +139,27 @@ function updateCourse(course, userID) {
             } else {
                 // Get the first class that was returned (Should not be more than one class returned)
                 data = data[0];
+
+                // Check if the current user is linked to this class
+                getUserToClassLink({userID: userID, classID: data.classID}).then((data) => {
+                    if (data.length === 0) {
+                        // Link the user to the class
+                        let query = `INSERT INTO UsersToClasses (classID, userID) VALUES (?, ?);`;
+                        let queryParams = [data.classID, userID];
+
+                        // Run the query
+                        connection.query(query, queryParams, (error, results, fields) => {
+                            if (error) {
+                                console.log(`Could not add user to existing class. ${error}`);
+                                reject(`An error occurred while linking the user to the class. ${error}`);
+                                return;
+                            }
+                        });
+                    }
+                }).catch((error) => {
+                    console.log(`An error occurred while getting the user to class link. ${error}`);
+                    reject(`An error occurred while getting the user to class link. ${error}`);
+                });
 
                 // Check if an update is needed
                 if (
@@ -817,13 +839,15 @@ async function getUserToClassLink({userID=null, classID=null, linkID=null}) {
         let [query, queryParams] = helper.makeQuery(
             "SELECT * FROM UsersToClasses WHERE ",
             [userID, classID, linkID],
-            ["userID", "classID", "linkID"]
+            ["userID", "classID", "linkID"],
+            " AND ",
+            ";"
         )
 
         // Execute the query
         connection.query(query, queryParams, (error, results, fields) => {
             if (error) {
-                console.error(`An error occurred while getting the user classes. ${error}`);
+                console.error(`An error occurred while getting the user classes. ${error} query: ${query} params: ${JSON.stringify(queryParams)}`);
                 return false;
             }
             resolve(results);
@@ -863,7 +887,7 @@ function getClass({classID=null, courseCode=null, link=null, name=null}) {
             " AND "
         );
 
-        // Execute the querry
+        // Execute the query
         connection.query(query, queryParams, (error, results, fields) => {
             if (error) {
                 reject(`An error occurred while getting the class. ${error}\n${error.stack}`);

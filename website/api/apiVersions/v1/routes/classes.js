@@ -135,7 +135,7 @@ async function runUpdate(userID, apiKey) {
             let buffer = "";
             
             // Run the script
-            const pythonProcess = child_process.spawn("python3.10", args);
+            const pythonProcess = child_process.spawn("python3", args);
             
             // Update the progress tracker
             progressTracker[apiKey].status = "running";
@@ -191,7 +191,7 @@ async function runUpdate(userID, apiKey) {
                         
                         // Remove the file
                         fs.unlinkSync(coursePath);
-                    }, 5 * 60 * 1000);
+                    }, 1 * 60 * 1000);
 
                     // Reject the promise
                     reject("Script failed");
@@ -220,6 +220,7 @@ async function runUpdate(userID, apiKey) {
             try {
                 jsonData = fs.readFileSync(jsonDir, "utf-8");
                 courses = JSON.parse(jsonData);
+                
             } catch (err) {
                 console.log(err);
                 progressTracker[apiKey].status = "Failed";
@@ -289,6 +290,44 @@ async function runUpdate(userID, apiKey) {
                                 userID: userID
                             })
                             .then((assignmentID) => {
+                                if (assignmentID == null) {
+                                    console.log("AssignmentID is null attempting to update assignment again");
+
+                                    let count = 0;
+                                    while (assignmentID == null && count < 5) {
+                                        count++;
+                                        console.log("Attempting to update assignment again");
+                                        assignmentID = DB.updateAssignment({
+                                            link: assignment.LINK, 
+                                            name: assignment.NAME,
+                                            due: assignment.DUE,
+                                            instructions: assignment.INSTRUCTIONS,
+                                            grade: assignment.GRADE,
+                                            weight: assignment.WEIGHT,
+                                            courseID: courseID,
+                                            submissionURL: submissionURL,
+                                            userID: userID
+                                        })
+                                        .then((id) => {
+                                            if (id == null) {
+                                                console.log("AssignmentID is null. Attempting to update assignment again");
+                                            } else {
+                                                assignmentID = id;
+                                                count = 10;
+                                            }
+                                        })
+                                        .catch((err) => {
+                                            console.log(err);
+                                        });
+                                    }
+
+                                    if (count == 5) {
+                                        console.log("Failed to update assignment after 5 attempts");
+                                        progressTracker[apiKey].status = "Warning";
+                                        progressTracker[apiKey].output.push("Failed to update assignment after 5 attempts");
+                                        progressTracker[apiKey].error = `Updating assignment encountered multiple errors. Suggestion: re-run update`;
+                                    }
+                                }
 
                                 // Add all attachments
                                 if (assignment.ATTACHMENTS != null) {
@@ -390,8 +429,13 @@ async function runUpdate(userID, apiKey) {
             }, 5 * 60 * 1000);
         })
         .catch((err) => {
-            console.log(err);
-            if (err.message != "Script failed") {
+            if (err.toString().includes("ValueError: Invalid login")) {
+                progressTracker[apiKey].status = "Login failed";
+                progressTracker[apiKey].output.push(err);
+                progressTracker[apiKey].error = `Login failed check credentials`;
+
+            }else if (err.message != "Script failed") {
+                console.log(err);
                 progressTracker[apiKey].status = "Failed";
                 progressTracker[apiKey].output.push(err);
                 progressTracker[apiKey].error = `Encountered general error: ${err}`;

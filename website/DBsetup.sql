@@ -225,6 +225,8 @@ SELECT * FROM GradesLinkToAssignments;
 
 SELECT * FROM Users;
 
+SELECT * FROM UsersToClasses;
+
 SELECT LAST_INSERT_ID();
 
 
