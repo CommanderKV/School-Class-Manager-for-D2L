@@ -545,9 +545,8 @@ class Assignment:
             feedbackDate: str = feedbackDate[0].get_text()
         else:
             # Error out if no feedback date found
-            feedbackDate = None
-            print(feedbackTables[correctTable].select("tr")[-1].prettify())
-            raise ValueError("Feedback date not found. Feedback must have date.")
+            feedbackDate = "Jan 1, 2024 12:00 AM"
+            print("\t\t\t[Notice] Feedback date was not found using default value of \"Jan 1, 2024 12:00 AM\"") # pylint: disable=line-too-long
 
         # Set the feedback
         self.feedback = {
