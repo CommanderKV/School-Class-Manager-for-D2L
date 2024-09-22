@@ -1,6 +1,7 @@
 :root {
     --html-background-color: #121212;
     --html-text-color: #f8f8f8;
+    --link-text-color: #009fff;
 }
 html {
     background-color: var(--html-background-color);
@@ -27,4 +28,7 @@ body {
 }
 .no-scrollbar::-webkit-scrollbar {
     display: none;
+}
+a {
+    color: var(--link-text-color);
 }

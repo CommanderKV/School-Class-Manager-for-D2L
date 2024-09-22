@@ -71,7 +71,7 @@ async function checkStatus(status) {
 
 
 // Create a card element for a course
-function createCourseCard(name, code, overallGrade, term, closed, assignments) {
+function createCourseCard(name, code, courseLink, overallGrade, term, closed, assignments) {
     function formatDateTime(dateTime) {
         const date = new Date(dateTime);
         const year = date.getFullYear();
@@ -95,6 +95,9 @@ function createCourseCard(name, code, overallGrade, term, closed, assignments) {
     const header = document.createElement("div");
     header.classList.add("card-header");
     card.appendChild(header);
+    header.addEventListener("click", () => {
+        window.open(courseLink);
+    });
 
     // Create the label
     const label = document.createElement("label");
@@ -200,6 +203,12 @@ function createCourseCard(name, code, overallGrade, term, closed, assignments) {
         const assignment = document.createElement("li");
         assignmentList.appendChild(assignment);
 
+        let link = assignments[i].submissionURL ? assignments[i].submissionURL : assignments[i].link;
+        assignment.addEventListener("click", () => {
+            window.open(link);
+        });
+
+
         // Create the assignment div
         const assignmentDiv = document.createElement("div");
         assignment.appendChild(assignmentDiv);
@@ -269,6 +278,10 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
     const header = document.createElement("div");
     header.classList.add("card-header");
     card.appendChild(header);
+
+    header.addEventListener("click", () => {
+        window.open(assignmentLink);
+    });
 
     // Add the event listener to the card
     header.addEventListener("click", () => {
@@ -383,6 +396,9 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
         const instructionsDiv = document.createElement("div");
         instructionsDiv.classList.add("instructions");
         body.appendChild(instructionsDiv);
+        instructionsDiv.addEventListener("click", () => {
+            window.open(assignmentLink);
+        });
 
         // Create the instructions Label
         const instructionsLabel = document.createElement("label");
@@ -402,6 +418,10 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
             const attachmentsDiv = document.createElement("div");
             attachmentsDiv.classList.add("attachments");
             body.appendChild(attachmentsDiv);
+
+            attachmentsDiv.addEventListener("click", () => {
+                window.open(assignmentLink);
+            });
 
             // Create the attachments label
             const attachmentsLabel = document.createElement("label");
@@ -481,15 +501,15 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
         const submission = document.createElement("li");
         submissionList.appendChild(submission);
 
-        // Create the link to the submission
-        const submissionLink = document.createElement("a");
-        submissionLink.href = submissionURL;
-        submission.appendChild(submissionLink);
+        // Add the event listener to the submission
+        submission.addEventListener("click", () => {
+            window.open(submissionURL);
+        });
 
         // Create the details div
         const submissionDiv = document.createElement("div");
         submissionDiv.classList.add("card-body-details");
-        submissionLink.appendChild(submissionDiv);
+        submission.appendChild(submissionDiv);
 
         // Create a container
         const submissionDetails = document.createElement("div");
@@ -727,6 +747,7 @@ async function addCards(container) {
                 courseCards.push(createCourseCard(
                     data[i].className,
                     data[i].courseCode,
+                    data[i].classLink,
                     data[i].overallGrade ? data[i].overallGrade : overallGrade ? overallGrade : "N/A",
                     data[i].termShort,
                     data[i].closed,

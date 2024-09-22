@@ -117,10 +117,6 @@
 .card .closed-label {
     color: var(--card-closed-label-color);
 }
-.card a {
-    color: black;
-    text-decoration: none;
-}
 
 /* Card header */
 .card-header {
@@ -230,17 +226,13 @@ div.space-between {
     justify-content: space-between;
     color: var(--course-title-color);
 }
-.card-body-details a {
-    color: blue;
-    text-decoration: underline;
-}
 
 /* Card instructions */
 .instructions {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    align-items: flex-start;
+    align-items: center;
 
     margin: 10px;
     padding: 10px;
@@ -270,10 +262,6 @@ div.space-between {
     overflow-x: auto;
     width: -webkit-fill-available;
 }
-.instructions-content a {
-    color: blue;
-    text-decoration: underline;
-}
 .instructions-content .submitted {
     display: flex;
     flex-direction: row;
@@ -285,12 +273,13 @@ div.space-between {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
 
     gap: 10px;
 
     margin: 10px;
     padding: 10px;
+    padding-bottom: 20px;
 
     border-radius: 15px;
     background-color: var(--card-section-background-color);
@@ -311,8 +300,4 @@ div.space-between {
     font-weight: bold;
     color: var(--course-title-color);
     margin-bottom: 10px;
-}
-.attachments a {
-    color: blue;
-    text-decoration: underline;
 }
