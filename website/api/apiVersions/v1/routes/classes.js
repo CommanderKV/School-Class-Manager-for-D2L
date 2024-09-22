@@ -494,7 +494,8 @@ router.post("/update", (req, res, next) => {
     // Run the update function 
     runUpdate(
         data.data.userID, 
-        `${data.data.apiKey}`
+        `${data.data.apiKey}`,
+        data.data.username
     ).catch((err) => {
         console.log(`Update: ${err}`);
         console.log(err.stack);
