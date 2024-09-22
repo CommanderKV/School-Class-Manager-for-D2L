@@ -4,6 +4,9 @@ const cardContainers = document.querySelectorAll('div.cards');
 // Select the options
 const containers = document.querySelectorAll('.main-container');
 
+// Vars
+twoDaysAway = new Date(new Date().setDate(new Date().getDate() + 2));
+
 
 async function checkToken() {
     // Check if we have one already or need to get a new one
@@ -185,13 +188,6 @@ function createCourseCard(name, code, overallGrade, term, closed, assignments) {
         return new Date(b.dueDate) - new Date(a.dueDate);
     });
     nonOverdueAssignments.sort((a, b) => {
-        /*const aDate = new Date(a.dueDate);
-        const bDate = new Date(b.dueDate);
-        const currentDate = new Date();
-
-        if (aDate < currentDate && bDate < currentDate) {
-            return 0;
-        }*/
         return new Date(a.dueDate) - new Date(b.dueDate);
     });
 
@@ -225,12 +221,13 @@ function createCourseCard(name, code, overallGrade, term, closed, assignments) {
         // Add styling to the due date
         if (assignments[i].submissions != null) {
             assignmentDue.classList.add("good");
+
         } else if (new Date(assignments[i].dueDate) < new Date()) {
             // Overdue
             assignmentDue.classList.add("bad");
         
         // Less than 48hrs away
-        } else if (new Date(assignments[i].dueDate) < new Date() + (48 * 60 * 60 * 1000)) {
+        } else if (new Date(assignments[i].dueDate) < twoDaysAway) {
             // Getting close to due date
             assignmentDue.classList.add("okay");
         
@@ -260,7 +257,7 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
         const minutes = String(date.getMinutes()).padStart(2, '0');
         const ampm = date.getHours() >= 12 ? 'PM' : 'AM';
         
-        // Return formated date
+        // Return formatted date
         return `${year}/${month}/${day} ${hours}:${minutes} ${ampm}`;
     }
 
@@ -273,7 +270,7 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
     header.classList.add("card-header");
     card.appendChild(header);
 
-    // Add the event listner to the card
+    // Add the event listener to the card
     header.addEventListener("click", () => {
         window.open(assignmentLink);
     });
@@ -319,7 +316,6 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
 
     } else {
         let gradeValue = grade.toString();
-        console.log(gradeValue);
         gradeValue = gradeValue * 100;
         gradeValue = Math.round(gradeValue * 100) / 100;
 
@@ -481,7 +477,7 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
 
     // Create the submissions
     for (var i = 0; i < submissions.length; i++) {
-        // Creat the submission container
+        // Create the submission container
         const submission = document.createElement("li");
         submissionList.appendChild(submission);
 
@@ -490,7 +486,7 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
         submissionLink.href = submissionURL;
         submission.appendChild(submissionLink);
 
-        // Creat the details div
+        // Create the details div
         const submissionDiv = document.createElement("div");
         submissionDiv.classList.add("card-body-details");
         submissionLink.appendChild(submissionDiv);
@@ -503,7 +499,7 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
 
         // Create the submission ID
         const submissionName = document.createElement("span");
-        submissionName.innerText = `ID: ${submissions[i].submissionID}`;
+        submissionName.innerText = `ID: ${submissions[i].d2lSubmissionID}`;
         submissionDetails.appendChild(submissionName);
 
         // Create submitted div
@@ -611,6 +607,7 @@ function createGradeCard(classData) {
             } else {
                 assignmentGrade.classList.add("bad");
             }
+            
         } else if (classData.assignments[i].grade == null) {
             const assignmentGrade = document.createElement("span");
             assignmentGrade.innerText = "No grade";
@@ -650,6 +647,7 @@ async function getAllData() {
     let dataJson = await data.json();
 
     // Return the data
+    console.log(dataJson.data);
     return dataJson.data;
 }
 
@@ -659,13 +657,32 @@ async function addCards(container) {
 
     // Get all data
     let data = await getAllData();
+
+    // Get the card holder
+    let cardHolder = container.querySelector(".cards");
+
     if (data == null) {
+        // Remove the loading animation
+        document.getElementById("loadingAnimation").remove();
+
+        // Add the no data found message
+        let noCourses = document.createElement("div");
+        noCourses.classList.add("no-cards");
+
+        let msg = document.createElement("h2");
+        msg.innerText = "No data found";
+
+        let suggestion = document.createElement("p");
+        suggestion.innerText = "Try fetching the data again from the api tab";
+
+        noCourses.appendChild(msg);
+        noCourses.appendChild(suggestion);
+        cardHolder.appendChild(noCourses);
         return;
     }
 
     // Check the container
     console.log(`Adding cards to ${container.id}`)
-    let cardHolder = container.querySelector(".cards");
 
     // Check if we have more than 0 cards
     if (data.length == 0) {

@@ -56,11 +56,7 @@ async function checkToken() {
 function checkStatus(status, resultJson) {
     switch (status) {
         case 403:
-            sessionStorage.setItem("token", {
-                time: Date.now(),
-                token: getToken()
-            });
-            updateLogs("Token refreshed");
+            checkToken();
             break;
 
         case 409: // Will be logged anyways
@@ -127,9 +123,6 @@ async function initialRequest() {
 
 // Function to deal with regular updates
 async function updateStatus(lastOutputLength) {
-    // Check the token
-    checkToken();
-
     var result, resultJson;
     do {
         // Initiate call to server for status update
