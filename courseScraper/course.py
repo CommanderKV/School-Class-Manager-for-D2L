@@ -49,7 +49,7 @@ class Course:
         - assignments (list[Assignment]|None): 
             The list of assignments of the course.
     """
-    def __init__(
+    def __init__( # pylint: disable=too-many-arguments
             self,
             baseURL: str,
             link: str="",
@@ -61,7 +61,7 @@ class Course:
             syllabus: str|None="",
             assignmentsURL: str="",
             assignments: list[Assignment]|None=[]
-        ): # pylint: disable=dangerous-default-value, too-many-arguments
+        ): # pylint: disable=dangerous-default-value
         """
         # Description:
             The constructor of the Course class.
