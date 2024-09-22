@@ -61,7 +61,7 @@ class Course:
             syllabus: str|None="",
             assignmentsURL: str="",
             assignments: list[Assignment]|None=[]
-        ): # pylint: disable=dangerous-default-value
+        ): # pylint: disable=dangerous-default-value, too-many-arguments
         """
         # Description:
             The constructor of the Course class.
