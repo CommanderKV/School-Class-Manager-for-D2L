@@ -49,19 +49,7 @@ class Course:
         - assignments (list[Assignment]|None): 
             The list of assignments of the course.
     """
-    def __init__( # pylint: disable=too-many-arguments
-            self,
-            baseURL: str,
-            link: str="",
-            closed: bool=False,
-            shortTerm: str="",
-            courseCode: str="",
-            name: str="",
-            longTerm: str="",
-            syllabus: str|None="",
-            assignmentsURL: str="",
-            assignments: list[Assignment]|None=[]
-        ): # pylint: disable=dangerous-default-value
+    def __init__(self, baseURL: str, link: str="", closed: bool=False, shortTerm: str="", courseCode: str="", name: str="", longTerm: str="", syllabus: str|None="", assignmentsURL: str="", assignments: list[Assignment]|None=[]): # pylint: disable=dangerous-default-value, too-many-arguments, too-many-function-args
         """
         # Description:
             The constructor of the Course class.
