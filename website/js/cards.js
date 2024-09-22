@@ -558,7 +558,7 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
 }
 
 // Create a card element for a grade
-function createGradeCard(classData) {
+function createGradeCard(classData, overallGrade) {
     // Create container
     const card = document.createElement("div");
     card.classList.add("card");
@@ -567,6 +567,11 @@ function createGradeCard(classData) {
     const header = document.createElement("div");
     header.classList.add("card-header");
     card.appendChild(header);
+
+    let link = classData.classLink;
+    header.addEventListener("click", () => {
+        window.open(link);
+    });
 
     // Add the class name
     const label = document.createElement("label");
@@ -584,15 +589,40 @@ function createGradeCard(classData) {
     courseCode.innerText = classData.courseCode;
     headerDetails.appendChild(courseCode);
 
+    // Create the course grade
+    if (overallGrade != null && overallGrade != "N/A") { 
+        const courseGrade = document.createElement("span");
+        courseGrade.classList.add("course-grade");
+        courseGrade.innerText = overallGrade + "%";
+
+        // Change the color of the grade
+        if (overallGrade >= 80) {
+            courseGrade.classList.add("good");
+        } else if (overallGrade >= 70) {
+            courseGrade.classList.add("okay");
+        } else {
+            courseGrade.classList.add("bad");
+        }
+
+        headerDetails.appendChild(courseGrade);
+        
+    } else {
+        const courseGrade = document.createElement("span");
+        courseGrade.classList.add("course-grade");
+        courseGrade.innerText = "No grade";
+        courseGrade.classList.add("okay");
+        headerDetails.appendChild(courseGrade);
+    }
+
     // Add the card body
     const body = document.createElement("div");
     body.classList.add("card-body");
+    body.classList.add("no-scrollbar");
     card.appendChild(body);
 
     // Add the body list
     const gradeList = document.createElement("div");
     gradeList.classList.add("card-body-list");
-    gradeList.classList.add("no-scrollbar");
     body.appendChild(gradeList);
 
     // Add the grades
@@ -600,6 +630,11 @@ function createGradeCard(classData) {
         // Create the list
         const gradeItem = document.createElement("li");
         gradeList.appendChild(gradeItem);
+
+        let link = classData.assignments[i].submissionURL ? classData.assignments[i].submissionURL : classData.assignments[i].link;
+        gradeItem.addEventListener("click", () => {
+            window.open(link)
+        });
 
         // Create the grade div
         const gradeDiv = document.createElement("div");
@@ -667,7 +702,6 @@ async function getAllData() {
     let dataJson = await data.json();
 
     // Return the data
-    console.log(dataJson.data);
     return dataJson.data;
 }
 
@@ -700,9 +734,6 @@ async function addCards(container) {
         cardHolder.appendChild(noCourses);
         return;
     }
-
-    // Check the container
-    console.log(`Adding cards to ${container.id}`)
 
     // Check if we have more than 0 cards
     if (data.length == 0) {
@@ -803,12 +834,19 @@ async function addCards(container) {
 
             // Create grade cards
             for (let i = 0; i < data.length; i++) {
-                gradeCards.push(createGradeCard(data[i]));
-            }
+                // Calculate the overall grade
+                let overallGrade = 0;
+                let totalWeight = 0;
+                for (let j = 0; j < data[i].assignments.length; j++) {
+                    if (data[i].assignments[j].grade) {
+                        overallGrade += data[i].assignments[j].grade * data[i].assignments[j].weight;
+                        totalWeight += data[i].assignments[j].weight;
+                    }
+                }
 
-            // Add the cards to the container
-            for (let i = 0; i < gradeCards.length; i++) {
-                cardHolder.appendChild(gradeCards[i]);
+                overallGrade = Math.round((overallGrade / totalWeight) * 100);
+
+                cardHolder.appendChild(createGradeCard(data[i], overallGrade ? overallGrade : "N/A"));
             }
 
             // Remove loading animation
