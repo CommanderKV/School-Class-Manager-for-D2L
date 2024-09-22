@@ -19,7 +19,7 @@ connection.addListener("error", (error) => {
         connection.connect();
     
     // If we timed or cant connect out attempt reconnect up to 5 times then error and exit
-    } else if (error.code == "ETIMEDOUT" || error.code == "ENOTFOUND") {
+    } else if (error.code == "ETIMEDOUT" || error.code == "ENOTFOUND" || error.code == "ECONNRESET") {
         // Set interval for 5 seconds
         let counter = 1;
         setInterval(async () => {
@@ -89,20 +89,21 @@ const helper = require("./helper");
 function updateCourse(course, userID) {
     return new Promise((resolve, reject) => {
         // Check that the parameters are given
-        if (!helper.checkParams([course, userID])) {
+        if (!helper.checkParams([[course, userID]])) {
             console.log(`updateCourse: No arguments provided. ${course}, ${userID}`);
             reject(`updateCourse: No arguments provided. ${course}, ${userID}`);
             return;
         }
 
         // Course does not exist
-        getClass({ courseCode: course.CODE, link: course.LINK, name: course.NAME})
+        getClass({ userID: userID, courseCode: course.CODE, link: course.LINK, name: course.NAME})
         .then((data) => {
             if (data.length === 0) {
                 // Make the query
                 let [query, queryParams] = helper.makeQuery(
                     `INSERT INTO Classes `,
                     [
+                        userID,
                         course.CLOSED, 
                         course.LINK, 
                         course.NAME, 
@@ -111,6 +112,7 @@ function updateCourse(course, userID) {
                         course.TERMS.LONG
                     ],
                     [
+                        "userID",
                         "closed",
                         "link",
                         "name",
@@ -119,47 +121,22 @@ function updateCourse(course, userID) {
                         "termLong"
                     ],
                     ", ",
-                    `); 
-                    SELECT LAST_INSERT_ID() as classID;
-                    INSERT INTO UsersToClasses (classID, userID) VALUES (LAST_INSERT_ID(), ?);
-                    `,
+                    `);`,
                     true
                 );
-                queryParams.push(userID);
 
-                connection.query(query, queryParams, (error, results, fields) => {
+                connection.query(query, queryParams, (error, resultsCourse, fields) => {
                     if (error) {
                         reject(`An error occurred while adding the course: ${error} Query: ${query} Params: ${queryParams}`);
                         return;
                     }
-                    resolve(results[1][0].classID);
+                    resolve(resultsCourse.insertId);
                 });
 
             // Course does exist
             } else {
                 // Get the first class that was returned (Should not be more than one class returned)
                 data = data[0];
-
-                // Check if the current user is linked to this class
-                getUserToClassLink({userID: userID, classID: data.classID}).then((data) => {
-                    if (data.length === 0) {
-                        // Link the user to the class
-                        let query = `INSERT INTO UsersToClasses (classID, userID) VALUES (?, ?);`;
-                        let queryParams = [data.classID, userID];
-
-                        // Run the query
-                        connection.query(query, queryParams, (error, results, fields) => {
-                            if (error) {
-                                console.log(`Could not add user to existing class. ${error}`);
-                                reject(`An error occurred while linking the user to the class. ${error}`);
-                                return;
-                            }
-                        });
-                    }
-                }).catch((error) => {
-                    console.log(`An error occurred while getting the user to class link. ${error}`);
-                    reject(`An error occurred while getting the user to class link. ${error}`);
-                });
 
                 // Check if an update is needed
                 if (
@@ -187,10 +164,11 @@ function updateCourse(course, userID) {
                             "termLong"
                         ],
                         ", ",
-                        ` WHERE courseID = ?;`,
+                        ` WHERE courseID = ? AND userID = ?;`,
                         false
                     );
                     queryParams.push(data.courseID);
+                    queryParams.push(userID);
 
                     // Execute the query
                     connection.query(query, queryParams, (error, results, fields) => {
@@ -231,7 +209,6 @@ function updateAssignment({
             weight,
             courseID, 
             submissionURL,
-            userID
         ])) {
             reject(`updateAssignment: No arguments provided. ${link}, ${name}, ${due}, ${instructions}, ${grade}, ${weight} ${courseID}, ${submissionURL}`);
         }
@@ -248,7 +225,7 @@ function updateAssignment({
             dueDate: due, 
             instructions: instructions,
             submissionURL: submissionURL, 
-            classID: courseID
+            classID: courseID,
         }).then((data) => {
             // Assignment does not exist
             if (data == null || data.length === 0) {
@@ -269,11 +246,11 @@ function updateAssignment({
                         "name",
                         "dueDate",
                         "instructions",
-                        "classID"
+                        "classID",
                     ],
                     ", ",
-                    "); SELECT LAST_INSERT_ID() as assignmentID;",
-                    true,
+                    ");",
+                    true
                 );
 
                 // Insert the assignment into the database
@@ -290,13 +267,13 @@ function updateAssignment({
                                 grade: grade, 
                                 weight: weight, 
                                 classID: courseID, 
-                                assignmentID: results[0].insertId, 
+                                assignmentID: results.insertId, 
                                 userID: userID
                             }).catch((error) => {
                                 reject(`An error occurred while adding the grade. ${error}`);
                             });
                         }
-                        resolve(results[0].assignmentID);
+                        resolve(results.insertId);
                     }
                 });
 
@@ -377,6 +354,32 @@ function updateAttachment({ attachmentID=null, assignmentID=null, submissionID=n
 
     // Update the attachment
     return new Promise((resolve, reject) => {
+        // Check if the result is a promise and convert it to the result
+        if (attachmentID instanceof Promise) {
+            attachmentID.then((resolvedID) => {
+                attachmentID = resolvedID;
+            }).catch((error) => {
+                reject(`An error occurred while resolving the attachmentID promise. ${error}`);
+                return;
+            });
+        }
+        if (assignmentID instanceof Promise) {
+            assignmentID.then((resolvedID) => {
+                assignmentID = resolvedID;
+            }).catch((error) => {
+                reject(`An error occurred while resolving the assignmentID promise. ${error}`);
+                return;
+            });
+        }
+        if (submissionID instanceof Promise) {
+            submissionID.then((resolvedID) => {
+                submissionID = resolvedID;
+            }).catch((error) => {
+                reject(`An error occurred while resolving the submissionID promise. ${error}`);
+                return;
+            });
+        }
+    
         // Make the query
         let [query, queryParams] = helper.makeQuery(
             `SELECT * FROM Attachments WHERE `,
@@ -501,14 +504,14 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
         // Check if submission exists already
         let [query, queryParams] = helper.makeQuery(
             `SELECT * FROM Submissions WHERE `,
-            [submissionID, assignmentID, comment, d2lSubmissionID, date, userID],
-            ["submissionID", "assignmentID", "comment", "d2lSubmissionID", "date", "userID"],
+            [submissionID, assignmentID, comment, d2lSubmissionID, date],
+            ["submissionID", "assignmentID", "comment", "d2lSubmissionID", "date"],
             " AND "
         );
 
         connection.query(query, queryParams, (error, results, fields) => {
             if (error) {
-                reject(`An error occurred while getting the submission. ${error}`);
+                reject(`An error occurred while getting the submission. ${error} ${query} ${queryParams}`);
                 return;
             }
 
@@ -517,10 +520,10 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
                 // Insert the submission into the database
                 let [query, queryParams] = helper.makeQuery(
                     `INSERT INTO Submissions `,
-                    [assignmentID, comment, date, d2lSubmissionID, userID],
-                    ["assignmentID", "comment", "date", "d2lSubmissionID", "userID"],
+                    [assignmentID, comment, date, d2lSubmissionID],
+                    ["assignmentID", "comment", "date", "d2lSubmissionID"],
                     ", ",
-                    "); SELECT LAST_INSERT_ID() as submissionID;",
+                    ");",
                     true
                 );
 
@@ -531,9 +534,8 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
                         return;
                     }
 
-                    
                     // Return the submission ID
-                    resolve(results[0].submissionID);
+                    resolve(results.insertId);
                 });
 
             // Submission does exist
@@ -555,10 +557,9 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
                         ],
                         ["assignmentID", "comment", "date", "d2lSubmissionID"],
                         ", ",
-                        " WHERE submissionID = ? AND userID = ?;",
+                        " WHERE submissionID = ?;",
                     );
                     queryParams.push(results[0].submissionID);
-                    queryParams.push(userID);
 
                     connection.query(query, queryParams, (error, results2, fields) => {
                         if (error) {
@@ -580,7 +581,7 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
     });
 }
 
-function updateGrade({ grade=null, weight=null, classID=null, assignmentID=null, userID=null }) {    
+function updateGrade({ grade=null, weight=null, assignmentID=null, userID=null }) {    
     // Check if the parameters are provided
     if (!helper.checkParams([grade, assignmentID, userID], 3)) {
         return new Promise((resolve, reject) => {
@@ -589,43 +590,16 @@ function updateGrade({ grade=null, weight=null, classID=null, assignmentID=null,
     }
 
     // Make the query
-    let query, queryParams;
-    if (classID == null) {
-        query = `
-        SELECT 
-            Grades.grade,
-            Grades.weight
-        FROM Grades
-        LEFT JOIN GradesLinkToAssignments ON Grades.gradeID = GradesLinkToAssignments.gradeID
-        LEFT JOIN Users ON Grades.userID = Users.userID
-        WHERE 
-            Grades.UserID = ? AND 
-            GradesLinkToAssignments.assignmentID = ?
-        GROUP BY Grades.gradeID;
-        `;
-        queryParams = [userID, assignmentID];
-    
-    // Grades also has a class
-    } else {
-        query = `
-        SELECT 
-            Grades.grade,
-            Grades.weight,
-            Grades.gradeID
-        FROM Grades
-        LEFT JOIN GradesLinkToAssignments ON 
-            Grades.gradeID = GradesLinkToAssignments.gradeID
-        LEFT JOIN GradesAssignmentsLinkToClasses ON
-            GradesAssignmentsLinkToClasses.assignmentID = GradesLinkToAssignments.assignmentID
-        LEFT JOIN Users ON Grades.userID = Users.userID
-        WHERE 
-            Grades.UserID = ? AND 
-            GradesLinkToAssignments.assignmentID = ? AND
-            GradesAssignmentsLinkToClasses.classID = ?
-        GROUP BY Grades.gradeID;
-        `
-        queryParams = [userID, assignmentID, classID];
-    }
+    let query = `
+    SELECT
+        Grades.grade,
+        Grades.weight
+    FROM Grades
+    LEFT JOIN GradesLinkToAssignments ON Grades.gradeID = GradesLinkToAssignments.gradeID
+    LEFT JOIN Assignments ON GradesLinkToAssignments.assignmentID = Assignments.assignmentID
+    WHERE Assignments.assignmentID = ?
+    `;
+    let queryParams = [assignmentID];
 
     // Check if the grade exists
     return new Promise((resolve, reject) => {
@@ -828,33 +802,6 @@ function createUser({email=null, username=null, password=null}) {
     });
 }
 
-async function getUserToClassLink({userID=null, classID=null, linkID=null}) {
-    return new Promise((resolve, reject) => {
-        // Check if at least one parameter is provided
-        if (!helper.checkParams([userID, classID, linkID])) {
-            reject(`getUserToClassLink: No arguments provided ${userID}, ${classID}, ${linkID}`);
-        }
-
-        // Setup the query
-        let [query, queryParams] = helper.makeQuery(
-            "SELECT * FROM UsersToClasses WHERE ",
-            [userID, classID, linkID],
-            ["userID", "classID", "linkID"],
-            " AND ",
-            ";"
-        )
-
-        // Execute the query
-        connection.query(query, queryParams, (error, results, fields) => {
-            if (error) {
-                console.error(`An error occurred while getting the user classes. ${error} query: ${query} params: ${JSON.stringify(queryParams)}`);
-                return false;
-            }
-            resolve(results);
-        });
-    });
-}
-
 async function getClassAssignments(classID) {
     return new Promise((resolve, reject) => {
         // Create the query
@@ -871,19 +818,19 @@ async function getClassAssignments(classID) {
     });
 }
 
-function getClass({classID=null, courseCode=null, link=null, name=null}) {
+function getClass({userID=null, classID=null, courseCode=null, link=null, name=null}) {
     // Execute the query
     return new Promise((resolve, reject) => {
         // Check if the parameters are provided
-        if (!helper.checkParams([classID, courseCode, link, name])) {
+        if (!helper.checkParams([classID, courseCode, link, name, userID])) {
             resolve(`getClass: No arguments provided. ${classID}, ${courseCode}, ${link}, ${name}`);
         }
 
         // Create the query
         let [query, queryParams] = helper.makeQuery(
             `SELECT * FROM Classes WHERE `,
-            [classID, courseCode, link, name],
-            ["classID", "courseCode", "link", "name"],
+            [userID, classID, courseCode, link, name],
+            ["userID", "classID", "courseCode", "link", "name"],
             " AND "
         );
 
@@ -899,7 +846,7 @@ function getClass({classID=null, courseCode=null, link=null, name=null}) {
 
 function getAssignment({ 
     assignmentID=null, 
-    classID=null, 
+    classID=null,
     link=null, 
     submissionURL=null, 
     name=null, 
@@ -909,7 +856,7 @@ function getAssignment({
     }) {
     // Execute the query
     return new Promise((resolve, reject) => {
-        // Check that there are parameters that exsit
+        // Check that there are parameters that exist
         if (!helper.checkParams([assignmentID, classID, link, submissionURL, [name, dueDate], instructions, grade])) {
             reject(`getAssignment: No arguments provided. ${assignmentID}, ${classID}, ${link}, ${submissionURL}, ${name}, ${dueDate}, ${instructions}, ${grade}`);
         }
@@ -919,7 +866,7 @@ function getAssignment({
             `SELECT * FROM Assignments WHERE `,
             [
                 assignmentID, 
-                classID, 
+                classID,
                 link, 
                 submissionURL, 
                 name, 
@@ -1090,91 +1037,91 @@ function getAllDataFast(userID) {
         }
         
         // Make the query
-        let query = `SELECT 
-    Classes.name AS className,
-    Classes.courseCode,
-    Classes.link AS classLink,
-    Classes.termShort,
-    Classes.closed,
+        let query = `
+SELECT
+    Classes.name AS className,          -- Class name
+    Classes.courseCode,                 -- Class courseCode
+    Classes.link AS classLink,          -- Class link
+    Classes.termShort,                  -- Class termShort
+    Classes.closed,                     -- Class closed
     JSON_ARRAYAGG(
         JSON_OBJECT(
-            'name', Assignments.name,
-            'link', Assignments.link,
-            'dueDate', Assignments.dueDate,
-            'instructions', Assignments.instructions,
-            'attachments', AssignmentAttachments.attachmentsJSON,
-            'submissions', AssignmentSubmissions.submissionsJSON,
-            'feedback', AssignmentsFeedback.feedbackJSON,
+            'name', Assignments.name,                               -- Assignment name
+            'link', Assignments.link,                               -- Assignment link
+            'dueDate', Assignments.dueDate,                         -- Assignment dueDate
+            'instructions', Assignments.instructions,               -- Assignment instructions
+            'attachments', AssignmentAttachments.attachmentsJSON,   -- Assignment attachments
+            'submissions', AssignmentSubmissions.submissionsJSON,   -- Assignment submissions
+            'feedback', AssignmentsFeedback.feedbackJSON,           -- Assignment feedback
+            'submissionURL', Assignments.submissionURL,             -- Assignment submissionURL
             'grade', Grades.grade,
-            'weight', Grades.weight,
-            'submissionURL', Assignments.submissionURL
+            'weight', Grades.weight
         )
     ) AS assignments
-FROM Classes
-JOIN Assignments ON Classes.classID = Assignments.classID
+FROM Classes                                                        -- Get the classes details
+JOIN Assignments ON Classes.classID = Assignments.classID           -- Get the assignments details
 LEFT JOIN GradesLinkToAssignments ON Assignments.assignmentID = GradesLinkToAssignments.assignmentID
 LEFT JOIN Grades ON GradesLinkToAssignments.gradeID = Grades.gradeID
-LEFT JOIN (
+LEFT JOIN (                                                         -- Get the assignments attachments
     SELECT 
-        Assignments.assignmentID,
+        Assignments.assignmentID,           -- Assignment ID
         JSON_ARRAYAGG(
             JSON_OBJECT(
-                'link', Attachments.link,
-                'size', Attachments.size,
-                'name', Attachments.name
+                'link', Attachments.link,   -- Attachment Link
+                'size', Attachments.size,   -- Attachment size
+                'name', Attachments.name    -- Attachment name
             )
         ) AS attachmentsJSON
-    FROM Attachments
-    JOIN AttachmentLinkToAssignment ON Attachments.attachmentID = AttachmentLinkToAssignment.attachmentID
-    JOIN Assignments ON AttachmentLinkToAssignment.assignmentID = Assignments.assignmentID
-    GROUP BY Assignments.assignmentID
-) AS AssignmentAttachments ON Assignments.assignmentID = AssignmentAttachments.assignmentID
-LEFT JOIN (
+    FROM Attachments                                                                                        -- Get the attachments details
+    JOIN AttachmentLinkToAssignment ON Attachments.attachmentID = AttachmentLinkToAssignment.attachmentID   -- Get the attachment link to assignment
+    JOIN Assignments ON AttachmentLinkToAssignment.assignmentID = Assignments.assignmentID                  -- Get the assignments details
+    GROUP BY Assignments.assignmentID                                                                       -- Group by assignment ID 
+) AS AssignmentAttachments ON Assignments.assignmentID = AssignmentAttachments.assignmentID                 -- Assign the attachments to AssignmentAttachments
+LEFT JOIN (                                                                                                 -- Get the assignments submissions
     SELECT 
-        Submissions.assignmentID,
+        Submissions.assignmentID,                                       -- Assignment ID
         JSON_ARRAYAGG(
             JSON_OBJECT(
-                'submissionID', Submissions.submissionID,
-                'comment', Submissions.comment, 
-                'date', Submissions.date,
-                'attachments', SubmissionAttachments.attachmentsJSON
+                'd2lSubmissionID', Submissions.d2lSubmissionID,         -- Submission ID
+                'comment', Submissions.comment,                         -- Submission comment
+                'date', Submissions.date,                               -- Submission date
+                'attachments', SubmissionAttachments.attachmentsJSON    -- Submission attachments
             )
         ) AS submissionsJSON
-    FROM Submissions
+    FROM Submissions                                                    -- Get the submissions details
     LEFT JOIN (
         SELECT 
-            AttachmentLinkToSubmission.submissionID,
+            AttachmentLinkToSubmission.submissionID,    -- Submission ID
             JSON_ARRAYAGG(
                 JSON_OBJECT(
-                    'link', Attachments.link,
-                    'size', Attachments.size,
-                    'name', Attachments.name
+                    'link', Attachments.link,           -- Attachment link
+                    'size', Attachments.size,           -- Attachment size
+                    'name', Attachments.name            -- Attachment name
                 )
             ) AS attachmentsJSON
-        FROM Attachments
-        JOIN AttachmentLinkToSubmission ON Attachments.attachmentID = AttachmentLinkToSubmission.attachmentID
-        GROUP BY AttachmentLinkToSubmission.submissionID
-    ) AS SubmissionAttachments ON Submissions.submissionID = SubmissionAttachments.submissionID
-    GROUP BY Submissions.assignmentID
-) AS AssignmentSubmissions ON Assignments.assignmentID = AssignmentSubmissions.assignmentID
-LEFT JOIN (
+        FROM Attachments                                                                                        -- Get the attachments details
+        JOIN AttachmentLinkToSubmission ON Attachments.attachmentID = AttachmentLinkToSubmission.attachmentID   -- Get the attachment link to submission
+        GROUP BY AttachmentLinkToSubmission.submissionID                                                        -- Group by submission ID
+    ) AS SubmissionAttachments ON Submissions.submissionID = SubmissionAttachments.submissionID                 -- Assign the attachments to SubmissionAttachments
+    GROUP BY Submissions.assignmentID                                                                           -- Group by assignment ID     
+) AS AssignmentSubmissions ON Assignments.assignmentID = AssignmentSubmissions.assignmentID                     -- Assign the submissions to AssignmentSubmissions
+LEFT JOIN (                                                                                                     -- Get the assignments feedback
     SELECT 
-        Assignments.assignmentID,
+        Assignments.assignmentID,       -- Assignment ID
         JSON_ARRAYAGG(
             JSON_OBJECT(
-                'html', Feedback.html,
-                'date', Feedback.date
+                'html', Feedback.html,  -- Feedback html
+                'date', Feedback.date   -- Feedback date
             )
         ) AS feedbackJSON
-    FROM Feedback
-    JOIN Submissions ON Feedback.submissionID = Submissions.submissionID
-    JOIN Assignments ON Submissions.assignmentID = Assignments.assignmentID
-    GROUP BY Assignments.assignmentID
-) AS AssignmentsFeedback ON AssignmentsFeedback.assignmentID = Assignments.assignmentID
-INNER JOIN UsersToClasses ON Classes.classID = UsersToClasses.classID
-INNER JOIN Users ON UsersToClasses.userID = Users.userID
-WHERE Users.userID = ?
-GROUP BY Classes.classID;`;
+    FROM Feedback                                                                           -- Get the feedback details
+    JOIN Submissions ON Feedback.submissionID = Submissions.submissionID                    -- Get the submissions details
+    JOIN Assignments ON Submissions.assignmentID = Assignments.assignmentID                 -- Get the assignments details
+    GROUP BY Assignments.assignmentID                                                       -- Group by assignment ID  
+) AS AssignmentsFeedback ON AssignmentsFeedback.assignmentID = Assignments.assignmentID     -- Assign the feedback to AssignmentsFeedback
+WHERE Classes.userID = ?
+GROUP BY Classes.classID;                                                  -- Group by class ID and ClassGrade.grade
+`;
 
         // Execute the query
         connection.query(query, [userID], (error, results, fields) => {
@@ -1182,7 +1129,7 @@ GROUP BY Classes.classID;`;
                 reject(`An error occurred while getting the data. ${error}`);
                 return;
             }
-            resolve(results);
+            resolve(results[0]);
         });
     });
 }
@@ -1256,7 +1203,6 @@ module.exports = {
     getUser,
     getClass,
     getAssignment,
-    getUserToClassLink,
     getClassAssignments,
     getGrade,
     getSubmissions,

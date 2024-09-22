@@ -23,11 +23,12 @@ const security = require("../security");
 //   based off of the average time 
 //   it takes to load a course.
 let progressTracker = {};
+let timeToRemoveProgressTracker = 2 * 60 * 1000;
 
 // ---------------------
 //   Utility functions
 // ---------------------
-async function runUpdate(userID, apiKey) {
+async function runUpdate(userID, apiKey, userNameInput) {
     var fails = 0;
 
     // Check parameters
@@ -80,8 +81,8 @@ async function runUpdate(userID, apiKey) {
         // Clear the progress tracker after 5 minutes
         setTimeout(() => {
             // Remove tracker
-            delete progressTracker.apiKey;
-        }, 5 * 60 * 1000);
+            delete progressTracker[apiKey];
+        }, timeToRemoveProgressTracker);
         return;
 
     // Check if multiple users were found
@@ -92,8 +93,8 @@ async function runUpdate(userID, apiKey) {
 
         // Clear the progress tracker after 5 minutes
         setTimeout(() => {
-            delete progressTracker.apiKey;
-        }, 5 * 60 * 1000);
+            delete progressTracker[apiKey];
+        }, timeToRemoveProgressTracker);
         return;
     
     // Check if the user has the required data
@@ -105,8 +106,8 @@ async function runUpdate(userID, apiKey) {
         // Clear the progress tracker after 1 minute
         setTimeout(() => {
             // Remove tracker
-            delete progressTracker.apiKey;
-        }, 1 * 60 * 1000);
+            delete progressTracker[apiKey];
+        }, timeToRemoveProgressTracker/2);
         return;
     }
 
@@ -187,11 +188,11 @@ async function runUpdate(userID, apiKey) {
                     // Remove temp data in 5 minutes
                     setTimeout(() => {
                         // Delete tracker
-                        delete progressTracker.apiKey;
+                        delete progressTracker[apiKey];
                         
                         // Remove the file
                         fs.unlinkSync(coursePath);
-                    }, 1 * 60 * 1000);
+                    }, timeToRemoveProgressTracker/2);
 
                     // Reject the promise
                     reject("Script failed");
@@ -245,14 +246,14 @@ async function runUpdate(userID, apiKey) {
                     console.log(err);
                     progressTracker[apiKey].status = "Failed";
                     progressTracker[apiKey].output.push(err);
-                    progressTracker[apiKey].error = `Updating course encountered: ${err}`;                    // Clear the progress tracker after 5 minutes
+                    progressTracker[apiKey].error = `Updating course encountered: ${err}`; // Clear the progress tracker after 5 minutes
                     setTimeout(() => {
                         // Delete tracker
-                        delete progressTracker.apiKey;
+                        delete progressTracker[apiKey];
 
                         // Remove the file
                         fs.unlinkSync(coursePath);
-                    }, 5 * 60 * 1000);
+                    }, timeToRemoveProgressTracker);
                     masterResolve("Failed to update course");
                 })
                 .then((courseID) => {
@@ -291,7 +292,7 @@ async function runUpdate(userID, apiKey) {
                             })
                             .then((assignmentID) => {
                                 if (assignmentID == null) {
-                                    console.log("AssignmentID is null attempting to update assignment again");
+                                    console.log(`AssignmentID(${assignmentID}) is null attempting to update assignment again`);
 
                                     let count = 0;
                                     while (assignmentID == null && count < 5) {
@@ -310,7 +311,7 @@ async function runUpdate(userID, apiKey) {
                                         })
                                         .then((id) => {
                                             if (id == null) {
-                                                console.log("AssignmentID is null. Attempting to update assignment again");
+                                                console.log(`AssignmentID(${id}) is null. Attempting to update assignment again`);
                                             } else {
                                                 assignmentID = id;
                                                 count = 10;
@@ -338,7 +339,7 @@ async function runUpdate(userID, apiKey) {
                                             assignmentID: assignmentID,
                                             link: attachment.LINK,
                                             name: attachment.NAME,
-                                            size: attachment.SIZE,
+                                            size: attachment.SIZE
                                         })
                                         .catch((err) => {console.log(err);});
                                     });
@@ -354,11 +355,10 @@ async function runUpdate(userID, apiKey) {
 
                                         // Add the submission
                                         DB.updateSubmission({
-                                            userID: userID,
                                             assignmentID: assignmentID,
                                             d2lSubmissionID: submission.ID, 
                                             comment: submission.COMMENT,
-                                            date: submission.DATE,
+                                            date: submission.DATE
                                         }).then((submissionID) => {
 
                                             // Add all the attachments
@@ -405,7 +405,7 @@ async function runUpdate(userID, apiKey) {
                                     try {
                                         fs.unlinkSync(coursePath);
                                     } catch (err) {}
-                                }, 5 * 60 * 1000);
+                                }, timeToRemoveProgressTracker);
 
                                 masterReject(`Failed to update assignment. courseID: ${courseID} Error: ${error} ${error.stack}`);
                             });
@@ -418,15 +418,16 @@ async function runUpdate(userID, apiKey) {
             progressTracker[apiKey].status = "Completed";
             progressTracker[apiKey].progress += 1;
             progressTracker[apiKey].output.push("Completed");
+            console.log(`Update completed for ${userNameInput}`);
 
             // Clear the progress tracker after 5 minutes
             setTimeout(() => {
                 // Remove the tracker
-                delete progressTracker.apiKey;
+                delete progressTracker[apiKey];
 
                 // Remove the file
                 fs.unlinkSync(coursePath);
-            }, 5 * 60 * 1000);
+            }, timeToRemoveProgressTracker/2);
         })
         .catch((err) => {
             if (err.toString().includes("ValueError: Invalid login")) {
@@ -444,11 +445,11 @@ async function runUpdate(userID, apiKey) {
             // Clear the progress tracker after 5 minutes
             setTimeout(() => {
                 // Remove the tracker
-                delete progressTracker.apiKey;
+                delete progressTracker[apiKey];
 
                 // Remove the file
                 fs.unlinkSync(coursePath);
-            }, 5 * 60 * 1000);
+            }, timeToRemoveProgressTracker / 3);
         });
     });
 }
