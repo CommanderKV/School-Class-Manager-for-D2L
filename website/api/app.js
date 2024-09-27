@@ -4,6 +4,7 @@ require("dotenv").config();
 // Create an express app
 const express = require("express");
 const helmet = require("helmet");
+const cors = require("cors");
 const bodyParser = require("body-parser");
 const app = express(); 
 
@@ -15,6 +16,13 @@ app.use(helmet());
 
 // Add middleware to parse json
 app.use(bodyParser.json());
+
+// Allow anyone to connect
+app.use(cors({
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
+}));
 
 // Log each url that is attempting to use api
 app.use((req, res, next) => {
