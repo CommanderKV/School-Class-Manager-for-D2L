@@ -11,6 +11,15 @@ const connection = mysql.createConnection({
     multipleStatements: true
 });
 
+// Add a keep alive to the connection
+setInterval(() => {
+    connection.query("SELECT 1 + 1 AS solution", (error, results, fields) => {
+        if (error) {
+            console.log("An error occurred while keeping the connection alive: " + error);
+        }
+    });
+}, 900000);
+
 connection.addListener("error", (error) => {
     console.log("An error occurred with the database Link: " + error + " Code: " + error.code);
     if (error.code === "PROTOCOL_CONNECTION_LOST") {
