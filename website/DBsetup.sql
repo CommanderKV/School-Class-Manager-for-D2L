@@ -42,6 +42,7 @@ CREATE TABLE Classes (
 CREATE TABLE Assignments (
     assignmentID INT AUTO_INCREMENT PRIMARY KEY,
     classID INT NOT NULL,
+    uid BIGINT NOT NULL,
     link VARCHAR(255) DEFAULT NULL,
     submissionURL VARCHAR(255) DEFAULT NULL,
     name VARCHAR(100) NOT NULL,
@@ -93,8 +94,10 @@ CREATE TABLE AttachmentLinkToAssignment (
 CREATE TABLE Grades (
     gradeID INT AUTO_INCREMENT PRIMARY KEY,
     userID INT NOT NULL,
-    grade FLOAT NOT NULL,
-    weight FLOAT NOT NULL DEFAULT 1,
+    grade FLOAT,
+    achieved FLOAT,
+    max FLOAT,
+    weight FLOAT DEFAULT 1,
     FOREIGN KEY (userID) REFERENCES Users(userID)
 ) AUTO_INCREMENT = 1;
 
@@ -503,3 +506,12 @@ SELECT
 FROM Classes
 WHERE Classes.userID = 1000
 GROUP BY Classes.classID;
+
+
+SELECT
+        Grades.grade,
+        Grades.weight
+    FROM Grades
+    LEFT JOIN GradesLinkToAssignments ON Grades.gradeID = GradesLinkToAssignments.gradeID
+    LEFT JOIN Assignments ON GradesLinkToAssignments.assignmentID = Assignments.assignmentID
+    WHERE Assignments.assignmentID = 19

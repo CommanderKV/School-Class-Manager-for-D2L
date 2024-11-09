@@ -107,8 +107,6 @@ class Submissions:
                         # Check if we have a current submission
                         if currentSubmission:
                             if len(currentSubmission["FILES"]) < 1:
-                                print("\t\t\t\t[Notice] No files found in the submission.")
-                                print(f"\t\t\t\t[bold]{str(cells[1])}")
                                 print(f"\t\t\t\t[bold]Link: {page.url}")
                                 currentSubmission["FILES"] = None
 
@@ -160,8 +158,7 @@ class Submissions:
             self.submissions.append(currentSubmission)
 
         else:
-            print("\t\t\t\t[NOTICE] No submissions")
-            print(soup.prettify())
+            print("\t\t\t\t[Notice] No submissions")
 
         # Check if we need to go back to the original page
         if goBack:
@@ -189,7 +186,8 @@ class Submissions:
 
         # Check if there are any files submitted
         if not a:
-            print("\t[NOTICE] No files found in the submission.")
+            print("\t[Notice] No files found in the submission.")
+            print(f"\t[bold]{cell}")
             return None
 
         a = a[0]
@@ -205,7 +203,7 @@ class Submissions:
             size: str = Regex.search(r"\((.+)\)", rawSize).group(1)
 
         else:
-            print(f"\t[NOTICE] Invalid data:\n\t\tname: {rawName}, link: {link}, size: {rawSize}")
+            print(f"\t[Notice] Invalid data:\n\t\tname: {rawName}, link: {link}, size: {rawSize}")
             return None
 
         # Return the file details
@@ -238,9 +236,8 @@ class Submissions:
             if comment:
                 return str(comment[0]["html"])
 
-            print("\t\t\t\t[NOTICE] No comment found in the submission.")
+            print("\t\t\t\t[Notice] No comment found in submission.")
             return None
-
 
         return None
 

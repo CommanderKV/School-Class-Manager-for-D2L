@@ -84,6 +84,12 @@ function updateLogs(log) {
     // Update the logs
     const logElement = document.createElement("li");
     logElement.innerText = log;
+    const trimmedLog = log.trimStart();
+    if (trimmedLog.toUpperCase().startsWith("[NOTICE]")) {
+        logElement.classList.add("okay");
+    } else if (trimmedLog.toUpperCase().startsWith("[ERROR]")) {
+        logElement.classList.add("bad");
+    }
     logsContainer.appendChild(logElement);
 }
 
@@ -133,11 +139,34 @@ async function updateStatus(lastOutputLength) {
                 "authorization": `Bearer ${JSON.parse(sessionStorage.getItem("token")).token}`
             }
         })
-        .catch((error) => {
-            console.log(error);
-            return false;
+        .catch(async (error) => {
+            // Retry 5 times
+            for (let i = 0; i < 5; i++) {
+                updateLogs("Error: Failed to connect to server. Retrying...");
+                await new Promise(r => setTimeout(r, 5000));
+                result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/classes/update", {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "authorization": `Bearer ${JSON.parse(sessionStorage.getItem("token")).token}`
+                    }
+                })
+                .catch((error) => {
+                    console.error(error);
+                    return false;
+                });
+                if (result != false) {
+                    break;
+                }
+            }
+            if (result == false) {
+                return false;
+            }
         });
-
+        
+        if (result == false) {
+            return false;
+        }
         // Get the result as json
         resultJson = await result.json();
 

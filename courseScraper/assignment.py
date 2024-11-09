@@ -10,6 +10,7 @@
 ## Functions:
     None
 """
+from random import randint
 from bs4 import BeautifulSoup
 from playwright.sync_api import Locator, Page
 from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
@@ -43,10 +44,13 @@ class Assignment:
         self.baseUrl: str = baseUrl
         self.name: str = ""
         self.link: str | None = None
+        self.uid: int | None = None
         self.due: str = ""
         self.attachments: list[dict[str, str]] | None = []
         self.instructions: str | None = None
         self.submissions: Submissions | None = None
+        self.achievedGrade: float | None = None
+        self.maxGrade: float | None = None
         self.grade: float | None = None
         self.weight: float | None = None
         self.feedback: dict[str, str|None] | None = None
@@ -116,7 +120,7 @@ class Assignment:
         if self._getWeight(assignment) is None:
             print("\t\t\t[Notice] Weight not found!")
         else:
-            print("\t\t\t[Success] Obtained weight!")
+            print(f"\t\t\t[Success] Obtained weight! {self.weight}")
 
         # Get the feedback
         if self._getFeedback(assignment, page) is None:
@@ -172,6 +176,7 @@ class Assignment:
         # Set the link
         if a:
             self.link = self.baseUrl + a[0]["href"]
+            self.uid = int(self.link.split("db=")[1].split("&")[0] + self.link.split("&ou=")[1])
         else:
             self.link = None
 
@@ -369,7 +374,11 @@ class Assignment:
         # Set the grade
         if (partsOfGrade[0].getText() == "-" or partsOfGrade[2].getText() == "-"):
             self.grade = None
+            self.achievedGrade = None
+            self.maxGrade = None
         else:
+            self.achievedGrade = float(partsOfGrade[0].get_text())
+            self.maxGrade = float(partsOfGrade[2].get_text())
             self.grade = round(
                 float(partsOfGrade[0].get_text()) / float(partsOfGrade[2].get_text()),
                 2
@@ -416,10 +425,33 @@ class Assignment:
         rowHeaders = grades[0].select("tr:not(:first-child) th label")
 
         # Find the row that has the assignment name
-        index: int = 0
+        index: int = -1
         for pos, row in enumerate(rowHeaders):
             if row.get_text() == self.name:
-                index = pos
+                # Adding 1 to the index because it is excluding
+                # the first child in the css query
+                index = pos + 1
+                break
+
+        # If the assignment is not found in the table
+        if index == -1:
+            names = [row.get_text() for row in rowHeaders]
+            # Go back to start URL
+            assignment.page.go_back()
+            assignment.page.wait_for_url(startURL)
+            assignment.page.wait_for_load_state("load")
+            print("[Notice] Assignment not found in the grades table.")
+            print(f"[Notice] Assignment Names: {names}")
+            return None
+
+        # Get the weight column from the table
+        headers = grades[0].select("tr.d2l-table-row-first th")
+
+        # Find the weight column
+        weightColumnPos: int = 0
+        for pos, header in enumerate(headers):
+            if header.get_text().upper().find("WEIGHT") != -1:
+                weightColumnPos = pos-1
                 break
 
         # Get the weight data from the table
@@ -431,21 +463,25 @@ class Assignment:
             assignment.page.go_back()
             assignment.page.wait_for_url(startURL)
             assignment.page.wait_for_load_state("load")
-            self.weight = 1.0
+            self.weight = None
+            print("[Notice] Weight column not found.")
             return None
 
         # Check if the weight is available
-        if len(td[2].select("label")) > 0:
-            self.weight = str(td[2].select("label")[0]) \
-                .replace("</label>", "").split(">")[1].strip()
+        if len(td[weightColumnPos].select("label")) > 0:
+            # 7.11 / 10
+            weightText = str(td[weightColumnPos].select("label")[0].get_text())
 
-            if "/" in self.weight and self.weight.split("/")[1].isdigit():
-                self.weight = float(self.weight.split("/")[1])
+            if ("/" in weightText) and (weightText.split("/", 1)[-1].strip() != "-"):
+                self.weight = float(weightText.rsplit("/", 1)[-1].strip())
 
             else:
-                self.weight = 1.0
+                self.weight = None
+                print("[Notice] Weight not found in " + weightText +
+                    weightText.rsplit("/", 1)[-1].strip())
         else:
-            self.weight = 1.0
+            self.weight = None
+            print("[Notice] Weight not found in label: " + str(td[weightColumnPos]))
 
         # Go back to start URL
         assignment.page.go_back()
@@ -576,11 +612,14 @@ class Assignment:
         return {
             "NAME": self.name,
             "LINK": self.link,
+            "UID": self.uid if self.uid else randint(0, 1000000),
             "DUE": self.due,
             "INSTRUCTIONS": self.instructions,
             "ATTACHMENTS": self.attachments,
             "SUBMISSIONS": self.submissions.toDict() if self.submissions else None,
             "GRADE": self.grade,
+            "ACHIEVED": self.achievedGrade,
+            "MAX": self.maxGrade,
             "WEIGHT": self.weight,
             "FEEDBACK": self.feedback
         }

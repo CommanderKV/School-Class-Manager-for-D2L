@@ -2,7 +2,21 @@
     --html-background-color: #121212;
     --html-text-color: #f8f8f8;
     --link-text-color: #009fff;
+    --page-link-width: 20%;
+    --page-link-height: 50px;
+    --page-link-font-size: 1.3em;
+    --page-link-border-radius: 10px;
+    --page-link-border-width: 1px;
+    --page-link-border-color: #ee7e27;
+    --course-grade-good-color: #00ff00;
+    --course-grade-okay-color: #ffcc00;
+    --course-grade-bad-color: #ff0000;
 }
+
+.bad {color: var(--course-grade-bad-color);}
+.okay {color: var(--course-grade-okay-color);}
+.good {color: var(--course-grade-good-color);}
+
 html {
     background-color: var(--html-background-color);
     font-size: 1.1em;
@@ -31,4 +45,27 @@ body {
 }
 a {
     color: var(--link-text-color);
+}
+.page-link {
+    color: black;
+    text-align: center;
+    text-decoration: none;
+
+    padding: 10px;
+    margin: 15px;
+
+    border: var(--page-link-border-width) solid var(--page-link-border-color);
+    border-left-width: 0px;
+    border-right-width: 0px;
+    border-radius: var(--page-link-border-radius);
+
+    background-color: var(--page-link-border-color);
+
+    cursor: pointer;
+    font-weight: bold;
+    font-size: var(--page-link-font-size);
+
+    transition-property: background-color, transform;
+    transition-timing-function: ease-in-out;
+    transition-duration: 0.2s, 0.3s;
 }

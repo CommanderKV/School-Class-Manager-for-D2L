@@ -281,10 +281,13 @@ async function runUpdate(userID, apiKey, userNameInput) {
                             
                             DB.updateAssignment({
                                 link: assignment.LINK, 
+                                uid: assignment.UID,
                                 name: assignment.NAME,
                                 due: assignment.DUE,
                                 instructions: assignment.INSTRUCTIONS,
                                 grade: assignment.GRADE,
+                                achieved: assignment.ACHIEVED,
+                                max: assignment.MAX,
                                 weight: assignment.WEIGHT,
                                 courseID: courseID,
                                 submissionURL: submissionURL,
@@ -304,6 +307,8 @@ async function runUpdate(userID, apiKey, userNameInput) {
                                             due: assignment.DUE,
                                             instructions: assignment.INSTRUCTIONS,
                                             grade: assignment.GRADE,
+                                            achieved: assignment.ACHIEVED,
+                                            max: assignment.MAX,
                                             weight: assignment.WEIGHT,
                                             courseID: courseID,
                                             submissionURL: submissionURL,

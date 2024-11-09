@@ -187,7 +187,7 @@ def main(play: Playwright, link: str, username: str, password: str) -> None:
     # ---------------------
     context.close()
     browser.close()
-    print("[ignore][Success] Data writen to file!")
+    print("[ignore][Success] Data written to file!")
 
 # Start the program
 if __name__ == "__main__":
@@ -201,7 +201,7 @@ if __name__ == "__main__":
 
         # Start scraping
         with sync_playwright() as playwright:
-            os.environ["SCRAPER_DEBUG"] = "False"
+            os.environ["SCRAPER_DEBUG"] = "True"
             print("[Notice] Running in API mode!")
             print(f"[Notice] Username: {sys.argv[1]}")
             print(f"[Notice] Password: {'*' * len(sys.argv[2])}")

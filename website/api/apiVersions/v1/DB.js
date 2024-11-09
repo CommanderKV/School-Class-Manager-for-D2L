@@ -16,6 +16,10 @@ setInterval(() => {
     connection.query("SELECT 1 + 1 AS solution", (error, results, fields) => {
         if (error) {
             console.log("An error occurred while keeping the connection alive: " + error);
+            if ("closed state" in error) {
+                connection.end();
+                connection.connect();
+            }
         }
     });
 }, 900000);
@@ -198,10 +202,13 @@ function updateCourse(course, userID) {
 
 function updateAssignment({
     link=null,
+    uid=null,
     name=null,
     due=null,
     instructions=null,
     grade=null,
+    achieved=null,
+    max=null,
     weight=null,
     courseID=null,
     submissionURL=null,
@@ -211,10 +218,13 @@ function updateAssignment({
         // Check that the parameters are given
         if (!helper.checkParams([
             link, 
+            uid,
             name, 
             due, 
             instructions, 
             grade,
+            achieved,
+            max,
             weight,
             courseID, 
             submissionURL,
@@ -230,6 +240,7 @@ function updateAssignment({
         // Check if assignment exists already
         getAssignment({
             link: link, 
+            uid: uid,
             name: name, 
             dueDate: due, 
             instructions: instructions,
@@ -243,6 +254,7 @@ function updateAssignment({
                     `INSERT INTO Assignments `,
                     [
                         link,
+                        uid,
                         submissionURL,
                         name,
                         due,
@@ -251,6 +263,7 @@ function updateAssignment({
                     ],
                     [
                         "link",
+                        "uid",
                         "submissionURL",
                         "name",
                         "dueDate",
@@ -266,16 +279,17 @@ function updateAssignment({
                 connection.query(query, queryParams, (error, results, fields) => {
                     // Something went wrong while adding the assignment
                     if (error) {
-                        reject(`An error occurred while adding the assignment.\n\t[QUERY] "${query}" ${error} CourseID: ${courseID}`);
+                        reject(`An error occurred while adding the assignment.\n\t[QUERY] "${query}" ${error} ${queryParams}`);
                     
                     // Assignment was added successfully
                     } else {
                         if (grade != null) {
                             // Insert the grade
                             updateGrade({ 
-                                grade: grade, 
+                                grade: grade,
+                                achieved: achieved,
+                                max: max,
                                 weight: weight, 
-                                classID: courseID, 
                                 assignmentID: results.insertId, 
                                 userID: userID
                             }).catch((error) => {
@@ -333,12 +347,18 @@ function updateAssignment({
                     resolve(data.assignmentID);
                 }
 
-                if (grade != null) {
+                if (
+                    grade != null,
+                    achieved != null,
+                    max != null,
+                    weight != null
+                ) {
                     // Check if the grade needs to be updated
                     updateGrade({ 
-                        grade: grade, 
+                        grade: grade,
+                        achieved: achieved,
+                        max: max,
                         weight: weight, 
-                        classID: courseID, 
                         assignmentID: data.assignmentID, 
                         userID: userID
                     }).catch((error) => {
@@ -590,7 +610,14 @@ function updateSubmission({submissionID=null, assignmentID=null, comment=null, d
     });
 }
 
-function updateGrade({ grade=null, weight=null, assignmentID=null, userID=null }) {    
+function updateGrade({ 
+    grade=null, 
+    achieved=null, 
+    max=null, 
+    weight=null, 
+    assignmentID=null, 
+    userID=null
+}) {    
     // Check if the parameters are provided
     if (!helper.checkParams([grade, assignmentID, userID], 3)) {
         return new Promise((resolve, reject) => {
@@ -620,13 +647,13 @@ function updateGrade({ grade=null, weight=null, assignmentID=null, userID=null }
             }
 
             // Grade does not exist
-            if (results.length === 0) {
+            if (results.length == 0) {
                 // Insert the grade into the database
                 query = `
-                INSERT INTO Grades (grade, weight, userID) VALUES (?, ?, ?);
+                INSERT INTO Grades (grade, achieved, max, weight, userID) VALUES (?, ?, ?, ?, ?);
                 INSERT INTO GradesLinkToAssignments (gradeID, assignmentID) VALUES (LAST_INSERT_ID(), ?);
                 `;
-                queryParams = [grade, weight, userID, assignmentID];
+                queryParams = [grade, achieved, max, weight, userID, assignmentID];
                 connection.query(query, queryParams, (error, results, fields) => {
                     if (error) {
                         console.log(`An error occurred while adding the grade. ${error}, ${error.stack}, Query: ${query}, Params: ${queryParams}`);
@@ -640,17 +667,21 @@ function updateGrade({ grade=null, weight=null, assignmentID=null, userID=null }
                 // Check if an update is needed
                 if (
                     results[0].grade != grade ||
-                    results[0].weight != weight
+                    results[0].weight != weight ||
+                    results[0].achieved != achieved ||
+                    results[0].max != max
                 ) {
                     let query = `
                     UPDATE Grades
                     SET
                         Grades.grade = ?,
+                        Grades.achieved = ?,
+                        Grades.max = ?,
                         Grades.weight = ?
                     WHERE
                         Grades.gradeID = ?;
                     `;
-                    let queryParams = [grade, weight, results[0].gradeID];
+                    let queryParams = [grade, achieved, max, weight, results[0].gradeID];
                     
                     // Update the grade
                     connection.query(query, queryParams, (error, results, fields) => {
@@ -857,6 +888,7 @@ function getAssignment({
     assignmentID=null, 
     classID=null,
     link=null, 
+    uid=null,
     submissionURL=null, 
     name=null, 
     dueDate=null, 
@@ -871,30 +903,36 @@ function getAssignment({
         }
 
         // Create the query
-        let [query, queryParams] = helper.makeQuery(
-            `SELECT * FROM Assignments WHERE `,
-            [
-                assignmentID, 
-                classID,
-                link, 
-                submissionURL, 
-                name, 
-                dueDate, 
-                instructions, 
-                grade
-            ],
-            [
-                "assignmentID", 
-                "classID", 
-                "link", 
-                "submissionURL", 
-                "name", 
-                "dueDate", 
-                "instructions", 
-                "grade"
-            ],
-            " AND "
-        );
+        let query, queryParams;
+        if (uid != null) {
+            query = "SELECT * FROM Assignments WHERE uid = ?;";
+            queryParams = [uid];
+        } else {
+            [query, queryParams] = helper.makeQuery(
+                `SELECT * FROM Assignments WHERE `,
+                [
+                    assignmentID, 
+                    classID,
+                    link, 
+                    submissionURL, 
+                    name, 
+                    dueDate, 
+                    instructions, 
+                    grade
+                ],
+                [
+                    "assignmentID", 
+                    "classID", 
+                    "link", 
+                    "submissionURL", 
+                    "name", 
+                    "dueDate", 
+                    "instructions", 
+                    "grade"
+                ],
+                " AND "
+            );
+        }
 
         // Execute the query
         connection.query(query, queryParams,(error, results, fields) => {
@@ -1064,6 +1102,8 @@ SELECT
             'feedback', AssignmentsFeedback.feedbackJSON,           -- Assignment feedback
             'submissionURL', Assignments.submissionURL,             -- Assignment submissionURL
             'grade', Grades.grade,
+            'achieved', Grades.achieved,
+            'max', Grades.max,
             'weight', Grades.weight
         )
     ) AS assignments

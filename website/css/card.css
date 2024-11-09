@@ -160,12 +160,16 @@ div.col.small {
 div.space-between {
     justify-content: space-between;
 }
+div.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10%, 10px));
+    gap: 12%;
+    align-items: center;
+    text-align: center;
+}
 
 /* Set course grade color based on grade(done with js) */
 .card-body-details span.due-date {color: var(--course-details-color);}
-.bad {color: var(--course-grade-bad-color);}
-.okay {color: var(--course-grade-okay-color);}
-.good {color: var(--course-grade-good-color);}
 .course-grade {
     font-size: var(--course-grade-size);
 }
@@ -194,7 +198,8 @@ div.space-between {
 
     border: 1px solid var(--card-border-color);
     box-shadow: 0px 2px 2px 0px var(--card-shadow-color);
-    
+    align-items: center;
+
     transition-property: transform, box-shadow;
     transition-duration: 0.2s;
     transition-timing-function: ease-in-out;
@@ -220,6 +225,12 @@ div.space-between {
     font-weight: bold;
     color: var(--course-title-color);
     margin-bottom: 10px;
+}
+.card-body-list input {
+    background: transparent;
+    border: #f8f8f8 1px solid;
+    color: var(--html-text-color);
+    align-items: center;
 }
 
 /* Card body styling */

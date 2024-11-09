@@ -167,7 +167,7 @@ async function setValues() {
 
     // Set the values for d2l
     D2LUsername.setAttribute("value", data.d2lEmail ? data.d2lEmail : "");
-    D2LURL.setAttribute("value", data.d2lLink ? data.d2lLink : "https://mycourselink.lakeheadu.ca/d2l/home");
+    D2LURL.setAttribute("value", data.d2lLink ? data.d2lLink : "");
 
     // Set the password to a default value
     password.setAttribute("value", "********");
