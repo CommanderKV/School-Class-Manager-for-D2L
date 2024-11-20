@@ -306,19 +306,14 @@ class Course:
             # Create a new grade object
             newGrade = Grade()
 
-            #try:
-                # Fill the grade object with the row data
+            # Fill the grade object with the row data
             if specialSelect:
                 newGrade.fill(row.select("td:not(.d_g_treeNodeImage), th")[0], rowHeader)
             else:
                 newGrade.fill(row, rowHeader)
 
-                # Append the grade object to the list of grades
+            # Append the grade object to the list of grades
             self.grades.append(newGrade)
-            #except Exception as e: # pylint: disable=broad-except
-            #    print(f"\t[Error] Could not fill grade {pos + 1}.")
-            #    print(f"\t\t{e}")
-            #    continue
 
         # Go back to start URL
         page.go_back()
@@ -489,10 +484,10 @@ if __name__ == "__main__":
             raise ValueError("Courses not found!")
 
         courses = []
-        for course in coursesDiv.locator("d2l-card").all():
+        for course2 in coursesDiv.locator("d2l-card").all():
             # Check if href is there
             try:
-                href = course.get_attribute("href")
+                href = course2.get_attribute("href")
                 if not href:
                     print("[Warning] No href skipping course...")
                     continue
@@ -503,7 +498,7 @@ if __name__ == "__main__":
 
             # Check if text is there
             try:
-                text = course.get_attribute("text")
+                text = course2.get_attribute("text")
                 if not text:
                     print("[Warning] No text skipping course...")
                     continue
@@ -515,8 +510,7 @@ if __name__ == "__main__":
             courses.append((href, text))
 
         if courses:
-            length = len(courses)
-            value = random.randint(0, length - 1)
+            value = random.randint(0, len(courses) - 1)
             print(f"RANDOM VALUE: {value}")
             randomCourse = courses[value]
 

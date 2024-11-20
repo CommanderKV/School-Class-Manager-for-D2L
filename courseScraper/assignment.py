@@ -387,8 +387,7 @@ class Assignment:
             # Make the grade object
             self.grade = Grade()
 
-            #try:
-                # Fill the grade object
+            # Fill the grade object
             if specialSelect:
                 self.grade.fill(
                     row.select("td:not(.d_g_treeNodeImage), th")[0],
@@ -401,14 +400,6 @@ class Assignment:
                 )
 
             break
-            #except Exception as e: # pylint: disable=broad-except
-            #    # Go back to start URL
-            #    assignment.page.go_back()
-            #    assignment.page.wait_for_url(startURL)
-            #    assignment.page.wait_for_load_state("load")
-            #    print(f"[Error] Grade object fill failed. Error: {e}")
-            #    return None
-
 
         # Go back to start URL
         assignment.page.go_back()
