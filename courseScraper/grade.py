@@ -54,7 +54,6 @@ class Grade:
         ## Returns:
             None
         """
-        print("\t[Notice] Filling grade data...")
 
         # Get the columns from the row
         coloumns = row.select("th, td")
@@ -62,7 +61,7 @@ class Grade:
             cols = list(coloumns)
             # If theres an img tag in the columns
             if cols[0].select("td img"):
-                print("Removing the first coloumn containing the image")
+                #print("\t[Notice] Removing the first coloumn containing the image")
                 cols.pop(0)
 
             # get the headers and cloumns in a tuple list
@@ -73,21 +72,18 @@ class Grade:
                 if col:
                     # Normailze the data so no special characters are in it
                     noramlizedHeader = unicodedata.normalize("NFKD", col.text).strip()
-                    print(f"{header}: '{str(col)[50:]}' Text: '{col.text}' Modifiyed text: '{col.text.replace(' ', '')}'")
+                    #print(f"{header}: '{str(col)[50:]}' Text: '{col.text}' Modifiyed text: '{col.text.replace(' ', '')}'")
 
                     # Check if normailized data exists
                     if not noramlizedHeader:
                         # Make sure the items are in order after removing this item
                         for key in headerRow.keys():
                             if headerRow[key] > headerRow[header]:
-                                print(f"Decrementing {key}")
+                                #print(f"\t[Notice] Decrementing {key}")
                                 headerRow[key] -= 1
 
                         # Delete the header
                         del headerRow[header]
-
-        print(headerRow)
-        print(row)
 
         # Find and get the "Assignment" name
         self._getName(row)
@@ -101,6 +97,7 @@ class Grade:
         # Find and get the Grade value if any
         if not self._findGrade(row, headerRow) and self.pointsAchived and self.pointsMax != 0:
             self.grade = ((self.pointsAchived / self.pointsMax) * 100) if self.pointsMax != 0 else 0
+            self.grade = round(self.grade, 2)
 
         # Make a Unique ID for the grade
         self.makeUID()
@@ -126,10 +123,12 @@ class Grade:
         if nameLabel:
             nameLabel = nameLabel[0]
             self.name = nameLabel.text
+            print(f"\t[Notice] Filling grade data for {self.name}...")
             print("\t\t[Success] Found grade name!")
             return True
 
         # If the name is not found display a warning
+        print("\t[Notice] Filling grade data...")
         print("\t\t[Warning] Could not find grade name!")
         return False
 
@@ -256,8 +255,6 @@ class Grade:
 
             # Check if the grade is found if so set it
             if grade:
-                print(grade)
-                print(gradeCol)
                 grade: str = grade[gradeCol]
                 # Check if the grade is graded or not
                 if "-" in grade.text:
@@ -265,7 +262,7 @@ class Grade:
                     return False
 
                 # Get the grade value
-                self.grade = float(grade.text.split("%")[0])
+                self.grade = round(float(grade.text.split("%")[0]), 2)
                 print("\t\t[Success] Found grade!")
                 return False
 
