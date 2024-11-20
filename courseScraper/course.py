@@ -202,9 +202,9 @@ class Course:
             return True
 
         # If we did not find it then print a warning
-        else:
-            print("\t[Warning] Short term not found.")
-            return False
+    
+        print("\t[Warning] Short term not found.")
+        return False
 
     def _getCourseCode(self, courseDetails: str) -> bool:
         # Regex search for the course code
@@ -217,9 +217,9 @@ class Course:
             return True
 
         # If we did not find it then print an error
-        else:
-            print("\t[Error] Course code not found. skipping...")
-            return False
+
+        print("\t[Error] Course code not found. skipping...")
+        return False
 
     def _getCourseName(self, courseDetails: str) -> bool:
         # Regex search for the course name
@@ -232,9 +232,8 @@ class Course:
             return True
 
         # If we did not find it then print a warning
-        else:
-            print("\t[Warning] Name not found.")
-            return False
+        print("\t[Warning] Name not found.")
+        return False
 
     def _getLongTerm(self, courseDetails: str) -> bool:
         # Regex search for the long term
@@ -247,9 +246,8 @@ class Course:
             return True
 
         # If we did not find it then print a warning
-        else:
-            print(f"\t[Warning] Long term not found. {courseDetails}")
-            return False
+        print(f"\t[Warning] Long term not found. {courseDetails}")
+        return False
 
     def _getGrades(self, page: Page) -> bool:
         """
@@ -361,11 +359,10 @@ class Course:
             return True
 
         # If there are no assignments
-        else:
-            # Set the assignments to None
-            self.assignments = None
-            print("\t[Warning] No assignments found.")
-            return False
+        # Set the assignments to None
+        self.assignments = None
+        print("\t[Warning] No assignments found.")
+        return False
 
     def _getSyllabus(self, page: Page) -> bool:
         soup = BeautifulSoup(page.inner_html("*"), "html.parser")
@@ -378,10 +375,9 @@ class Course:
             print("\t[Success] Syllabus found!")
             return True
 
-        else:
-            self.syllabus = None
-            print("\t[Warning] Syllabus not found.")
-            return False
+        self.syllabus = None
+        print("\t[Warning] Syllabus not found.")
+        return False
 
 
 

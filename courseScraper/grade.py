@@ -26,7 +26,7 @@ class Grade:
             weightMax: float | None = None,
             grade: float | None = None,
             uid: int | None = None
-        ):
+        ): # pylint: disable=too-many-arguments
         """
         # Description:
             The constructor for the Grade class.
@@ -72,7 +72,6 @@ class Grade:
                 if col:
                     # Normailze the data so no special characters are in it
                     noramlizedHeader = unicodedata.normalize("NFKD", col.text).strip()
-                    #print(f"{header}: '{str(col)[50:]}' Text: '{col.text}' Modifiyed text: '{col.text.replace(' ', '')}'")
 
                     # Check if normailized data exists
                     if not noramlizedHeader:
@@ -148,7 +147,7 @@ class Grade:
                 If the points are found or not.
         """
         # Check if "Points" is in the header row
-        if "points" in [col for col in headerRow.keys()]:
+        if "points" in [col.lower() for col in headerRow.keys()]:
             # Get the poisition of the points column
             pointsCol = headerRow["points"]
 
@@ -194,7 +193,7 @@ class Grade:
                 If the weight is found or not.
         """
         # Check if "Weight" is in the header row
-        keys = [col for col in headerRow.keys()]
+        keys = [col.lower() for col in headerRow.keys()]
         value: str | None = None
         if "weight" in keys:
             value = "weight"
@@ -269,6 +268,10 @@ class Grade:
             # If the grade is not found display a warning
             print("\t\t[Warning] Could not find grade!")
             return False
+        
+        # If the grade column is not found display a warning
+        print("\t\t[Warning] Could not find grade column!")
+        return False
 
     def makeUID(self) -> None:
         """
