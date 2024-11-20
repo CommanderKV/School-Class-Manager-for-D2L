@@ -17,7 +17,7 @@ class Grade:
     # Description:
         This class will contain the information of a grade.
     """
-    def __init__(
+    def __init__( # pylint: disable=too-many-arguments
             self,
             name: str | None = None,
             pointsAchived: float | None = None,
@@ -26,7 +26,7 @@ class Grade:
             weightMax: float | None = None,
             grade: float | None = None,
             uid: int | None = None
-        ): # pylint: disable=too-many-arguments
+        ):
         """
         # Description:
             The constructor for the Grade class.
@@ -268,7 +268,7 @@ class Grade:
             # If the grade is not found display a warning
             print("\t\t[Warning] Could not find grade!")
             return False
-        
+
         # If the grade column is not found display a warning
         print("\t\t[Warning] Could not find grade column!")
         return False
@@ -282,7 +282,7 @@ class Grade:
         name = self.name.replace(" ", "_").lower()
 
         # Convert the name into numbers
-        uid = sum([ord(char) for char in name])
+        uid = sum([ord(char) for char in name]) # pylint: disable=consider-using-generator
 
         # Add the current time to the unique ID
         uid += time.time()

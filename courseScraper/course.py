@@ -63,7 +63,7 @@ class Course:
             assignmentsURL: str | None=None,
             assignments: list[Assignment] | None=None,
             grades: list[Grade] | None=None
-        ):
+        ): # pylint: disable=too-many-arguments
         """
         # Description:
             The constructor of the Course class.
@@ -202,7 +202,6 @@ class Course:
             return True
 
         # If we did not find it then print a warning
-    
         print("\t[Warning] Short term not found.")
         return False
 
