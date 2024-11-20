@@ -109,14 +109,6 @@ CREATE TABLE GradesLinkToAssignments (
     FOREIGN KEY (assignmentID) REFERENCES Assignments(assignmentID)
 ) AUTO_INCREMENT = 1000;
 
-CREATE TABLE GradesAssignmentsLinkToClasses (
-    gradeLinkID INT AUTO_INCREMENT PRIMARY KEY,
-    assignmentID INT NOT NULL,
-    classID INT NOT NULL,
-    FOREIGN KEY (assignmentID) REFERENCES GradesLinkToAssignments(assignmentID),
-    FOREIGN KEY (classID) REFERENCES Classes(classID)
-) AUTO_INCREMENT = 1000;
-
 
 SELECT
     Classes.name AS className,          -- Class name
