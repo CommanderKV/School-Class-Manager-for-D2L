@@ -501,8 +501,10 @@ if __name__ == "__main__":
         if courses:
             value = random.randint(0, len(courses) - 1)
             print(f"RANDOM VALUE: {value}")
-            randomCourse = courses[value] # Server side ASP.NET = 5 # doc auto: 7
-
+            # Server side ASP.NET = 5
+            # doc auto: 7
+            # reational databases = 16
+            randomCourse = courses[value]
             newCourse = Course(baseURL=base)
             newCourse.fill(randomCourse, testPage)
 
