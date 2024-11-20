@@ -254,8 +254,8 @@ class Submissions:
                 The dictionary representation of the object.
         """
         return {
-            "URL": self.url,
-            "SUBMISSIONS": self.submissions
+            "url": self.url,
+            "submissions": self.submissions
         }
 
 

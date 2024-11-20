@@ -17,6 +17,7 @@ from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
 from customPrint import print # pylint: disable=redefined-builtin,import-error
 
 from submission import Submissions, convertTime # pylint: disable=import-error
+from grade import Grade # pylint: disable=import-error
 
 
 class Assignment:
@@ -49,10 +50,7 @@ class Assignment:
         self.attachments: list[dict[str, str]] | None = []
         self.instructions: str | None = None
         self.submissions: Submissions | None = None
-        self.achievedGrade: float | None = None
-        self.maxGrade: float | None = None
         self.grade: float | None = None
-        self.weight: float | None = None
         self.feedback: dict[str, str|None] | None = None
 
 
@@ -115,12 +113,6 @@ class Assignment:
             print("\t\t\t[Notice] Grade not found!")
         else:
             print("\t\t\t[Success] Obtained grade!")
-
-        # Get the weight
-        if self._getWeight(assignment) is None:
-            print("\t\t\t[Notice] Weight not found!")
-        else:
-            print(f"\t\t\t[Success] Obtained weight! {self.weight}")
 
         # Get the feedback
         if self._getFeedback(assignment, page) is None:
@@ -346,50 +338,6 @@ class Assignment:
     def _getGrade(self, assignment: Locator) -> str | None:
         """
         # Description:
-            Gets the grade for the assignment
-
-        ## Args:
-            - assignment (Locator): 
-                The current assignment locator
-
-        ## Returns:
-            str | None: 
-                The grade for the assignment or None if no grade found
-        """
-        # Get the grade
-        soup = BeautifulSoup(assignment.inner_html(), "html.parser")
-        gradeDiv = soup.select(".d2l-grades-score")
-
-        # Check if the grade is available
-        if not gradeDiv:
-            print("\t\t\t[Warning] Grade div not found.")
-            return None
-
-        # Get the grade parts
-        partsOfGrade = gradeDiv[0].select("label")
-        if not partsOfGrade:
-            print("\t\t\t[Warning] Grade parts not found.")
-            return None
-
-        # Set the grade
-        if (partsOfGrade[0].getText() == "-" or partsOfGrade[2].getText() == "-"):
-            self.grade = None
-            self.achievedGrade = None
-            self.maxGrade = None
-        else:
-            self.achievedGrade = float(partsOfGrade[0].get_text())
-            self.maxGrade = float(partsOfGrade[2].get_text())
-            self.grade = round(
-                float(partsOfGrade[0].get_text()) / float(partsOfGrade[2].get_text()),
-                2
-            )
-
-        # Return the grade
-        return self.grade
-
-    def _getWeight(self, assignment: Locator) -> str | None:
-        """
-        # Description:
             Gets the weight for the assignment
 
         ## Args:
@@ -447,41 +395,27 @@ class Assignment:
         # Get the weight column from the table
         headers = grades[0].select("tr.d2l-table-row-first th")
 
-        # Find the weight column
-        weightColumnPos: int = 0
+        # Make a header dict
+        headerDict = {}
         for pos, header in enumerate(headers):
-            if header.get_text().upper().find("WEIGHT") != -1:
-                weightColumnPos = pos-1
-                break
+            headerDict[header.text.lower()] = pos + 1
 
-        # Get the weight data from the table
-        td = grades[0].select(f"tr:nth-child({index+1}) td:not(.d2l-table-cell-first)")
+        # Make the grade object
+        self.grade = Grade()
 
-        # Check if the weight col is available
-        if len(td) < 3:
+        try:
+            # Fill the grade object
+            self.grade.fill(
+                grades[0].select(f"tr:not(:first-child):not(.d_ggl1) tr:nth-child({index})"),
+                headerDict
+            )
+        except Exception as e: # pylint: disable=broad-except
             # Go back to start URL
             assignment.page.go_back()
             assignment.page.wait_for_url(startURL)
             assignment.page.wait_for_load_state("load")
-            self.weight = None
-            print("[Notice] Weight column not found.")
+            print(f"[Error] Grade object fill failed. Error: {e}")
             return None
-
-        # Check if the weight is available
-        if len(td[weightColumnPos].select("label")) > 0:
-            # 7.11 / 10
-            weightText = str(td[weightColumnPos].select("label")[0].get_text())
-
-            if ("/" in weightText) and (weightText.split("/", 1)[-1].strip() != "-"):
-                self.weight = float(weightText.rsplit("/", 1)[-1].strip())
-
-            else:
-                self.weight = None
-                print("[Notice] Weight not found in " + weightText +
-                    weightText.rsplit("/", 1)[-1].strip())
-        else:
-            self.weight = None
-            print("[Notice] Weight not found in label: " + str(td[weightColumnPos]))
 
         # Go back to start URL
         assignment.page.go_back()
@@ -489,7 +423,7 @@ class Assignment:
         assignment.page.wait_for_load_state("load")
 
         # Return the weight
-        return self.weight
+        return self.grade
 
     def _getFeedback(self, assignment: Locator, page: Page) -> dict[str, str] | None:
         """
@@ -586,8 +520,8 @@ class Assignment:
 
         # Set the feedback
         self.feedback = {
-            "HTML": feedbackHTML,
-            "DATE": feedbackDate,
+            "html": feedbackHTML,
+            "date": feedbackDate,
         }
 
         # Go back to the previous page
@@ -606,20 +540,17 @@ class Assignment:
             None
 
         ## Returns:
-            dict[str, str]: 
+            dict[str, str | int | float | None | dict[str, str | None]]: 
                 The dictionary of the assignment
         """
         return {
-            "NAME": self.name,
-            "LINK": self.link,
-            "UID": self.uid if self.uid else randint(0, 1000000),
-            "DUE": self.due,
-            "INSTRUCTIONS": self.instructions,
-            "ATTACHMENTS": self.attachments,
-            "SUBMISSIONS": self.submissions.toDict() if self.submissions else None,
-            "GRADE": self.grade,
-            "ACHIEVED": self.achievedGrade,
-            "MAX": self.maxGrade,
-            "WEIGHT": self.weight,
-            "FEEDBACK": self.feedback
+            "name": self.name,
+            "link": self.link,
+            "uid": self.uid if self.uid else randint(0, 1000000),
+            "due": self.due,
+            "instructions": self.instructions,
+            "attachments": self.attachments,
+            "submissions": self.submissions.toDict() if self.submissions else None,
+            "grade": self.grade.toDict() if self.grade else None,
+            "feedback": self.feedback
         }

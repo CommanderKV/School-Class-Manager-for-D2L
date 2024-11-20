@@ -21,6 +21,7 @@ from playwright.sync_api import sync_playwright, Page
 from customPrint import print # pylint: disable=redefined-builtin,import-error
 
 from assignment import Assignment # pylint: disable=import-error
+from grade import Grade # pylint: disable=import-error
 
 class Course:
     """
@@ -52,16 +53,17 @@ class Course:
     def __init__(
             self,
             baseURL: str,
-            link: str="",
+            link: str | None=None,
             closed: bool=False,
-            shortTerm: str="",
-            courseCode: str="",
-            name: str="",
-            longTerm: str="",
-            syllabus: str|None="",
-            assignmentsURL: str="",
-            assignments: list[Assignment]|None=[]
-        ): # pylint: disable=dangerous-default-value, too-many-positional-arguments
+            shortTerm: str | None=None,
+            courseCode: str | None=None,
+            name: str | None=None,
+            longTerm: str | None=None,
+            syllabus: str | None=None,
+            assignmentsURL: str | None=None,
+            assignments: list[Assignment] | None=None,
+            grades: list[Grade] | None=None
+        ):
         """
         # Description:
             The constructor of the Course class.
@@ -93,17 +95,18 @@ class Course:
                     The list of assignments of the course.
         """
         self.baseURL: str = baseURL
-        self.link: str = "" if not link else link
+        self.link: str | None = None if not link else link
         self.closed: bool = False if not closed else closed
-        self.shortTerm: str = "" if not shortTerm else shortTerm
-        self.courseCode: str = "" if not courseCode else courseCode
-        self.name: str = "" if not name else name
-        self.longTerm: str = "" if not longTerm else longTerm
+        self.shortTerm: str | None = None if not shortTerm else shortTerm
+        self.courseCode: str | None = None if not courseCode else courseCode
+        self.name: str | None = None if not name else name
+        self.longTerm: str | None = None if not longTerm else longTerm
         self.syllabus: str | None = None if not syllabus else syllabus
-        self.assignmentsURL: str = "" if not assignmentsURL else assignmentsURL
+        self.assignmentsURL: str | None = None if not assignmentsURL else assignmentsURL
         self.assignments: list[Assignment] | None = [] if not assignments else assignments
+        self.grades: list[Grade] | None = [] if not grades else grades
 
-    def fill(self, course: tuple[str, str], page: Page) -> None: # pylint: disable=too-many-branches
+    def fill(self, course: tuple[str, str], page: Page) -> None:
         """
         # Description:
             This function fills the course object with the information of the course.
@@ -139,39 +142,24 @@ class Course:
             self.closed = "Closed, " in courseDetails
 
             # Get the short term of the course
-            shortTerm = Regex.search(r"\((.+)\) .+? - ", courseDetails)
-            if shortTerm:
-                self.shortTerm = shortTerm.group(1)
-                print("\t[Success] Short term found!")
-            else:
-                print("\t[Warning] Short term not found.")
+            self._getShortTerm(courseDetails)
 
             # Get the course code
-            courseCodeReg = Regex.search(r"\) (.+) - ", courseDetails)
-            if courseCodeReg:
-                self.courseCode = courseCodeReg.group(1)
-                print("\t[Success] Course code found!")
-            else:
-                print("\t[Error] Course code not found. skipping...")
+            if not self._getCourseCode(courseDetails):
                 raise ValueError("Course code not found.")
 
             # Get the name of the course
-            name = Regex.search(r"- (.+), \d+", courseDetails)
-            if name:
-                self.name = name.group(1)
-                print("\t[Success] Name found!")
-            else:
-                print("\t[Warning] Name not found.")
+            self._getCourseName(courseDetails)
 
             # Get the long term of the course
-            longTerm = Regex.search(r", \d+, (.+ \d\d\d\d)", courseDetails)
-            if longTerm:
-                self.longTerm = longTerm.group(1)
-                print("\t[Success] Long term found!")
-            else:
-                print(f"\t[Warning] Long term not found. {courseDetails}")
+            self._getLongTerm(courseDetails)
 
             print(f"\t[Completed] Course: {self.courseCode} - {self.name}")
+
+
+            # -------------------------
+            #   Get content of course
+            # -------------------------
 
             # Go to the course page
             page.goto(self.link)
@@ -186,60 +174,16 @@ class Course:
             page.wait_for_load_state("load")
 
             # Get the syllabus of the course
-            soup = BeautifulSoup(page.inner_html("*"), "html.parser")
-            syllabus = soup.select("a.d2l-link[title*='syllabus'], a.d2l-link[title*='Syllabus']")
-
-            # Check if we have a syllabus
-            if syllabus:
-                # Save the syllabus link
-                self.syllabus = self.baseURL + syllabus[0]["href"]
-                print("\t[Success] Syllabus found!")
-            else:
-                self.syllabus = None
-                print("\t[Warning] Syllabus not found.")
-
-            # Go to the Assignments page
-            page.get_by_role("link", name="Assignments").first.click()
-            page.wait_for_load_state("load")
+            self._getSyllabus(page) 
 
             # Get the assignments url
             self.assignmentsURL = page.url
 
-            # Check if there are any assignments
-            soup = BeautifulSoup(page.inner_html("*"), 'html.parser')
-            assignmentsSoup = soup.select(
-                "table.d2l-table.d2l-grid.d_gd > tbody > tr:not(:first-child)"
-            )
+            # Get grades if any
+            self._getGrades(page)
 
-            # Check that we have assignments
-            if assignmentsSoup:
-                # Go through each assignment
-                for assignment in page.locator(
-                    "table.d2l-table.d2l-grid.d_gd > tbody > tr:not(:first-child)"
-                ).all():
-                    # Disregard all breaks or items that are not assignments
-                    if assignment.get_attribute("class") and \
-                       assignment.get_attribute("class").find("d2l-table-row-last") == -1 \
-                    :
-                        continue
-
-                    # Create a new assignment object
-                    newAssignment: Assignment = Assignment(baseUrl=self.baseURL)
-                    newAssignment.fill(assignment, page)
-
-                    # Add the assignment to the list of assignments
-                    self.assignments.append(newAssignment)
-
-                del assignmentsSoup
-                del newAssignment
-                # Print out logs
-                print("\t[Success] Obtained assignments!")
-
-            # If there are no assignments
-            else:
-                # Set the assignments to None
-                self.assignments = None
-                print("\t[Warning] No assignments found.")
+            # Get assignments if any
+            self._getAssignments(page)
 
         else:
             # Throw an error if the course does not have a span element
@@ -250,7 +194,206 @@ class Course:
         # Go to the start page
         page.goto(startPage)
 
-    def toDict(self):
+    def _getShortTerm(self, courseDetails: str) -> bool:
+        # Regex search for the short term
+        shortTerm = Regex.search(r"\((.+)\) .+? - ", courseDetails)
+
+        # If we found it then save it
+        if shortTerm:
+            self.shortTerm = shortTerm.group(1)
+            print("\t[Success] Short term found!")
+            return True
+
+        # If we did not find it then print a warning
+        else:
+            print("\t[Warning] Short term not found.")
+            return False
+
+    def _getCourseCode(self, courseDetails: str) -> bool:
+        # Regex search for the course code
+        courseCodeReg = Regex.search(r"\) (.+) - ", courseDetails)
+
+        # If we found it then save it
+        if courseCodeReg:
+            self.courseCode = courseCodeReg.group(1)
+            print("\t[Success] Course code found!")
+            return True
+
+        # If we did not find it then print an error
+        else:
+            print("\t[Error] Course code not found. skipping...")
+            return False
+
+    def _getCourseName(self, courseDetails: str) -> bool:
+        # Regex search for the course name
+        name = Regex.search(r"- (.+), \d+", courseDetails)
+
+        # If we found it then save it
+        if name:
+            self.name = name.group(1)
+            print("\t[Success] Name found!")
+            return True
+
+        # If we did not find it then print a warning
+        else:
+            print("\t[Warning] Name not found.")
+            return False
+
+    def _getLongTerm(self, courseDetails: str) -> bool:
+        # Regex search for the long term
+        longTerm = Regex.search(r", \d+, (.+ \d\d\d\d)", courseDetails)
+
+        # If we found it then save it
+        if longTerm:
+            self.longTerm = longTerm.group(1)
+            print("\t[Success] Long term found!")
+            return True
+
+        # If we did not find it then print a warning
+        else:
+            print(f"\t[Warning] Long term not found. {courseDetails}")
+            return False
+
+    def _getGrades(self, page: Page) -> bool:
+        """
+        Used to get the grades of the course.
+
+        Args:
+            page (Page): The link to the page.
+
+        Returns:
+            bool: Did we get any grades?
+        """
+        # Navigate to the grades page
+        startURL = page.url
+        page.get_by_role("link", name="Grades").click()
+        page.wait_for_load_state("load")
+
+        # Get the page as a soup object
+        soup = BeautifulSoup(page.inner_html("*"), "html.parser")
+
+
+        # Get the grades Table
+        grades = soup.select("table[type='list']")
+        if not grades:
+            # Go back to start URL
+            print("\t[Warning] No grades found.")
+            page.go_back()
+            page.wait_for_url(startURL)
+            page.wait_for_load_state("load")
+            return False
+
+        # Check if there are items in the table
+        rowHeaders = grades[0].select("tr:not(:first-child):not(.d_ggl1)")
+        if not rowHeaders:
+            # Go back to start URL
+            print("\t[Warning] No items in Grades table.")
+            page.go_back()
+            page.wait_for_url(startURL)
+            page.wait_for_load_state("load")
+            return False
+
+        # Get the header row
+        rowHeader = {}
+        for pos, header in enumerate(grades[0].select("tr:first-child th")):
+            # Adding 1 to the header position since css queries start at 1
+            rowHeader[header.text.lower()] = pos + 1
+
+        # Get the grades
+        for pos, row in enumerate(grades[0].select("tr:not(:first-child):not(.d_ggl1)")):
+            # Create a new grade object
+            newGrade = Grade()
+
+            #try:
+                # Fill the grade object with the row data
+            newGrade.fill(row, rowHeader)
+
+                # Append the grade object to the list of grades
+            self.grades.append(newGrade)
+            #except Exception as e: # pylint: disable=broad-except
+            #    print(f"\t[Error] Could not fill grade {pos + 1}.")
+            #    print(f"\t\t{e}")
+            #    continue
+
+        # Go back to start URL
+        page.go_back()
+        page.wait_for_url(startURL)
+        page.wait_for_load_state("load")
+
+        # Print out logs
+        print("\t[Success] Obtained grades!")
+        return True
+
+    def _getAssignments(self, page: Page) -> bool:
+        # Go to the Assignments page
+        page.get_by_role("link", name="Assignments").first.click()
+        page.wait_for_load_state("load")
+
+        # Get the assignments
+        soup = BeautifulSoup(page.inner_html("*"), 'html.parser')
+        assignmentsSoup = soup.select(
+            "table.d2l-table.d2l-grid.d_gd > tbody > tr:not(:first-child)"
+        )
+
+        # Check that we have assignments
+        if assignmentsSoup:
+            # Go through each assignment
+            for assignment in page.locator(
+                "table.d2l-table.d2l-grid.d_gd > tbody > tr:not(:first-child)"
+            ).all():
+                # Disregard all breaks or items that are not assignments
+                if assignment.get_attribute("class") and \
+                    assignment.get_attribute("class").find("d2l-table-row-last") == -1 \
+                :
+                    continue
+
+                # Create a new assignment object
+                newAssignment: Assignment = Assignment(baseUrl=self.baseURL)
+                newAssignment.fill(assignment, page)
+
+                # Check if the assignment grade is in the grades we have already
+                for grade in self.grades:
+                    if grade == newAssignment.grade:
+                        newAssignment.grade = grade
+
+                # Add the assignment to the list of assignments
+                self.assignments.append(newAssignment)
+
+            del assignmentsSoup
+            del newAssignment
+
+            # Print out logs
+            print("\t[Success] Obtained assignments!")
+            return True
+
+        # If there are no assignments
+        else:
+            # Set the assignments to None
+            self.assignments = None
+            print("\t[Warning] No assignments found.")
+            return False
+
+
+
+
+
+    def _getSyllabus(self, page: Page) -> bool:
+        soup = BeautifulSoup(page.inner_html("*"), "html.parser")
+        syllabus = soup.select("a.d2l-link[title*='syllabus'], a.d2l-link[title*='Syllabus']")
+
+        # Check if we have a syllabus
+        if syllabus:
+            # Save the syllabus link
+            self.syllabus = self.baseURL + syllabus[0]["href"]
+            print("\t[Success] Syllabus found!")
+            return True
+
+        else:
+            self.syllabus = None
+            print("\t[Warning] Syllabus not found.")
+            return False
+
+    def toDict(self) -> dict:
         """
         # Description:
             This function returns the dictionary of the course.
@@ -259,7 +402,7 @@ class Course:
             None
     
         ## Returns:
-            - dict: 
+            dict[str, str | dict[str, str | int | float | dict[str, str | None] | None] | None]: 
                 The dictionary of the course.
         """
         # Make all the assignments into a dictionary
@@ -270,19 +413,28 @@ class Course:
         else:
             _assignments = None
 
+        # Make all the grades into a dictionary
+        _grades = []
+        if self.grades:
+            for grade in self.grades:
+                _grades.append(grade.toDict())
+        else:
+            _grades = None
+
         # Return the dictionary of the course
         return {
-            "LINK": self.link,
-            "NAME": self.name,
-            "CODE": self.courseCode,
-            "CLOSED": self.closed,
-            "TERMS": {
-                "SHORT": self.shortTerm,
-                "LONG": self.longTerm,
+            "link": self.link,
+            "name": self.name,
+            "code": self.courseCode,
+            "closed": self.closed,
+            "terms": {
+                "short": self.shortTerm,
+                "long": self.longTerm,
             },
-            "SYLLABUS-URL": self.syllabus,
-            "ASSIGNMENTS-URL": self.assignmentsURL,
-            "ASSIGNMENTS": _assignments,
+            "syllabus-url": self.syllabus,
+            "assignments-url": self.assignmentsURL,
+            "assignments": _assignments,
+            "grades": _grades
         }
 
 
@@ -321,7 +473,39 @@ if __name__ == "__main__":
 
         base = testPage.url[:Regex.search(r"(https?://[^/]+)", testPage.url).end()]
 
-        courses = testPage.locator("a[href^='/d2l/home/']").all()
+        testPage.wait_for_selector(
+            "d2l-my-courses-card-grid:first-child .course-card-grid d2l-enrollment-card"
+        )
+        coursesDiv = testPage.locator("d2l-my-courses-card-grid:first-child .course-card-grid")
+        if not coursesDiv:
+            raise ValueError("Courses not found!")
+
+        courses = []
+        for course in coursesDiv.locator("d2l-card").all():
+            # Check if href is there
+            try:
+                href = course.get_attribute("href")
+                if not href:
+                    print("[Warning] No href skipping course...")
+                    continue
+
+            except: # pylint: disable=bare-except
+                print("[Warning] No href skipping course...")
+                continue
+
+            # Check if text is there
+            try:
+                text = course.get_attribute("text")
+                if not text:
+                    print("[Warning] No text skipping course...")
+                    continue
+
+            except: # pylint: disable=bare-except
+                print("[Warning] No text skipping course...")
+                continue
+
+            courses.append((href, text))
+
         if courses:
             length = len(courses)
             randomCourse = courses[random.randint(0, length - 1)]
