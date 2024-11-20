@@ -53,8 +53,9 @@ class Grade:
             None
         """
         print("\t[Notice] Filling grade data...")
-        print(headerRow)
         print(row)
+        print(headerRow)
+
         # Find and get the "Assignment" name
         self._getName(row)
 
@@ -119,12 +120,15 @@ class Grade:
             # Get the poisition of the points column
             pointsCol = headerRow["points"]
 
+            print(f"\n\n{row.select('label')}\n\n")
+
             # Get the data from the points column
-            points = row.select(f"td:nth-child({pointsCol}) label")
+            points = row.select("label")
 
             # Check if the points are found if so set it
             if points:
-                points = points[0]
+                points: str = points[pointsCol]
+                print(f"\n\n{points}, {pointsCol}, {headerRow}\n\n")
                 # Check if the points are graded or not
                 if "-" in points.text:
                     print("\t\t[Notice] Grade Item has yet to be graded!")
@@ -170,14 +174,14 @@ class Grade:
 
         if value is not None:
             # Get the poisition of the weight column
-            weightCol = headerRow[value]
+            weightCol: str = headerRow[value]
 
             # Get the data from the weight column
-            weight = row.select(f"td:nth-child({weightCol}) label")
+            weight = row.select("label")
 
             # Check if the weight is found if so set it
             if weight:
-                weight = weight[0]
+                weight = weight[weightCol]
                 # Check if the weight is weighted or not
                 if "-" in weight.text:
                     print("\t\t[Notice] Grade is not weighted!")
@@ -218,11 +222,11 @@ class Grade:
             gradeCol = headerRow["grade"]
 
             # Get the data from the grade column
-            grade = row.select(f"td:nth-child({gradeCol}) label")
+            grade = row.select("label")
 
             # Check if the grade is found if so set it
             if grade:
-                grade = grade[0]
+                grade: str = grade[gradeCol]
                 # Check if the grade is graded or not
                 if "-" in grade.text:
                     print("\t\t[Notice] Grade Item has yet to be graded!")
@@ -290,7 +294,7 @@ class Grade:
 
         # Check if it is an assignment
         if isinstance(other, Assignment):
-            if self.name == other.name:
+            if self.name.replace(" ", "") == other.name.replace(" ", ""):
                 if self.grade == other.grade or other.grade is None:
                     return True
 

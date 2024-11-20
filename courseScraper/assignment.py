@@ -373,31 +373,20 @@ class Assignment:
         # Make a header dict
         headerDict = {}
         for pos, header in enumerate(headers):
-            headerDict[header.text.lower()] = pos + 1
+            headerDict[header.text.lower()] = pos
 
         for pos, row in enumerate(grades[0].select("tr:not(:first-child):not(.d_ggl1)")):
-            if row.select("th label")[0].get_text() != self.name:
+            if row.select("th label")[0].get_text().replace(" ", "") != self.name.replace(" ", ""):
                 continue
-
-            if row.select(".d_g_treeNodeImage"):
-                specialSelect = True
-            else:
-                specialSelect = False
 
             # Make the grade object
             self.grade = Grade()
 
             # Fill the grade object
-            if specialSelect:
-                self.grade.fill(
-                    row.select("td:not(.d_g_treeNodeImage), th")[0],
-                    headerDict
-                )
-            else:
-                self.grade.fill(
-                    row,
-                    headerDict
-                )
+            self.grade.fill(
+                row,
+                headerDict
+            )
 
             break
 

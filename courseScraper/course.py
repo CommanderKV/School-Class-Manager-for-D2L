@@ -293,24 +293,22 @@ class Course:
         # Get the header row
         rowHeader = {}
         for pos, header in enumerate(grades[0].select("tr:first-child th")):
-            # Adding 1 to the header position since css queries start at 1
-            rowHeader[header.text.lower()] = pos + 1
+            rowHeader[header.text.lower()] = pos
 
         # Get the grades
         for pos, row in enumerate(grades[0].select("tr:not(:first-child):not(.d_ggl1)")):
-            if row.select(".d_g_treeNodeImage"):
-                specialSelect = True
-            else:
-                specialSelect = False
+            # Filter out any calculations
+            temp = row.select("th a")
+            if temp:
+                temp = temp[0].select("d2l-icon")
+                if temp:
+                    continue
 
             # Create a new grade object
             newGrade = Grade()
 
             # Fill the grade object with the row data
-            if specialSelect:
-                newGrade.fill(row.select("td:not(.d_g_treeNodeImage), th")[0], rowHeader)
-            else:
-                newGrade.fill(row, rowHeader)
+            newGrade.fill(row, rowHeader)
 
             # Append the grade object to the list of grades
             self.grades.append(newGrade)
@@ -376,10 +374,6 @@ class Course:
             print("\t[Warning] No assignments found.")
             return False
 
-
-
-
-
     def _getSyllabus(self, page: Page) -> bool:
         soup = BeautifulSoup(page.inner_html("*"), "html.parser")
         syllabus = soup.select("a.d2l-link[title*='syllabus'], a.d2l-link[title*='Syllabus']")
@@ -395,6 +389,8 @@ class Course:
             self.syllabus = None
             print("\t[Warning] Syllabus not found.")
             return False
+
+
 
     def toDict(self) -> dict:
         """
