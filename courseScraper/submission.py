@@ -187,7 +187,6 @@ class Submissions:
         # Check if there are any files submitted
         if not a:
             print("\t[Notice] No files found in the submission.")
-            print(f"\t[bold]{cell}")
             return None
 
         a = a[0]

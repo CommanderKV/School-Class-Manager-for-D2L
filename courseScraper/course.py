@@ -174,10 +174,7 @@ class Course:
             page.wait_for_load_state("load")
 
             # Get the syllabus of the course
-            self._getSyllabus(page) 
-
-            # Get the assignments url
-            self.assignmentsURL = page.url
+            self._getSyllabus(page)
 
             # Get grades if any
             self._getGrades(page)
@@ -301,12 +298,20 @@ class Course:
 
         # Get the grades
         for pos, row in enumerate(grades[0].select("tr:not(:first-child):not(.d_ggl1)")):
+            if row.select(".d_g_treeNodeImage"):
+                specialSelect = True
+            else:
+                specialSelect = False
+
             # Create a new grade object
             newGrade = Grade()
 
             #try:
                 # Fill the grade object with the row data
-            newGrade.fill(row, rowHeader)
+            if specialSelect:
+                newGrade.fill(row.select("td:not(.d_g_treeNodeImage), th")[0], rowHeader)
+            else:
+                newGrade.fill(row, rowHeader)
 
                 # Append the grade object to the list of grades
             self.grades.append(newGrade)
@@ -328,6 +333,9 @@ class Course:
         # Go to the Assignments page
         page.get_by_role("link", name="Assignments").first.click()
         page.wait_for_load_state("load")
+
+        # Set the assignments page url
+        self.assignmentsURL = page.url
 
         # Get the assignments
         soup = BeautifulSoup(page.inner_html("*"), 'html.parser')
@@ -508,7 +516,9 @@ if __name__ == "__main__":
 
         if courses:
             length = len(courses)
-            randomCourse = courses[random.randint(0, length - 1)]
+            value = random.randint(0, length - 1)
+            print(f"RANDOM VALUE: {value}")
+            randomCourse = courses[value]
 
             newCourse = Course(baseURL=base)
             newCourse.fill(randomCourse, testPage)

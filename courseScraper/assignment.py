@@ -50,7 +50,7 @@ class Assignment:
         self.attachments: list[dict[str, str]] | None = []
         self.instructions: str | None = None
         self.submissions: Submissions | None = None
-        self.grade: float | None = None
+        self.grade: Grade | None = None
         self.feedback: dict[str, str|None] | None = None
 
 
@@ -352,9 +352,7 @@ class Assignment:
         startURL = assignment.page.url
 
         # Go to the grades page
-        soup = BeautifulSoup(assignment.page.inner_html("*"), "html.parser")
-        href = soup.select("a[href^='/d2l/lms/grades/']")[0]["href"]
-        assignment.page.goto(self.baseUrl + href)
+        assignment.page.get_by_role("link", name="Grades").click()
         assignment.page.wait_for_load_state("load")
 
         # Get the weight of the assignment
@@ -369,53 +367,48 @@ class Assignment:
             assignment.page.wait_for_load_state("load")
             return None
 
-        # Get the assignment names
-        rowHeaders = grades[0].select("tr:not(:first-child) th label")
-
-        # Find the row that has the assignment name
-        index: int = -1
-        for pos, row in enumerate(rowHeaders):
-            if row.get_text() == self.name:
-                # Adding 1 to the index because it is excluding
-                # the first child in the css query
-                index = pos + 1
-                break
-
-        # If the assignment is not found in the table
-        if index == -1:
-            names = [row.get_text() for row in rowHeaders]
-            # Go back to start URL
-            assignment.page.go_back()
-            assignment.page.wait_for_url(startURL)
-            assignment.page.wait_for_load_state("load")
-            print("[Notice] Assignment not found in the grades table.")
-            print(f"[Notice] Assignment Names: {names}")
-            return None
-
         # Get the weight column from the table
-        headers = grades[0].select("tr.d2l-table-row-first th")
+        headers = grades[0].select("tr:first-child th")
 
         # Make a header dict
         headerDict = {}
         for pos, header in enumerate(headers):
             headerDict[header.text.lower()] = pos + 1
 
-        # Make the grade object
-        self.grade = Grade()
+        for pos, row in enumerate(grades[0].select("tr:not(:first-child):not(.d_ggl1)")):
+            if row.select("th label")[0].get_text() != self.name:
+                continue
 
-        try:
-            # Fill the grade object
-            self.grade.fill(
-                grades[0].select(f"tr:not(:first-child):not(.d_ggl1) tr:nth-child({index})"),
-                headerDict
-            )
-        except Exception as e: # pylint: disable=broad-except
-            # Go back to start URL
-            assignment.page.go_back()
-            assignment.page.wait_for_url(startURL)
-            assignment.page.wait_for_load_state("load")
-            print(f"[Error] Grade object fill failed. Error: {e}")
-            return None
+            if row.select(".d_g_treeNodeImage"):
+                specialSelect = True
+            else:
+                specialSelect = False
+
+            # Make the grade object
+            self.grade = Grade()
+
+            #try:
+                # Fill the grade object
+            if specialSelect:
+                self.grade.fill(
+                    row.select("td:not(.d_g_treeNodeImage), th")[0],
+                    headerDict
+                )
+            else:
+                self.grade.fill(
+                    row,
+                    headerDict
+                )
+
+            break
+            #except Exception as e: # pylint: disable=broad-except
+            #    # Go back to start URL
+            #    assignment.page.go_back()
+            #    assignment.page.wait_for_url(startURL)
+            #    assignment.page.wait_for_load_state("load")
+            #    print(f"[Error] Grade object fill failed. Error: {e}")
+            #    return None
+
 
         # Go back to start URL
         assignment.page.go_back()

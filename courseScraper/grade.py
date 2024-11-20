@@ -52,6 +52,9 @@ class Grade:
         ## Returns:
             None
         """
+        print("\t[Notice] Filling grade data...")
+        print(headerRow)
+        print(row)
         # Find and get the "Assignment" name
         self._getName(row)
 
@@ -83,12 +86,13 @@ class Grade:
                 If the name is found or not.
         """
         # Get the name from the row
-        nameLabel = row.select("th label")[0]
+        nameLabel = row.select("tr label")
 
         # Check if the name is found if so set it
         if nameLabel:
+            nameLabel = nameLabel[0]
             self.name = nameLabel.text
-            print("\t\t[Notice] Found grade name!")
+            print("\t\t[Success] Found grade name!")
             return True
 
         # If the name is not found display a warning
@@ -120,17 +124,17 @@ class Grade:
 
             # Check if the points are found if so set it
             if points:
+                points = points[0]
                 # Check if the points are graded or not
-                if "-" in points[0].text:
+                if "-" in points.text:
                     print("\t\t[Notice] Grade Item has yet to be graded!")
                     return True
 
                 # Get the points value
-                print(points[0].text)
-                points: list[str] = points[0].text.split(" / ")
+                points: list[str] = points.text.split(" / ")
                 self.pointsAchived = float(points[0])
                 self.pointsMax = float(points[1])
-                print("\t\t[Notice] Found grade points!")
+                print("\t\t[Success] Found grade points!")
                 return True
 
             # If the points are not found display a warning
@@ -157,15 +161,23 @@ class Grade:
                 If the weight is found or not.
         """
         # Check if "Weight" is in the header row
-        if "weight" in [col.lower() for col in headerRow.keys()]:
+        keys = [col for col in headerRow.keys()]
+        value: str | None = None
+        if "weight" in keys:
+            value = "weight"
+        elif "weight achieved" in keys:
+            value = "weight achieved"
+
+        if value is not None:
             # Get the poisition of the weight column
-            weightCol = headerRow["weight"]
+            weightCol = headerRow[value]
 
             # Get the data from the weight column
-            weight = row.select(f"td:nth-child({weightCol})")
+            weight = row.select(f"td:nth-child({weightCol}) label")
 
             # Check if the weight is found if so set it
             if weight:
+                weight = weight[0]
                 # Check if the weight is weighted or not
                 if "-" in weight.text:
                     print("\t\t[Notice] Grade is not weighted!")
@@ -175,7 +187,7 @@ class Grade:
                 weight: list[str] = weight.text.split(" / ")
                 self.weightAchieved = float(weight[0])
                 self.weightMax = float(weight[1])
-                print("\t\t[Notice] Found grade weight!")
+                print("\t\t[Success] Found grade weight!")
                 return True
 
             # If the weight is not found display a warning
@@ -206,18 +218,19 @@ class Grade:
             gradeCol = headerRow["grade"]
 
             # Get the data from the grade column
-            grade = row.select(f"td:nth-child({gradeCol})")
+            grade = row.select(f"td:nth-child({gradeCol}) label")
 
             # Check if the grade is found if so set it
             if grade:
+                grade = grade[0]
                 # Check if the grade is graded or not
                 if "-" in grade.text:
                     print("\t\t[Notice] Grade Item has yet to be graded!")
                     return False
 
                 # Get the grade value
-                self.grade = float(grade.text)
-                print("\t\t[Notice] Found grade!")
+                self.grade = float(grade.text.split("%")[0])
+                print("\t\t[Success] Found grade!")
                 return False
 
             # If the grade is not found display a warning
@@ -239,7 +252,7 @@ class Grade:
         uid += time.time()
 
         # Make the unique ID
-        self.uid = uid
+        self.uid = round(uid)
 
     def toDict(self) -> dict[str, str | float]:
         """
@@ -278,7 +291,7 @@ class Grade:
         # Check if it is an assignment
         if isinstance(other, Assignment):
             if self.name == other.name:
-                if self.grade == other.grade:
+                if self.grade == other.grade or other.grade is None:
                     return True
 
         # Check if it is a grade
