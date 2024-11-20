@@ -362,7 +362,7 @@ class Assignment:
         grades = soup.select("table[type='list']")
         if not grades:
             # Go back to start URL
-            assignment.page.go_back()
+            assignment.page.goto(startURL)
             assignment.page.wait_for_url(startURL)
             assignment.page.wait_for_load_state("load")
             return None
