@@ -17,27 +17,18 @@ class Grade:
     # Description:
         This class will contain the information of a grade.
     """
-    def __init__( # pylint: disable=too-many-arguments
-            self,
-            name: str | None = None,
-            pointsAchived: float | None = None,
-            pointsMax: float | None = None,
-            weightAchieved: float | None = None,
-            weightMax: float | None = None,
-            grade: float | None = None,
-            uid: int | None = None
-        ):
+    def __init__(self):
         """
         # Description:
             The constructor for the Grade class.
         """
-        self.name: str | None = name
-        self.pointsAchived: float | None = pointsAchived
-        self.pointsMax: float | None = pointsMax
-        self.weightAchieved: float | None = weightAchieved
-        self.weightMax: float | None = weightMax
-        self.grade: float | None = grade
-        self.uid: int | None = uid
+        self.name: str | None = None
+        self.pointsAchived: float | None = None
+        self.pointsMax: float | None = None
+        self.weightAchieved: float | None = None
+        self.weightMax: float | None = None
+        self.grade: float | None = None
+        self.uid: int | None = None
         self.useTD: bool = False
 
     def fill(self, row: BeautifulSoup, headerRow: dict[str, int]) -> None:

@@ -1,3 +1,4 @@
+#pylint: disable=duplicate-code
 """
 # Description:
     This module contains the Course class which is used to store the information of a course.
@@ -50,20 +51,7 @@ class Course:
         - assignments (list[Assignment]|None): 
             The list of assignments of the course.
     """
-    def __init__(
-            self,
-            baseURL: str,
-            link: str | None=None,
-            closed: bool=False,
-            shortTerm: str | None=None,
-            courseCode: str | None=None,
-            name: str | None=None,
-            longTerm: str | None=None,
-            syllabus: str | None=None,
-            assignmentsURL: str | None=None,
-            assignments: list[Assignment] | None=None,
-            grades: list[Grade] | None=None
-        ): # pylint: disable=too-many-arguments
+    def __init__(self, baseURL: str):
         """
         # Description:
             The constructor of the Course class.
@@ -95,16 +83,16 @@ class Course:
                     The list of assignments of the course.
         """
         self.baseURL: str = baseURL
-        self.link: str | None = None if not link else link
-        self.closed: bool = False if not closed else closed
-        self.shortTerm: str | None = None if not shortTerm else shortTerm
-        self.courseCode: str | None = None if not courseCode else courseCode
-        self.name: str | None = None if not name else name
-        self.longTerm: str | None = None if not longTerm else longTerm
-        self.syllabus: str | None = None if not syllabus else syllabus
-        self.assignmentsURL: str | None = None if not assignmentsURL else assignmentsURL
-        self.assignments: list[Assignment] | None = [] if not assignments else assignments
-        self.grades: list[Grade] | None = [] if not grades else grades
+        self.link: str | None = None
+        self.closed: bool = False
+        self.shortTerm: str | None = None
+        self.courseCode: str | None = None
+        self.name: str | None = None
+        self.longTerm: str | None = None
+        self.syllabus: str | None = None
+        self.assignmentsURL: str | None = None
+        self.assignments: list[Assignment] | None = []
+        self.grades: list[Grade] | None = []
 
     def fill(self, course: tuple[str, str], page: Page) -> None:
         """
