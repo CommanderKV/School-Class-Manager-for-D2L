@@ -7,6 +7,7 @@
         This class will contain the information of a grade.
 """
 import time
+import unicodedata
 
 from bs4 import BeautifulSoup
 from customPrint import print # pylint: disable=redefined-builtin,import-error
@@ -37,6 +38,7 @@ class Grade:
         self.weightMax: float | None = weightMax
         self.grade: float | None = grade
         self.uid: int | None = uid
+        self.useTD: bool = False
 
     def fill(self, row: BeautifulSoup, headerRow: dict[str, int]) -> None:
         """
@@ -53,8 +55,39 @@ class Grade:
             None
         """
         print("\t[Notice] Filling grade data...")
-        print(row)
+
+        # Get the columns from the row
+        coloumns = row.select("th, td")
+        if coloumns:
+            cols = list(coloumns)
+            # If theres an img tag in the columns
+            if cols[0].select("td img"):
+                print("Removing the first coloumn containing the image")
+                cols.pop(0)
+
+            # get the headers and cloumns in a tuple list
+            headersAndCols = list(zip(headerRow.keys(), cols))
+
+            # Go throguh the headers associated with the columns
+            for header, col in headersAndCols:
+                if col:
+                    # Normailze the data so no special characters are in it
+                    noramlizedHeader = unicodedata.normalize("NFKD", col.text).strip()
+                    print(f"{header}: '{str(col)[50:]}' Text: '{col.text}' Modifiyed text: '{col.text.replace(' ', '')}'")
+
+                    # Check if normailized data exists
+                    if not noramlizedHeader:
+                        # Make sure the items are in order after removing this item
+                        for key in headerRow.keys():
+                            if headerRow[key] > headerRow[header]:
+                                print(f"Decrementing {key}")
+                                headerRow[key] -= 1
+
+                        # Delete the header
+                        del headerRow[header]
+
         print(headerRow)
+        print(row)
 
         # Find and get the "Assignment" name
         self._getName(row)
@@ -120,15 +153,12 @@ class Grade:
             # Get the poisition of the points column
             pointsCol = headerRow["points"]
 
-            print(f"\n\n{row.select('label')}\n\n")
-
             # Get the data from the points column
             points = row.select("label")
 
             # Check if the points are found if so set it
             if points:
-                points: str = points[pointsCol]
-                print(f"\n\n{points}, {pointsCol}, {headerRow}\n\n")
+                points = points[pointsCol]
                 # Check if the points are graded or not
                 if "-" in points.text:
                     print("\t\t[Notice] Grade Item has yet to be graded!")
@@ -226,6 +256,8 @@ class Grade:
 
             # Check if the grade is found if so set it
             if grade:
+                print(grade)
+                print(gradeCol)
                 grade: str = grade[gradeCol]
                 # Check if the grade is graded or not
                 if "-" in grade.text:

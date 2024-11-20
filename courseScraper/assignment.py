@@ -385,7 +385,7 @@ class Assignment:
             # Fill the grade object
             self.grade.fill(
                 row,
-                headerDict
+                headerDict.copy()
             )
 
             break

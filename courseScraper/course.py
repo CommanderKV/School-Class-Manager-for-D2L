@@ -297,18 +297,11 @@ class Course:
 
         # Get the grades
         for pos, row in enumerate(grades[0].select("tr:not(:first-child):not(.d_ggl1)")):
-            # Filter out any calculations
-            temp = row.select("th a")
-            if temp:
-                temp = temp[0].select("d2l-icon")
-                if temp:
-                    continue
-
             # Create a new grade object
             newGrade = Grade()
 
             # Fill the grade object with the row data
-            newGrade.fill(row, rowHeader)
+            newGrade.fill(row, rowHeader.copy())
 
             # Append the grade object to the list of grades
             self.grades.append(newGrade)
@@ -508,7 +501,7 @@ if __name__ == "__main__":
         if courses:
             value = random.randint(0, len(courses) - 1)
             print(f"RANDOM VALUE: {value}")
-            randomCourse = courses[value]
+            randomCourse = courses[value] # Server side ASP.NET = 5 # doc auto: 7
 
             newCourse = Course(baseURL=base)
             newCourse.fill(randomCourse, testPage)
