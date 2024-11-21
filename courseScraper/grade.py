@@ -86,7 +86,7 @@ class Grade:
 
         # Find and get the Grade value if any
         if not self._findGrade(row, headerRow) and self.pointsAchieved and self.pointsMax != 0:
-            self.grade = ((self.pointsAchieved / self.pointsMax) * 100) if self.pointsMax != 0 else 0
+            self.grade = ((self.pointsAchieved / self.pointsMax)*100) if self.pointsMax != 0 else 0
             self.grade = round(self.grade, 2)
 
         # Make a Unique ID for the grade
@@ -336,7 +336,7 @@ class Grade:
         if self.name == other.name:
             if self.weightAchieved == other.weightAchieved:
                 if self.weightMax == other.weightMax:
-                    if self.pointsAchieved == other.pointsAchived:
+                    if self.pointsAchieved == other.pointsAchieved:
                         if self.pointsMax == other.pointsMax:
                             if self.grade == other.grade:
                                 return True
