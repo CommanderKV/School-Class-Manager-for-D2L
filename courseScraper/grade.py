@@ -23,7 +23,7 @@ class Grade:
             The constructor for the Grade class.
         """
         self.name: str | None = None
-        self.pointsAchived: float | None = None
+        self.pointsAchieved: float | None = None
         self.pointsMax: float | None = None
         self.weightAchieved: float | None = None
         self.weightMax: float | None = None
@@ -31,7 +31,7 @@ class Grade:
         self.uid: int | None = None
         self.useTD: bool = False
 
-    def fill(self, row: BeautifulSoup, headerRow: dict[str, int]) -> None:
+    def fill(self, row: BeautifulSoup, headerRow: dict[str, int], url: str) -> None:
         """
         # Description:
             This function fills the grade object with the data from the row.
@@ -47,25 +47,25 @@ class Grade:
         """
 
         # Get the columns from the row
-        coloumns = row.select("th, td")
-        if coloumns:
-            cols = list(coloumns)
+        columns = row.select("th, td")
+        if columns:
+            cols = list(columns)
             # If theres an img tag in the columns
             if cols[0].select("td img"):
-                #print("\t[Notice] Removing the first coloumn containing the image")
+                #print("\t[Notice] Removing the first column containing the image")
                 cols.pop(0)
 
-            # get the headers and cloumns in a tuple list
+            # get the headers and columns in a tuple list
             headersAndCols = list(zip(headerRow.keys(), cols))
 
-            # Go throguh the headers associated with the columns
+            # Go through the headers associated with the columns
             for header, col in headersAndCols:
                 if col:
-                    # Normailze the data so no special characters are in it
-                    noramlizedHeader = unicodedata.normalize("NFKD", col.text).strip()
+                    # Normalize the data so no special characters are in it
+                    normalizedHeader = unicodedata.normalize("NFKD", col.text).strip()
 
-                    # Check if normailized data exists
-                    if not noramlizedHeader:
+                    # Check if normalized data exists
+                    if not normalizedHeader:
                         # Make sure the items are in order after removing this item
                         for key in headerRow.keys():
                             if headerRow[key] > headerRow[header]:
@@ -85,12 +85,12 @@ class Grade:
         self._getWeight(row, headerRow)
 
         # Find and get the Grade value if any
-        if not self._findGrade(row, headerRow) and self.pointsAchived and self.pointsMax != 0:
-            self.grade = ((self.pointsAchived / self.pointsMax) * 100) if self.pointsMax != 0 else 0
+        if not self._findGrade(row, headerRow) and self.pointsAchieved and self.pointsMax != 0:
+            self.grade = ((self.pointsAchieved / self.pointsMax) * 100) if self.pointsMax != 0 else 0
             self.grade = round(self.grade, 2)
 
         # Make a Unique ID for the grade
-        self.makeUID()
+        self.makeUID(url)
 
 
     def _getName(self, row: BeautifulSoup) -> bool:
@@ -139,7 +139,7 @@ class Grade:
         """
         # Check if "Points" is in the header row
         if "points" in [col.lower() for col in headerRow.keys()]:
-            # Get the poisition of the points column
+            # Get the position of the points column
             pointsCol = headerRow["points"]
 
             # Get the data from the points column
@@ -155,7 +155,7 @@ class Grade:
 
                 # Get the points value
                 points: list[str] = points.text.split(" / ")
-                self.pointsAchived = float(points[0])
+                self.pointsAchieved = float(points[0])
                 self.pointsMax = float(points[1])
                 print("\t\t[Success] Found grade points!")
                 return True
@@ -192,7 +192,7 @@ class Grade:
             value = "weight achieved"
 
         if value is not None:
-            # Get the poisition of the weight column
+            # Get the position of the weight column
             weightCol: str = headerRow[value]
 
             # Get the data from the weight column
@@ -237,7 +237,7 @@ class Grade:
         """
         # Check if "Grade" is in the header row
         if "grade" in [col.lower() for col in headerRow.keys()]:
-            # Get the poisition of the grade column
+            # Get the position of the grade column
             gradeCol = headerRow["grade"]
 
             # Get the data from the grade column
@@ -264,10 +264,17 @@ class Grade:
         print("\t\t[Warning] Could not find grade column!")
         return False
 
-    def makeUID(self) -> None:
+    def makeUID(self, link: str) -> None:
         """
         # Description:
             This function makes a unique ID for the grade.
+            
+        ## Args:
+            - link (str): 
+                The link to the grade item.
+                
+        ## Returns:
+            None
         """
         # Make the name into a unique ID
         name = self.name.replace(" ", "_").lower()
@@ -275,8 +282,8 @@ class Grade:
         # Convert the name into numbers
         uid = sum([ord(char) for char in name]) # pylint: disable=consider-using-generator
 
-        # Add the current time to the unique ID
-        uid += time.time()
+        # Add the ending numbers of the link to the UID
+        uid += int(link.split("ou=")[1])
 
         # Make the unique ID
         self.uid = round(uid)
@@ -293,7 +300,7 @@ class Grade:
         return {
             "uid": self.uid,
             "name": self.name,
-            "pointsAchived": self.pointsAchived,
+            "pointsAchieved": self.pointsAchieved,
             "pointsMax": self.pointsMax,
             "weightAchieved": self.weightAchieved,
             "weightMax": self.weightMax,
@@ -329,7 +336,7 @@ class Grade:
         if self.name == other.name:
             if self.weightAchieved == other.weightAchieved:
                 if self.weightMax == other.weightMax:
-                    if self.pointsAchived == other.pointsAchived:
+                    if self.pointsAchieved == other.pointsAchived:
                         if self.pointsMax == other.pointsMax:
                             if self.grade == other.grade:
                                 return True

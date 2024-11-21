@@ -286,7 +286,7 @@ class Course:
             newGrade = Grade()
 
             # Fill the grade object with the row data
-            newGrade.fill(row, rowHeader.copy())
+            newGrade.fill(row, rowHeader.copy(), page.url)
 
             # Append the grade object to the list of grades
             self.grades.append(newGrade)
