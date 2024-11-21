@@ -6,7 +6,6 @@
     - Grade:
         This class will contain the information of a grade.
 """
-import time
 import unicodedata
 
 from bs4 import BeautifulSoup
