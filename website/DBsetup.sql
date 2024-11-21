@@ -93,12 +93,11 @@ CREATE TABLE AttachmentLinkToAssignment (
 
 CREATE TABLE Grades (
     gradeID INT AUTO_INCREMENT PRIMARY KEY,
-    userID INT NOT NULL,
+    uId INT NOT NULL,
     grade FLOAT,
     achieved FLOAT,
     max FLOAT,
-    weight FLOAT DEFAULT 1,
-    FOREIGN KEY (userID) REFERENCES Users(userID)
+    weight FLOAT DEFAULT 1
 ) AUTO_INCREMENT = 1;
 
 CREATE TABLE GradesLinkToAssignments (
@@ -108,6 +107,14 @@ CREATE TABLE GradesLinkToAssignments (
     FOREIGN KEY (gradeID) REFERENCES Grades(gradeID),
     FOREIGN KEY (assignmentID) REFERENCES Assignments(assignmentID)
 ) AUTO_INCREMENT = 1000;
+
+CREATE TABLE GradesLinkToClasses (
+    gradeLinkID INT AUTO_INCREMENT PRIMARY KEY,
+    gradeID INT NOT NULL,
+    classID INT NOT NULL,
+    FOREIGN KEY (gradeID) REFERENCES Grades(gradeID),
+    FOREIGN KEY (classID) REFERENCES Classes(classID)
+)
 
 
 SELECT
