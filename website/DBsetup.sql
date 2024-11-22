@@ -221,6 +221,7 @@ JOIN (
         JSON_ARRAYAGG(
             JSON_OBJECT(
                 'uid', Grades.uId,				-- Grade uid
+                'name', Grades.name,			-- Grade name (A, B, C etc)
                 'grade', Grades.grade,			-- Grade achieved (90%) etc
                 'achieved', Grades.achieved,	-- Grade points achieved
                 'max', Grades.max,				-- Grade points maximum
