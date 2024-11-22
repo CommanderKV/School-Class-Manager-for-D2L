@@ -585,15 +585,14 @@ function updateGrade({
     achieved=null, 
     max=null, 
     weight=null, 
-    assignmentID=null, 
     classID=null,
     uid=null,
     name=null
 }) {    
     // Check if the parameters are provided
-    if (!helper.checkParams([assignmentID, classID, uid], 2)) {
+    if (!helper.checkParams([classID, uid], 2)) {
         return new Promise((resolve, reject) => {
-            reject(`updateGrade: Invalid arguments provided: ${assignmentID}, ${classID}, ${uid}`);
+            reject(`updateGrade: Invalid arguments provided: ${classID}, ${uid}`);
         });
     }
 
@@ -612,21 +611,11 @@ function updateGrade({
             // Grade does not exist
             if (results.length == 0) {
                 // Insert the grade into the database
-                if (assignmentID != null) {
-                    query = `
-                    INSERT INTO Grades (grade, achieved, max, weight, uId, name) VALUES (?, ?, ?, ?, ?, ?);
-                    INSERT INTO GradesLinkToAssignments (gradeID, assignmentID) VALUES (LAST_INSERT_ID(), ?);
-                    `;
-                    queryParams = [grade, achieved, max, weight, uid, name, assignmentID];
-                } else if (classID != null) {
-                    query = `
-                    INSERT INTO Grades (grade, achieved, max, weight, uId, name) VALUES (?, ?, ?, ?, ?, ?);
-                    INSERT INTO GradesLinkToClasses (classID, gradeID) VALUES (? , LAST_INSERT_ID());
-                    `;
-                    queryParams = [grade, achieved, max, weight, uid, name, classID];
-                } else {
-                    reject("updateGrade: No assignment or class ID provided");
-                }
+                query = `
+                INSERT INTO Grades (grade, achieved, max, weight, uId, name) VALUES (?, ?, ?, ?, ?, ?);
+                INSERT INTO GradesLinkToClasses (classID, gradeID) VALUES (? , LAST_INSERT_ID());
+                `;
+                queryParams = [grade, achieved, max, weight, uid, name, classID];
 
                 connection.query(query, queryParams, (error, results, fields) => {
                     if (error) {
