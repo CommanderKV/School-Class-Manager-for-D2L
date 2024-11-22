@@ -11,7 +11,10 @@ const logsContainer = document.querySelector("#logs > ol");
 // Get the console header container
 const consoleHeader = document.getElementById("consoleHeader");
 
+// Define variables
 let updating = false;
+let eta = 3600000;
+let updatedETA = Math.floor(eta/1000);
 
 async function checkToken() {
     // Check if we have one already or need to get a new one
@@ -85,7 +88,7 @@ function updateLogs(log) {
     const logElement = document.createElement("li");
     logElement.innerText = log;
     const trimmedLog = log.trimStart();
-    if (trimmedLog.toUpperCase().startsWith("[NOTICE]")) {
+    if (trimmedLog.toUpperCase().startsWith("[NOTICE]") || trimmedLog.toUpperCase().startsWith("[WARNING]")) {
         logElement.classList.add("okay");
     } else if (trimmedLog.toUpperCase().startsWith("[ERROR]")) {
         logElement.classList.add("bad");
@@ -204,7 +207,6 @@ async function updateStatus(lastOutputLength) {
             let progress = consoleHeader.querySelector("#progressBar");
             progress.value = resultJson.progress;
             progress.max = resultJson.steps;
-            
 
             // Add the new logs to the logs container
             for (let i = lastOutputLength; i < resultJson.output.length; i++) {
@@ -232,6 +234,14 @@ async function updateStatus(lastOutputLength) {
         }
     }
 
+    // Check if the eta has changed
+    if (resultJson.ETA != eta) {
+        eta = resultJson.ETA;
+        updatedETA = Math.floor(eta / 1000);
+        consoleHeader.querySelector("#consoleETAValue").innerHTML = `${Math.floor(updatedETA/60)}:${updatedETA % 60 < 10 ? "0" : ""}${updatedETA % 60}`;
+    }
+
+    // Return the length of the output
     return resultJson.output.length;
 }
 
@@ -262,6 +272,7 @@ async function startUpdate() {
 
     // Enable the "updating in: #" message
     consoleHeader.querySelector("#consoleCountDown").classList.remove("hidden");
+    consoleHeader.querySelector("#consoleETA").classList.remove("hidden");
 
     // Start the loop
     let interval = setInterval(async () => {
@@ -273,6 +284,7 @@ async function startUpdate() {
                 updating = false;
                 clearInterval(interval);
                 consoleHeader.querySelector("#consoleCountDown").classList.add("hidden");
+                consoleHeader.querySelector("#consoleETA").classList.add("hidden");
                 
                 // Scroll to bottom of logs
                 logs.scrollTo(0, logs.scrollHeight);
@@ -283,6 +295,7 @@ async function startUpdate() {
             if (!lastOutputLength) {
                 clearInterval(interval);
                 consoleHeader.querySelector("#consoleCountDown").classList.add("hidden");
+                consoleHeader.querySelector("#consoleETA").classList.add("hidden");
                 
                 // Scroll to bottom of logs
                 logs.scrollTo(0, logs.scrollHeight);
@@ -295,6 +308,10 @@ async function startUpdate() {
         if (!exit) {
             loopCounter++;
             consoleHeader.querySelector("#consoleCountDown").innerHTML = `Updating in: ${(seconds - loopCounter) + 1}`;
+            
+            // Update the ETA
+            updatedETA -= 1
+            consoleHeader.querySelector("#consoleETAValue").innerHTML = `${Math.floor(updatedETA/60)}:${updatedETA % 60 < 10 ? "0" : ""}${updatedETA % 60}`;
         }
         logs.scrollTo(0, logs.scrollHeight);
     }, 1000);
