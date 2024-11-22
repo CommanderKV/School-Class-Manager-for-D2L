@@ -406,8 +406,8 @@ class Course:
                 "short": self.shortTerm,
                 "long": self.longTerm,
             },
-            "syllabus-url": self.syllabus,
-            "assignments-url": self.assignmentsURL,
+            "syllabusURL": self.syllabus,
+            "assignmentsURL": self.assignmentsURL,
             "assignments": _assignments,
             "grades": _grades
         }

@@ -106,9 +106,9 @@ class Submissions:
                     if str(cells[0]).find("<label>") != -1:
                         # Check if we have a current submission
                         if currentSubmission:
-                            if len(currentSubmission["FILES"]) < 1:
+                            if len(currentSubmission["files"]) < 1:
                                 print(f"\t\t\t\t[bold]Link: {page.url}")
-                                currentSubmission["FILES"] = None
+                                currentSubmission["files"] = None
 
                             # Add the current submission to the list of submissions
                             self.submissions.append(currentSubmission)
@@ -116,7 +116,7 @@ class Submissions:
                         # Get the ID of the submission
                         idRaw = Regex.search(r">(\d+)<", str(cells[0]))
                         if idRaw:
-                            currentSubmission["ID"] = int(idRaw.group(1))
+                            currentSubmission["id"] = int(idRaw.group(1))
                         else:
                             raise ValueError(
                                 f"ID not in row of the submissions table. Link: {page.url}"
@@ -124,10 +124,10 @@ class Submissions:
 
                         # Get the files submitted
                         fileDetails = self._getFileDetails(str(cells[1]))
-                        currentSubmission["FILES"] = [fileDetails] if fileDetails else []
+                        currentSubmission["files"] = [fileDetails] if fileDetails else []
 
                         # Set default value for the comment
-                        currentSubmission["COMMENT"] = None
+                        currentSubmission["comment"] = None
 
                         # Get the date submitted
                         date = Regex.search(r"<label>(.+)</label>", str(cells[2]))
@@ -136,25 +136,29 @@ class Submissions:
                             dueDateProcessed: str = date.group(1).strip()
 
                             # Set the due date
-                            currentSubmission["DATE"] = convertTime(dueDateProcessed)
+                            currentSubmission["date"] = convertTime(dueDateProcessed)
 
                     # If the submission is not the start of a new submission
                     else:
                         # Get the files submitted
-                        currentSubmission["FILES"].append(
+                        currentSubmission["files"].append(
                             self._getFileDetails(str(cells[1]))
                         )
 
                     # Get the comments if any
                     comment = self._getComment(str(cells[1]))
                     if comment:
-                        currentSubmission["COMMENT"] = comment
+                        currentSubmission["comment"] = comment
 
                 else:
                     # Raise an error if there are no cells in the row
                     raise ValueError(
                         f"No cells found in row of the submissions table. Link: {page.url}"
                     )
+
+            if len(currentSubmission["files"]) <= 0:
+                currentSubmission["files"] = None
+
             self.submissions.append(currentSubmission)
 
         else:
