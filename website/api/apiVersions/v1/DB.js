@@ -587,7 +587,8 @@ function updateGrade({
     weight=null, 
     assignmentID=null, 
     classID=null,
-    uid=null
+    uid=null,
+    name=null
 }) {    
     // Check if the parameters are provided
     if (!helper.checkParams([assignmentID, classID, uid], 2)) {
@@ -613,16 +614,16 @@ function updateGrade({
                 // Insert the grade into the database
                 if (assignmentID != null) {
                     query = `
-                    INSERT INTO Grades (grade, achieved, max, weight, uId) VALUES (?, ?, ?, ?, ?);
+                    INSERT INTO Grades (grade, achieved, max, weight, uId, name) VALUES (?, ?, ?, ?, ?, ?);
                     INSERT INTO GradesLinkToAssignments (gradeID, assignmentID) VALUES (LAST_INSERT_ID(), ?);
                     `;
-                    queryParams = [grade, achieved, max, weight, uid, assignmentID];
+                    queryParams = [grade, achieved, max, weight, uid, name, assignmentID];
                 } else if (classID != null) {
                     query = `
-                    INSERT INTO Grades (grade, achieved, max, weight, uId) VALUES (?, ?, ?, ?, ?);
+                    INSERT INTO Grades (grade, achieved, max, weight, uId, name) VALUES (?, ?, ?, ?, ?, ?);
                     INSERT INTO GradesLinkToClasses (classID, gradeID) VALUES (? , LAST_INSERT_ID());
                     `;
-                    queryParams = [grade, achieved, max, weight, uid, classID];
+                    queryParams = [grade, achieved, max, weight, uid, name, classID];
                 } else {
                     reject("updateGrade: No assignment or class ID provided");
                 }

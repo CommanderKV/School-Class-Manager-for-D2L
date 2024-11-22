@@ -245,6 +245,7 @@ async function updateDatabase(courses, userID) {
                 // Update the grade
                 await DB.updateGrade({
                     classID: courseId,
+                    name: grade.name ? grade.name : null,
                     grade: grade.grade ? grade.grade : null,
                     achieved: grade.pointsAchieved ? grade.pointsAchieved : null,
                     max: grade.pointsMax ? grade.pointsMax : null,

@@ -43,6 +43,7 @@ CREATE TABLE Classes (
 CREATE TABLE Grades (
     gradeID INT AUTO_INCREMENT PRIMARY KEY,
     uId INT NOT NULL,
+    name VARCHAR(50) NOT NULL,
     grade FLOAT,
     achieved FLOAT,
     max FLOAT,
