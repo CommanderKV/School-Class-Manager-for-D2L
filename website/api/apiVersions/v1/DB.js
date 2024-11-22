@@ -103,15 +103,24 @@ function updateCourse(course, userID) {
     return new Promise((resolve, reject) => {
         // Check that the parameters are given
         if (!helper.checkParams([[course, userID]])) {
-            console.log(`updateCourse: No arguments provided. ${course}, ${userID}`);
-            reject(`updateCourse: No arguments provided. ${course}, ${userID}`);
+            console.log(`updateCourse: No arguments provided. ${course != null ? course.name : null}, ${userID}`);
+            reject(`updateCourse: No arguments provided. ${course != null ? course.name : null}, ${userID}`);
             return;
         }
 
         // Course does not exist
-        getClass({ userID: userID, courseCode: course.CODE, link: course.LINK, name: course.NAME})
+        getClass({userID: userID, courseCode: course.code, link: course.link, name: course.name})
         .then((data) => {
             if (data.length === 0) {
+                // Check for terms
+                if (course.terms == null) {
+                    shortTerm = null;
+                    longTerm = null;
+                } else {
+                    shortTerm = course.terms.short;
+                    longTerm = course.terms.long;
+                }
+
                 // Make the query
                 let [query, queryParams] = helper.makeQuery(
                     `INSERT INTO Classes `,
@@ -121,8 +130,10 @@ function updateCourse(course, userID) {
                         course.link, 
                         course.name, 
                         course.code, 
-                        course.terms.short, 
-                        course.terms.long
+                        shortTerm, 
+                        longTerm,
+                        course.syllabusURL,
+                        course.assignmentsURL
                     ],
                     [
                         "userID",
@@ -131,7 +142,9 @@ function updateCourse(course, userID) {
                         "name",
                         "courseCode",
                         "termShort",
-                        "termLong"
+                        "termLong",
+                        "syllabusURL",
+                        "assignmentsURL"
                     ],
                     ", ",
                     `);`,
@@ -156,21 +169,21 @@ function updateCourse(course, userID) {
 
                 // Check if an update is needed
                 if (
-                    data.closed != course.CLOSED || 
-                    data.link != course.LINK || 
-                    data.name != course.NAME || 
-                    data.termShort != course.TERMS.SHORT || 
-                    data.termLong != course.TERMS.LONG
+                    data.closed != course.closed || 
+                    data.link != course.link || 
+                    data.name != course.name || 
+                    data.termShort != course.terms.short || 
+                    data.termLong != course.terms.long
                 ) {
                     // Update the course
                     let [query, queryParams] = helper.makeQuery(
                         `UPDATE Courses SET `,
                         [
-                            course.CLOSED,
-                            course.LINK,
-                            course.NAME,
-                            course.TERMS.SHORT,
-                            course.TERMS.LONG
+                            course.closed,
+                            course.link,
+                            course.name,
+                            course.terms.short,
+                            course.terms.long
                         ],
                         [
                             "closed",
@@ -209,7 +222,7 @@ function updateAssignment({
     name=null,
     due=null,
     instructions=null,
-    grade=null,
+    gradeUID=null,
     courseID=null,
     submissionURL=null
     }) {
@@ -221,7 +234,7 @@ function updateAssignment({
             name, 
             due, 
             instructions, 
-            grade,
+            gradeUID,
             courseID, 
             submissionURL,
         ])) {
@@ -241,7 +254,7 @@ function updateAssignment({
             dueDate: due, 
             instructions: instructions,
             submissionURL: submissionURL, 
-            classID: courseID,
+            classID: courseID
         }).then((data) => {
             // Assignment does not exist
             if (data == null || data.length === 0) {
@@ -255,7 +268,8 @@ function updateAssignment({
                         name,
                         due,
                         instructions,
-                        courseID
+                        courseID,
+                        gradeUID
                     ],
                     [
                         "link",
@@ -265,6 +279,7 @@ function updateAssignment({
                         "dueDate",
                         "instructions",
                         "classID",
+                        "gradeUID"
                     ],
                     ", ",
                     ");",
@@ -276,26 +291,10 @@ function updateAssignment({
                     // Something went wrong while adding the assignment
                     if (error) {
                         reject(`An error occurred while adding the assignment.\n\t[QUERY] "${query}" ${error} ${queryParams}`);
-                    
-                    // Assignment was added successfully
-                    } else {
-                        if (grade != null) {
-                            // Insert the grade
-                            updateGrade({ 
-                                grade: grade.grade,
-                                achieved: grade.pointsAchieved,
-                                max: grade.pointsMax,
-                                weight: grade.weightMax, 
-                                assignmentID: results.insertId, 
-                                uId: grade.uid
-                            }).catch((error) => {
-                                reject(`An error occurred while adding the grade. ${error}`);
-                            });
-                        }
-
-                        // Return the assignment ID
-                        resolve(results.insertId);
                     }
+
+                    // Return the assignment ID
+                    resolve(results.insertId);
                 });
 
             // Assignment does exist
@@ -341,25 +340,10 @@ function updateAssignment({
                             resolve(data.assignmentID);
                         }
                     });
-                } else {
-                    resolve(data.assignmentID);
                 }
 
-                if (
-                    grade.uId != null
-                ) {
-                    // Check if the grade needs to be updated
-                    updateGrade({ 
-                        grade: grade.grade,
-                        achieved: grade.pointsAchieved,
-                        max: grade.pointsMax,
-                        weight: grade.weightMax, 
-                        assignmentID: results.insertId, 
-                        uId: grade.uid
-                    }).catch((error) => {
-                        reject(`An error occurred while adding the grade. ${error}`);
-                    });
-                }
+                // Return the assignment ID
+                resolve(data.assignmentID);
             }
         })
         .catch((error) => {
@@ -377,40 +361,18 @@ function updateAttachment({
     name=null
 }) {
     // Both IDS cannot be null
-    if (!helper.checkParams([attachmentID, assignmentID, submissionID])) {
+    if (!helper.checkParams([attachmentID, assignmentID, submissionID], 1)) {
         return new Promise((resolve, reject) => {
             reject(`updateAttachment: No assignment or submission ID provided`);
+        });
+    } else if (link == null && size == null && name == null) {
+        return new Promise((resolve, reject) => {
+            reject(`updateAttachment: No arguments provided. ${link}, ${size}, ${name}`);
         });
     }
 
     // Update the attachment
     return new Promise((resolve, reject) => {
-        // Check if the result is a promise and convert it to the result
-        if (attachmentID instanceof Promise) {
-            attachmentID.then((resolvedID) => {
-                attachmentID = resolvedID;
-            }).catch((error) => {
-                reject(`An error occurred while resolving the attachmentID promise. ${error}`);
-                return;
-            });
-        }
-        if (assignmentID instanceof Promise) {
-            assignmentID.then((resolvedID) => {
-                assignmentID = resolvedID;
-            }).catch((error) => {
-                reject(`An error occurred while resolving the assignmentID promise. ${error}`);
-                return;
-            });
-        }
-        if (submissionID instanceof Promise) {
-            submissionID.then((resolvedID) => {
-                submissionID = resolvedID;
-            }).catch((error) => {
-                reject(`An error occurred while resolving the submissionID promise. ${error}`);
-                return;
-            });
-        }
-    
         // Make the query
         let [query, queryParams] = helper.makeQuery(
             `SELECT * FROM Attachments WHERE `,
@@ -534,7 +496,7 @@ function updateSubmission({
 
         if (submissionID == null && assignmentID == null) {
             console.log(`updateSubmission: No submission or assignment ID provided`);
-            reject("updateSubmission: No submission or assignment ID provided");
+            reject("updateSubmission: No submission ID or assignment ID provided");
 
         }
 
@@ -628,9 +590,9 @@ function updateGrade({
     uid=null
 }) {    
     // Check if the parameters are provided
-    if (!helper.checkParams([grade, assignmentID, classID], 3)) {
+    if (!helper.checkParams([assignmentID, classID, uid], 2)) {
         return new Promise((resolve, reject) => {
-            reject(`updateGrade: No arguments provided. ${grade}, ${assignmentID}, ${classID}`);
+            reject(`updateGrade: Invalid arguments provided: ${assignmentID}, ${classID}, ${uid}`);
         });
     }
 
@@ -644,7 +606,6 @@ function updateGrade({
             if (error) {
                 console.log(`An error occurred while getting the grade: ${error}, ${error.stack}, Query: ${query}, Params: ${queryParams}`);
                 reject(`An error occurred while getting the grade. ${error}`);
-                return;
             }
 
             // Grade does not exist
@@ -659,16 +620,19 @@ function updateGrade({
                 } else if (classID != null) {
                     query = `
                     INSERT INTO Grades (grade, achieved, max, weight, uId) VALUES (?, ?, ?, ?, ?);
-                    INSERT INTO GradesLIinkToClasses (classID, gradeID) VALUES (? , LAST_INSERT_ID());
+                    INSERT INTO GradesLinkToClasses (classID, gradeID) VALUES (? , LAST_INSERT_ID());
                     `;
                     queryParams = [grade, achieved, max, weight, uid, classID];
+                } else {
+                    reject("updateGrade: No assignment or class ID provided");
                 }
+
                 connection.query(query, queryParams, (error, results, fields) => {
                     if (error) {
-                        console.log(`An error occurred while adding the grade. ${error}, ${error.stack}, Query: ${query}, Params: ${queryParams}`);
+                        console.log(`An error occurred while adding the grade. ${error}, Query: ${query}, Params: ${queryParams} Values: ${grade}, ${achieved}, ${max}, ${weight}, ${uid}, ${assignmentID}`);
                         reject(`An error occurred while adding the grade. ${error}`);
-                        return;
                     }
+                    resolve(true);
                 });
 
             // Grade does exist
@@ -696,7 +660,6 @@ function updateGrade({
                     connection.query(query, queryParams, (error, results, fields) => {
                         if (error) {
                             reject(`An error occurred while updating the grade. ${error}`);
-                            return;
                         }
                         resolve(true);
                     });
@@ -1100,6 +1063,8 @@ SELECT
     Classes.link AS classLink,          -- Class link
     Classes.termShort,                  -- Class termShort
     Classes.closed,                     -- Class closed
+    Classes.assignmentsURL,				-- Class assignment URL
+    Classes.syllabusURL,				-- Class syllabus URL
     JSON_ARRAYAGG(
         JSON_OBJECT(
             'name', Assignments.name,                               -- Assignment name
@@ -1110,16 +1075,14 @@ SELECT
             'submissions', AssignmentSubmissions.submissionsJSON,   -- Assignment submissions
             'feedback', AssignmentsFeedback.feedbackJSON,           -- Assignment feedback
             'submissionURL', Assignments.submissionURL,             -- Assignment submissionURL
-            'grade', Grades.grade,
-            'achieved', Grades.achieved,
-            'max', Grades.max,
-            'weight', Grades.weight
+            'gradeUID', Assignments.gradeUID			            -- Uid for the grade of assignment
         )
-    ) AS assignments
+    ) AS assignments,
+    classGrades.classGrades
 FROM Classes                                                        -- Get the classes details
 JOIN Assignments ON Classes.classID = Assignments.classID           -- Get the assignments details
-LEFT JOIN GradesLinkToAssignments ON Assignments.assignmentID = GradesLinkToAssignments.assignmentID
-LEFT JOIN Grades ON GradesLinkToAssignments.gradeID = Grades.gradeID
+LEFT JOIN GradesLinkToClasses ON GradesLinkToClasses.classID = Classes.classID
+LEFT JOIN Grades ON Grades.gradeID = GradesLinkToClasses.gradeID
 LEFT JOIN (                                                         -- Get the assignments attachments
     SELECT 
         Assignments.assignmentID,           -- Assignment ID
@@ -1177,8 +1140,33 @@ LEFT JOIN (                                                                     
     JOIN Assignments ON Submissions.assignmentID = Assignments.assignmentID                 -- Get the assignments details
     GROUP BY Assignments.assignmentID                                                       -- Group by assignment ID  
 ) AS AssignmentsFeedback ON AssignmentsFeedback.assignmentID = Assignments.assignmentID     -- Assign the feedback to AssignmentsFeedback
+JOIN (
+    SELECT
+        Classes.classID,
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'uid', Grades.uId,				-- Grade uid
+                'grade', Grades.grade,			-- Grade achieved (90%) etc
+                'achieved', Grades.achieved,	-- Grade points achieved
+                'max', Grades.max,				-- Grade points maximum
+                'weight', Grades.weight			-- Grade weight maximum
+            )
+        ) AS classGrades
+    FROM Grades
+    LEFT JOIN GradesLinkToClasses ON GradesLinkToClasses.gradeID = Grades.gradeID
+    LEFT JOIN Classes ON GradesLinkToClasses.classID = Classes.classID
+    GROUP BY Classes.classID
+) AS classGrades ON Classes.classID = classGrades.classID
 WHERE Classes.userID = ?
-GROUP BY Classes.classID;                                                  -- Group by class ID and ClassGrade.grade
+GROUP BY 
+    Classes.classID,
+    Classes.name,
+    Classes.courseCode,
+    Classes.link,
+    Classes.termShort,
+    Classes.closed,
+    Classes.assignmentsURL,
+    Classes.syllabusURL;
 `;
 
         // Execute the query
@@ -1254,6 +1242,7 @@ function saveUserSettings(userID, data) {
 module.exports = {
     connect,
     isConnected,
+    updateGrade,
     updateCourse,
     updateAssignment,
     updateAttachment,

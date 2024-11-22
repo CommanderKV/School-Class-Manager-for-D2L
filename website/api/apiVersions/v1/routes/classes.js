@@ -32,6 +32,9 @@ async function runScript(args, apiKey) {
     return new Promise((resolve, reject) => {
         // Define vars
         let buffer = "";
+        let startTime = new Date();
+        let endTime = new Date();
+        let times = [];
             
         // Run the script
         pythonProcess = child_process.spawn("python3", args);
@@ -62,7 +65,22 @@ async function runScript(args, apiKey) {
                 } else if(line.startsWith("[Success]") && line.includes(" loaded!")) {
                     // Update progress tracker
                     progressTracker[apiKey].progress += 1;
-                }
+                    
+                    // Update the times array
+                    endTime = new Date();
+                    times.push(endTime - startTime);
+                    startTime = new Date();
+
+                    // Update the estimated time of completion
+                    let averageTime = 0;
+                    times.forEach((time) => {
+                        averageTime += time;
+                    });
+                    averageTime = averageTime / times.length;
+
+                    // Update the progress tracker
+                    progressTracker[apiKey].ETA = averageTime * (progressTracker[apiKey].steps - progressTracker[apiKey].progress);
+                } 
 
                 // Add the line to the output
                 progressTracker[apiKey].output.push(line);
@@ -113,10 +131,10 @@ async function runScript(args, apiKey) {
 }
 
 async function updateDatabase(courses, userID) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         for (course of courses) {
             // Update the course
-            let courseId = DB.updateCourse(course, userID).then((courseID) => {
+            let courseId = await DB.updateCourse(course, userID).then((courseID) => {
                 return courseID;
             }).catch((err) => {
                 reject(err);
@@ -129,16 +147,23 @@ async function updateDatabase(courses, userID) {
 
             // Update the assignments
             for (assignment of course.assignments) {
+                // Get the submission URL
+                if (assignment.submissions == null) {
+                    submissionURL = null;
+                } else {
+                    submissionURL = assignment.submissions.url;
+                }
+
                 // Update the assignment
-                let assignmentID = DB.updateAssignment({
+                let assignmentID = await DB.updateAssignment({
                     link: assignment.link,
                     uid: assignment.uid,
                     name: assignment.name,
                     due: assignment.due,
                     instructions: assignment.instructions,
-                    grade: assignment.grade,
+                    gradeUID: assignment.grade ? assignment.grade.uid : null,
                     courseID: courseId,
-                    submissionURL: assignment.submissionURL
+                    submissionURL: submissionURL
                 }).then((assignmentID) => {
                     return assignmentID;
                 }).catch((err) => {
@@ -152,8 +177,11 @@ async function updateDatabase(courses, userID) {
 
                 // Update the attachments
                 for (attachment of assignment.attachments) {
+                    if (attachment.link == null) {
+                        continue;
+                    }
                     // Update the attachment
-                    DB.updateAttachment({
+                    await DB.updateAttachment({
                         assignmentID: assignmentID,
                         link: attachment.link,
                         name: attachment.name,
@@ -166,28 +194,36 @@ async function updateDatabase(courses, userID) {
                 // Make sure there are submissions to add/update
                 if (assignment.submissions == null) {
                     continue;
+                } else if (assignment.submissions.submissions == null) {
+                    continue;
                 }
 
                 // Update the submissions
-                for (submission of assignment.submissions) {
+                for (submission of assignment.submissions.submissions) {
                     // Update the submission
-                    DB.updateSubmission({
+                    let submissionID = await DB.updateSubmission({
                         assignmentID: assignmentID,
-                        d2lSubmissionID: submission.d2lSubmissionID,
+                        d2lSubmissionID: submission.id,
                         comment: submission.comment,
                         date: submission.date
-
                     }).then((submissionID) => {
                         return submissionID;
                     }).catch((err) => {
                         reject(err);
                     });
 
+                    // Make sure there are attachments to add/update
+                    if (submission.files == null) {
+                        continue;
+                    }
                     
                     // Update the attachments
-                    for (attachment of submission.attachments) {
+                    for (attachment of submission.files) {
+                        if (attachment.link == null) {
+                            continue;
+                        }
                         // Update the attachment
-                        DB.updateAttachment({
+                        await DB.updateAttachment({
                             submissionID: submissionID,
                             link: attachment.link,
                             name: attachment.name,
@@ -207,128 +243,135 @@ async function updateDatabase(courses, userID) {
             // Update the grades
             for (grade of course.grades) {
                 // Update the grade
-                DB.updateGrade({
-                    classID: classID,
-                    grade: grade.grade,
-                    achieved: grade.achieved,
-                    max: grade.max,
-                    weight: grade.weight,
+                await DB.updateGrade({
+                    classID: courseId,
+                    grade: grade.grade ? grade.grade : null,
+                    achieved: grade.pointsAchieved ? grade.pointsAchieved : null,
+                    max: grade.pointsMax ? grade.pointsMax : null,
+                    weight: grade.weightMax ? grade.weightMax : null,
                     uid: grade.uid
                 }).catch((err) => {
                     reject(err);
                 });
             }
         }
+
+        // Resolve the promise
+        resolve();
     });
 }
 
 async function updateUserData(userID, apiKey, name) {
-    // Update the progress tracker
-    progressTracker[apiKey] = {
-        "status": "initializing",
-        "progress": 1,
-        "steps": 5,
-        "output": [
-            "Initializing..."
-        ],
-        "error": ""
-    };
+    return new Promise(async (resolve, reject) => {
+        // Update the progress tracker
+        progressTracker[apiKey] = {
+            "status": "initializing",
+            "progress": 1,
+            "steps": 5,
+            "output": [
+                "Initializing..."
+            ],
+            "error": "",
+            "ETA": 3600000
+        };
 
-    /////////////////////////////////
-    // Get the user and their data //
-    /////////////////////////////////
+        /////////////////////////////////
+        // Get the user and their data //
+        /////////////////////////////////
 
-    // Get the user
-    let user = await DB.getUser({ apiKey: apiKey }).then((user) => {
-        // Check to see how many users were found
-        if (user.length == 1) {
-            return user[0];
-        } else if (user.length == 0) {
-            throw new Error(`No user associated with apiKey: ${apiKey}`);
-        } else {
-            throw new Error("Multiple users found while getting user");
+        // Get the user
+        let user = await DB.getUser({ apiKey: apiKey }).then((user) => {
+            // Check to see how many users were found
+            if (user.length == 1) {
+                return user[0];
+            } else if (user.length == 0) {
+                reject(`No user associated with apiKey: ${apiKey}`);
+            } else {
+                reject("Multiple users found while getting user");
+            }
+
+        }).catch((err) => {
+            // Log any errors to the console and throw a new error
+            console.log(`Get user error: ${err}`);
+            if (err.message.indexOf("ECONNRESET") > -1) {
+                reject("Connection issue with database while getting user");
+            }
+        });
+
+        // Get users login information
+        if (user.d2lEmail == null || user.d2lPassword == null) {
+            reject(`User missing login information ${user.d2lEmail} | ${user.d2lPassword} | ${user.d2lLink} | ${user.username}`);
         }
-    }).catch((err) => {
-        // Log any errors to the console and throw a new error
-        console.log(err);
-        if (err.message.indexOf("ECONNRESET") > -1) {
-            throw new Error("Connection issue with database while getting user");
+
+        // Update progress tracker
+        progressTracker[apiKey].status = "Getting user data";
+        progressTracker[apiKey].progress += 1;
+        progressTracker[apiKey].output.push("Obtained user data");
+
+        ////////////////////
+        // Run the script //
+        ////////////////////
+        // Setup the unique course path and scripts path
+        const scriptPath = "../../courseScraper/main.py";
+        const coursePath = __dirname+`/${apiKey}.json`;
+
+        // Setup args
+        let args = [
+            scriptPath, 
+            user.d2lEmail, 
+            security.decrypt(user.d2lPassword), 
+            coursePath,
+            user.d2lLink
+        ];
+
+        // Run the script with the args
+        await runScript(args, apiKey).catch((err) => {
+            reject(err); 
+        });
+
+        /////////////////////////
+        // Update the database //
+        /////////////////////////
+        // Update the progress tracker
+        progressTracker[apiKey].status = "Updating database";
+        progressTracker[apiKey].progress += 1;
+        progressTracker[apiKey].output.push("Updating database");
+
+        // Get the json data
+        let jsonData;
+        let courses = null;
+
+        // Read from the file
+        jsonData = fs.readFileSync(coursePath, "utf-8");
+        courses = JSON.parse(jsonData);
+        
+        // Check if the courses were found
+        if (courses == null || courses == undefined) {
+            reject("No courses found in JSON file");
         }
+
+        // Update the database
+        await updateDatabase(courses, userID).catch((err) => {
+            reject(err);
+        });
+
+        // Update the progress tracker
+        progressTracker[apiKey].status = "Completed";
+        progressTracker[apiKey].progress += 1;
+        progressTracker[apiKey].output.push("Completed");
+        console.log(`Update completed for ${name}`);
+
+        // Clear the progress tracker after 5 minutes
+        setTimeout(() => {
+            // Remove the tracker
+            delete progressTracker[apiKey];
+
+            // Remove the file
+            if (fs.existsSync(coursePath)) {
+                fs.unlinkSync(coursePath);
+            }
+        }, timeToRemoveProgressTracker/2);
     });
-
-    // Get users login information
-    if (user.d2lEmail == null || user.d2lPassword == null) {
-        throw new Error("User missing login information");
-    }
-
-    // Update progress tracker
-    progressTracker[apiKey].status = "Getting user data";
-    progressTracker[apiKey].progress += 1;
-    progressTracker[apiKey].output.push("Obtained user data");
-
-    ////////////////////
-    // Run the script //
-    ////////////////////
-    // Setup the unique course path
-    const coursePath = __dirname+`\\${apiKey}.json`;
-
-    // Setup args
-    let args = [
-        scriptPath, 
-        user.d2lEmail, 
-        security.decrypt(user.d2lPassword), 
-        coursePath,
-        user.d2lLink
-    ];
-
-    // Run the script with the args
-    runScript(args, apiKey).catch((err) => {
-       throw new Error(err); 
-    });
-
-    /////////////////////////
-    // Update the database //
-    /////////////////////////
-    // Update the progress tracker
-    progressTracker[apiKey].status = "Updating database";
-    progressTracker[apiKey].progress += 1;
-    progressTracker[apiKey].output.push("Updating database");
-
-    // Get the json data
-    let jsonData;
-    let courses = null;
-
-    // Read from the file
-    jsonData = fs.readFileSync(coursePath, "utf-8");
-    courses = JSON.parse(jsonData);
-    
-    // Check if the courses were found
-    if (courses == null || courses == undefined) {
-        throw new Error("No courses found in JSON file");
-    }
-
-    // Update the database
-    updateDatabase(courses).catch((err) => {
-        throw new Error(err);
-    });
-
-    // Update the progress tracker
-    progressTracker[apiKey].status = "Completed";
-    progressTracker[apiKey].progress += 1;
-    progressTracker[apiKey].output.push("Completed");
-    console.log(`Update completed for ${name}`);
-
-    // Clear the progress tracker after 5 minutes
-    setTimeout(() => {
-        // Remove the tracker
-        delete progressTracker[apiKey];
-
-        // Remove the file
-        if (fs.existsSync(coursePath)) {
-            fs.unlinkSync(coursePath);
-        }
-    }, timeToRemoveProgressTracker/2);
-
 }
 
 async function runUpdate(userID, apiKey, userNameInput) {
@@ -800,15 +843,13 @@ router.post("/update", (req, res, next) => {
     console.log(`Starting update of classes for ${data.data.username}`);
 
     // Run the update function 
-    try {
-        updateUserData(data.data.userID, data.data.apiKey, data.data.username);
-    } catch (err) {
+    updateUserData(data.data.userID, data.data.apiKey, data.data.username).catch((err) => {
         progressTracker[data.data.apiKey].status = "Failed";
         progressTracker[data.data.apiKey].output.push(err);
         progressTracker[data.data.apiKey].error = `Update: ${err}`;
         console.log(`Update: ${err}`);
         console.log(err.stack);
-    }
+    });
 
     /*
     runUpdate(
