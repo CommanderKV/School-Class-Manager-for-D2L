@@ -43,7 +43,7 @@ CREATE TABLE Classes (
 CREATE TABLE Grades (
     gradeID INT AUTO_INCREMENT PRIMARY KEY,
     uId INT NOT NULL,
-    name VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     grade FLOAT,
     achieved FLOAT,
     max FLOAT,
@@ -156,9 +156,7 @@ SELECT
     ) AS assignments,
     classGrades.classGrades
 FROM Classes                                                        -- Get the classes details
-JOIN Assignments ON Classes.classID = Assignments.classID           -- Get the assignments details
-LEFT JOIN GradesLinkToClasses ON GradesLinkToClasses.classID = Classes.classID
-LEFT JOIN Grades ON Grades.gradeID = GradesLinkToClasses.gradeID
+LEFT JOIN Assignments ON Classes.classID = Assignments.classID      -- Get the assignments details
 LEFT JOIN (                                                         -- Get the assignments attachments
     SELECT 
         Assignments.assignmentID,           -- Assignment ID
@@ -216,7 +214,7 @@ LEFT JOIN (                                                                     
     JOIN Assignments ON Submissions.assignmentID = Assignments.assignmentID                 -- Get the assignments details
     GROUP BY Assignments.assignmentID                                                       -- Group by assignment ID  
 ) AS AssignmentsFeedback ON AssignmentsFeedback.assignmentID = Assignments.assignmentID     -- Assign the feedback to AssignmentsFeedback
-JOIN (
+LEFT JOIN (
     SELECT
         Classes.classID,
         JSON_ARRAYAGG(
@@ -234,7 +232,7 @@ JOIN (
     LEFT JOIN Classes ON GradesLinkToClasses.classID = Classes.classID
     GROUP BY Classes.classID
 ) AS classGrades ON Classes.classID = classGrades.classID
-WHERE Classes.userID = 1000
+WHERE Classes.userID = 1000 -- ?
 GROUP BY 
     Classes.classID,
     Classes.name,
@@ -243,74 +241,7 @@ GROUP BY
     Classes.termShort,
     Classes.closed,
     Classes.assignmentsURL,
-    Classes.syllabusURL; -- ?
-
-
-
-
-
-
-
-
-SELECT 
-    Classes.classID,
-    Classes.closed,
-    Classes.link,
-    Classes.name,
-    Classes.courseCode,
-    Classes.termShort,
-    Classes.termLong,
     Classes.syllabusURL,
-    Classes.assignmentsURL
-    -- Assignments
-        -- Name
-        -- Link
-        -- DueDate
-        -- Instructions
-        -- Attachments
-            -- Link
-            -- Size
-            -- Name
-        -- Submissions
-            -- d2lSubmissionID
-            -- Comment
-            -- Date
-            -- Attachments
-                -- Link
-                -- Size
-                -- Name
-        -- Feedback
-            -- HTML
-            -- Date
-        -- SubmissionURL
-        -- GradeUid
-    -- Grades
-        -- Grade
-        -- Weight
-        -- Achieved
-        -- Max
-        -- uid
-FROM Classes
-WHERE Classes.userID = 1000;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    classGrades.classGrades;
 
 

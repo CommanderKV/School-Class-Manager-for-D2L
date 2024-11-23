@@ -619,7 +619,8 @@ function updateGrade({
 
                 connection.query(query, queryParams, (error, results, fields) => {
                     if (error) {
-                        console.log(`An error occurred while adding the grade. ${error}, Query: ${query}, Params: ${queryParams} Values: ${grade}, ${achieved}, ${max}, ${weight}, ${uid}, ${assignmentID}`);
+                        console.log(`An error occurred while adding the grade. ${error}, Query: ${query}, Params: ${queryParams}`);
+                        console.log(`Values: Grade:${grade}, Achieved: ${achieved}, Max: ${max}, Weight: ${weight}, UID: ${uid}, Name: ${name}, ClassID: ${classID}`);
                         reject(`An error occurred while adding the grade. ${error}`);
                     }
                     resolve(true);
@@ -1070,9 +1071,7 @@ SELECT
     ) AS assignments,
     classGrades.classGrades
 FROM Classes                                                        -- Get the classes details
-JOIN Assignments ON Classes.classID = Assignments.classID           -- Get the assignments details
-LEFT JOIN GradesLinkToClasses ON GradesLinkToClasses.classID = Classes.classID
-LEFT JOIN Grades ON Grades.gradeID = GradesLinkToClasses.gradeID
+LEFT JOIN Assignments ON Classes.classID = Assignments.classID      -- Get the assignments details
 LEFT JOIN (                                                         -- Get the assignments attachments
     SELECT 
         Assignments.assignmentID,           -- Assignment ID
@@ -1130,7 +1129,7 @@ LEFT JOIN (                                                                     
     JOIN Assignments ON Submissions.assignmentID = Assignments.assignmentID                 -- Get the assignments details
     GROUP BY Assignments.assignmentID                                                       -- Group by assignment ID  
 ) AS AssignmentsFeedback ON AssignmentsFeedback.assignmentID = Assignments.assignmentID     -- Assign the feedback to AssignmentsFeedback
-JOIN (
+LEFT JOIN (
     SELECT
         Classes.classID,
         JSON_ARRAYAGG(
@@ -1157,7 +1156,8 @@ GROUP BY
     Classes.termShort,
     Classes.closed,
     Classes.assignmentsURL,
-    Classes.syllabusURL;
+    Classes.syllabusURL,
+    classGrades.classGrades;
 `;
 
         // Execute the query
@@ -1166,7 +1166,7 @@ GROUP BY
                 reject(`An error occurred while getting the data. ${error}`);
                 return;
             }
-            resolve(results[0]);
+            resolve(results);
         });
     });
 }
