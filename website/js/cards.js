@@ -350,9 +350,7 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
         gradeValue = null;
 
     } else {
-        let gradeValue = grade.toString();
-        gradeValue = gradeValue * 100;
-        gradeValue = Math.round(gradeValue * 100) / 100;
+        let gradeValue = Math.round(grade * 100) / 100;
 
         // Check for the grade
         if (gradeValue) {
@@ -649,6 +647,9 @@ function createGradeCard(classData, overallGrade) {
 
     // Add the grades
     for (var i = 0; i < classData.assignments.length; i++) {
+        if (classData.assignments[i].name == null) {
+            continue;
+        }
         // Create the list
         const gradeItem = document.createElement("li");
         gradeList.appendChild(gradeItem);
@@ -670,8 +671,15 @@ function createGradeCard(classData, overallGrade) {
         gradeDiv.appendChild(assignmentName);
 
         // Create the grade value
-        if (classData.assignments[i].grade != null) {
-            let grade = Math.round(classData.assignments[i].grade * 100);
+        let grade = null;
+        if (classData.classGrades != null) {
+            grade = classData.classGrades.find(grade => grade.uid == classData.assignments[i].gradeUID);
+            if (grade != null) {
+                grade = Math.round(grade.grade * 100) / 100;
+            }
+        }
+
+        if (grade != null) {
             const assignmentGrade = document.createElement("span");
             assignmentGrade.innerText = grade + "%";
             gradeDiv.appendChild(assignmentGrade);
@@ -685,7 +693,7 @@ function createGradeCard(classData, overallGrade) {
                 assignmentGrade.classList.add("bad");
             }
             
-        } else if (classData.assignments[i].grade == null) {
+        } else if (grade == null) {
             const assignmentGrade = document.createElement("span");
             assignmentGrade.innerText = "No grade";
             assignmentGrade.classList.add("okay");
@@ -1029,11 +1037,25 @@ async function addCards(container) {
             for (let i = 0; i < data.length; i++) {
                 // Go through the assignments
                 for (let j = 0; j < data[i].assignments.length; j++) {
+                    if (data[i].assignments[j].name == null) {
+                        continue;
+                    }
+                    // Get the grade
+                    let grade = null;
+                    if (data[i].classGrades != null) {
+                        grade = data[i].classGrades.find(grade => grade.uid == data[i].assignments[j].gradeUID);
+                        if (grade == null) {
+                            console.log(`No grade found. gradeUID: ${data[i].assignments[j].gradeUID}`);
+                        } else {
+                            grade = grade.grade;
+                        }
+                    }
+
                     // Create the card
                     assignmentCards.push(createAssignmentCard(
                         data[i].assignments[j].name,
                         data[i].assignments[j].dueDate,
-                        data[i].assignments[j].grade,
+                        grade,
                         data[i].className,
                         data[i].courseCode,
                         data[i].assignments[j].instructions,
@@ -1060,21 +1082,28 @@ async function addCards(container) {
                 // Calculate the overall grade
                 let overallGrade = 0;
                 let totalWeight = 0;
-                for (let j = 0; j < data[i].classGrades.length; j++) {
-                    if (data[i].classGrades[j].grade) {
-                        weight = data[i].classGrades[j].weight ? data[i].classGrades[j].weight : 1;
-                        overallGrade += data[i].classGrades[j].grade * weight;
-                        totalWeight += weight;
+                if (data[i].classGrades != null) {
+                    for (let j = 0; j < data[i].classGrades.length; j++) {
+                        if (data[i].classGrades[j].grade) {
+                            if (data[i].classGrades[j].weight == null) {
+                                data[i].classGrades[j].weight = 1;
+                            }
+                            overallGrade += data[i].classGrades[j].grade * data[i].classGrades[j].weight;
+                            totalWeight += data[i].classGrades[j].weight;
+                        }
                     }
-                }
 
-                overallGrade = Math.round((overallGrade / totalWeight) * 100);
+                    overallGrade = Math.round(overallGrade / totalWeight);
+                } else {
+                    overallGrade = null;
+                }
 
                 cardHolder.appendChild(createGradeCard(data[i], overallGrade ? overallGrade : "N/A"));
             }
 
             // Remove loading animation
             document.getElementById("loadingAnimation").remove();
+            break;
 
         case "editGrades":
             // Create grade cards
@@ -1099,7 +1128,7 @@ async function addCards(container) {
             try{
                 document.getElementById("loadingAnimation").remove();
             } catch (error) {
-                pass;
+                console.error(error);
             }
     }
 }
