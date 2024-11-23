@@ -71,7 +71,7 @@ async function checkStatus(status) {
 
 
 // Create a card element for a course
-function createCourseCard(name, code, courseLink, overallGrade, term, closed, assignments) {
+function createCourseCard(name, code, courseLink, overallGrade, term, closed, assignments, grades) {
     function formatDateTime(dateTime) {
         const date = new Date(dateTime);
         const year = date.getFullYear();
@@ -199,6 +199,13 @@ function createCourseCard(name, code, courseLink, overallGrade, term, closed, as
 
     // Create the assignments
     for (var i = 0; i < assignments.length; i++) {
+        if (
+            assignments[i].name == null &&
+            assignments[i].dueDate == null
+        ) {
+            return card;
+        }
+
         // Create the container
         const assignment = document.createElement("li");
         assignmentList.appendChild(assignment);
@@ -227,8 +234,24 @@ function createCourseCard(name, code, courseLink, overallGrade, term, closed, as
         const assignmentDue = document.createElement("span");
         assignmentDue.innerText = "Due: " + formatDateTime(assignments[i].dueDate);
 
+        // Check if assignment has been graded
+        if (grades != null) {
+            grade = grades.find(grade => grade.uid == assignments[i].gradeUID);
+            if (grade != null) {
+                if (grade.grade != null) {
+                    grade = true;
+                } else {
+                    grade = false;
+                }
+            } else {
+                grade = false;
+            }
+        } else {
+            grade = false;
+        }
+
         // Add styling to the due date
-        if (assignments[i].submissions != null) {
+        if (assignments[i].submissions != null || grade) {
             assignmentDue.classList.add("good");
 
         } else if (new Date(assignments[i].dueDate) < new Date()) {
@@ -247,7 +270,6 @@ function createCourseCard(name, code, courseLink, overallGrade, term, closed, as
         
         assignmentDetails.appendChild(assignmentDue);
     }
-
     
     
     // Return the card
@@ -961,24 +983,32 @@ async function addCards(container) {
                 // Calculate the overall grade
                 let overallGrade = 0;
                 let totalWeight = 0;
-                for (let j = 0; j < data[i].assignments.length; j++) {
-                    if (data[i].assignments[j].grade) {
-                        overallGrade += data[i].assignments[j].grade * data[i].assignments[j].weight;
-                        totalWeight += data[i].assignments[j].weight;
+                if (data[i].classGrades != null) {
+                    for (let j = 0; j < data[i].classGrades.length; j++) {
+                        if (data[i].classGrades[j].grade) {
+                            if (data[i].classGrades[j].weight == null) {
+                                data[i].classGrades[j].weight = 1;
+                            }
+                            overallGrade += data[i].classGrades[j].grade * data[i].classGrades[j].weight;
+                            totalWeight += data[i].classGrades[j].weight;
+                        }
                     }
-                }
 
-                overallGrade = Math.round((overallGrade / totalWeight) * 100);
+                    overallGrade = Math.round(overallGrade / totalWeight);
+                } else {
+                    overallGrade = null;
+                }
 
                 // Create the card
                 courseCards.push(createCourseCard(
                     data[i].className,
                     data[i].courseCode,
                     data[i].classLink,
-                    data[i].overallGrade ? data[i].overallGrade : overallGrade ? overallGrade : "N/A",
+                    overallGrade ? overallGrade : "N/A",
                     data[i].termShort,
                     data[i].closed,
-                    data[i].assignments
+                    data[i].assignments,
+                    data[i].classGrades
                 ));
             }
 
@@ -1030,10 +1060,10 @@ async function addCards(container) {
                 // Calculate the overall grade
                 let overallGrade = 0;
                 let totalWeight = 0;
-                for (let j = 0; j < data[i].assignments.length; j++) {
-                    if (data[i].assignments[j].grade) {
-                        weight = data[i].assignments[j].weight ? data[i].assignments[j].weight : 1;
-                        overallGrade += data[i].assignments[j].grade * weight;
+                for (let j = 0; j < data[i].classGrades.length; j++) {
+                    if (data[i].classGrades[j].grade) {
+                        weight = data[i].classGrades[j].weight ? data[i].classGrades[j].weight : 1;
+                        overallGrade += data[i].classGrades[j].grade * weight;
                         totalWeight += weight;
                     }
                 }
