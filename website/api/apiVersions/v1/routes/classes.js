@@ -242,6 +242,10 @@ async function updateDatabase(courses, userID) {
 
             // Update the grades
             for (grade of course.grades) {
+                if (grade.name == null || grade.uid == null || courseId == null) {
+                    console.log(`Mishap adding grade. Name: ${grade.name} | UID: ${grade.uid} | ClassID: ${classID}`);
+                    continue;
+                } 
                 // Update the grade
                 await DB.updateGrade({
                     classID: courseId,
