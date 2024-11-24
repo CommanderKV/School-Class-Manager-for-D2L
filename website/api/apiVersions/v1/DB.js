@@ -489,7 +489,7 @@ function updateSubmission({
 }) {
     return new Promise((resolve, reject) => {
         // Check for parameters
-        if (!helper.checkParams([submissionID, assignmentID, comment, d2lSubmissionID, date])) {
+        if (!helper.checkParams([submissionID, assignmentID, d2lSubmissionID, date])) {
             console.log(`updateSubmission: No arguments provided ${submissionID}, ${assignmentID}, ${comment}, ${d2lSubmissionID}, ${date}`);
             reject(`updateSubmission: No arguments provided ${submissionID}, ${assignmentID}, ${comment}, ${d2lSubmissionID}, ${date}`);
         }
@@ -501,12 +501,14 @@ function updateSubmission({
         }
 
         // Check if submission exists already
-        let [query, queryParams] = helper.makeQuery(
-            `SELECT * FROM Submissions WHERE `,
-            [submissionID, assignmentID, comment, d2lSubmissionID, date],
-            ["submissionID", "assignmentID", "comment", "d2lSubmissionID", "date"],
-            " AND "
-        );
+        let query, queryParams;
+        if (submissionID == null) {
+            query = `SELECT * FROM Submissions WHERE assignmentID = ? AND d2lSubmissionID = ?;`;
+            queryParams = [assignmentID, d2lSubmissionID];
+        } else {
+            query = `SELECT * FROM Submissions WHERE submissionID = ?;`;
+            queryParams = [submissionID];
+        }
 
         connection.query(query, queryParams, (error, results, fields) => {
             if (error) {
@@ -517,14 +519,11 @@ function updateSubmission({
             // Submission does not exist
             if (results.length === 0) {
                 // Insert the submission into the database
-                let [query, queryParams] = helper.makeQuery(
-                    `INSERT INTO Submissions `,
-                    [assignmentID, comment, date, d2lSubmissionID],
-                    ["assignmentID", "comment", "date", "d2lSubmissionID"],
-                    ", ",
-                    ");",
-                    true
-                );
+                query = `
+                INSERT INTO Submissions (assignmentID, d2lSubmissionID, comment, date)
+                VALUES (?, ?, ?, ?);
+                `;
+                queryParams = [assignmentID, d2lSubmissionID, comment, date];
 
                 connection.query(query, queryParams, (error, results, fields) => {
                     if (error) {
@@ -541,24 +540,18 @@ function updateSubmission({
             } else {
                 // Check if an update is needed
                 if (
-                    results[0].d2lSubmissionID != d2lSubmissionID || 
                     results[0].comment != comment || 
                     results[0].date != date
                 ) {
                     // Update the submission
-                    let [query, queryParams] = helper.makeQuery(
-                        `UPDATE Submissions SET `,
-                        [
-                            assignmentID != results[0].assignmentID ? assignmentID : null, 
-                            comment != results[0].comment ? comment : null, 
-                            date != results[0].date ? date : null, 
-                            d2lSubmissionID != results[0].d2lSubmissionID ? d2lSubmissionID : null
-                        ],
-                        ["assignmentID", "comment", "date", "d2lSubmissionID"],
-                        ", ",
-                        " WHERE submissionID = ?;",
-                    );
-                    queryParams.push(results[0].submissionID);
+                    query = `
+                    UPDATE Submissions SET
+                        comment = ?,
+                        date = ?
+                    WHERE
+                        submissionID = ?;
+                    `;
+                    queryParams = [comment, date, results[0].submissionID];
 
                     connection.query(query, queryParams, (error, results2, fields) => {
                         if (error) {
@@ -587,18 +580,27 @@ function updateGrade({
     weight=null, 
     classID=null,
     uid=null,
-    name=null
+    name=null,
+    userID=null
 }) {    
     // Check if the parameters are provided
-    if (!helper.checkParams([classID, uid], 2)) {
+    if (!helper.checkParams([classID, userID, uid], 3)) {
         return new Promise((resolve, reject) => {
             reject(`updateGrade: Invalid arguments provided: ${classID}, ${uid}`);
         });
     }
 
     // Make the query
-    let query = `SELECT * FROM Grades WHERE Grades.uId = ?;`
-    let queryParams = [uid];
+    let query = `
+    SELECT * FROM Grades
+    LEFT JOIN GradesLinkToClasses ON Grades.gradeID = GradesLinkToClasses.gradeID
+    LEFT JOIN Classes ON Classes.classID = GradesLinkToClasses.classID
+    WHERE 
+        Classes.classID = ? AND 
+        Classes.userID = ? AND 
+        Grades.uId = ?;
+    `;
+    let queryParams = [classID, userID, uid];
 
     // Check if the grade exists
     return new Promise((resolve, reject) => {

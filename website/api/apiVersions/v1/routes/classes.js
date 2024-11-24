@@ -23,7 +23,7 @@ const security = require("../security");
 //   based off of the average time 
 //   it takes to load a course.
 let progressTracker = {};
-let timeToRemoveProgressTracker = 2 * 60 * 1000;
+let timeToRemoveProgressTracker = 10 * 60 * 1000;
 
 // ---------------------
 //   Utility functions
@@ -141,99 +141,98 @@ async function updateDatabase(courses, userID) {
             });
 
             // Make sure there are assignments to add/update
-            if (course.assignments == null) {
-                continue;
-            }
-
-            // Update the assignments
-            for (assignment of course.assignments) {
-                // Get the submission URL
-                if (assignment.submissions == null) {
-                    submissionURL = null;
-                } else {
-                    submissionURL = assignment.submissions.url;
-                }
-
-                // Update the assignment
-                let assignmentID = await DB.updateAssignment({
-                    link: assignment.link,
-                    uid: assignment.uid,
-                    name: assignment.name,
-                    due: assignment.due,
-                    instructions: assignment.instructions,
-                    gradeUID: assignment.grade ? assignment.grade.uid : null,
-                    courseID: courseId,
-                    submissionURL: submissionURL
-                }).then((assignmentID) => {
-                    return assignmentID;
-                }).catch((err) => {
-                    reject(err);
-                });
-
-                // Make sure there are attachments to add/update
-                if (assignment.attachments == null) {
-                    continue;
-                }
-
-                // Update the attachments
-                for (attachment of assignment.attachments) {
-                    if (attachment.link == null) {
-                        continue;
+            if (course.assignments != null) {
+                // Update the assignments
+                for (assignment of course.assignments) {
+                    // Get the submission URL
+                    if (assignment.submissions == null) {
+                        submissionURL = null;
+                    } else {
+                        submissionURL = assignment.submissions.url;
                     }
-                    // Update the attachment
-                    await DB.updateAttachment({
-                        assignmentID: assignmentID,
-                        link: attachment.link,
-                        name: attachment.name,
-                        size: attachment.size
-                    }).catch((err) => {
-                        reject(err);
-                    });
-                }
 
-                // Make sure there are submissions to add/update
-                if (assignment.submissions == null) {
-                    continue;
-                } else if (assignment.submissions.submissions == null) {
-                    continue;
-                }
-
-                // Update the submissions
-                for (submission of assignment.submissions.submissions) {
-                    // Update the submission
-                    let submissionID = await DB.updateSubmission({
-                        assignmentID: assignmentID,
-                        d2lSubmissionID: submission.id,
-                        comment: submission.comment,
-                        date: submission.date
-                    }).then((submissionID) => {
-                        return submissionID;
+                    // Update the assignment
+                    let assignmentID = await DB.updateAssignment({
+                        link: assignment.link,
+                        uid: assignment.uid,
+                        name: assignment.name,
+                        due: assignment.due,
+                        instructions: assignment.instructions,
+                        gradeUID: assignment.grade ? assignment.grade.uid : null,
+                        courseID: courseId,
+                        submissionURL: submissionURL
+                    }).then((assignmentID) => {
+                        return assignmentID;
                     }).catch((err) => {
                         reject(err);
                     });
 
                     // Make sure there are attachments to add/update
-                    if (submission.files == null) {
+                    if (assignment.attachments != null) {
+                        // Update the attachments
+                        for (attachment of assignment.attachments) {
+                            if (attachment.link == null) {
+                                continue;
+                            }
+                            // Update the attachment
+                            await DB.updateAttachment({
+                                assignmentID: assignmentID,
+                                link: attachment.link,
+                                name: attachment.name,
+                                size: attachment.size
+                            }).catch((err) => {
+                                reject(err);
+                            });
+                        }
+                    }
+
+                    
+
+                    // Make sure there are submissions to add/update
+                    if (assignment.submissions == null) {
+                        continue;
+                    } else if (assignment.submissions.submissions == null) {
                         continue;
                     }
-                    
-                    // Update the attachments
-                    for (attachment of submission.files) {
-                        if (attachment.link == null) {
-                            continue;
-                        }
-                        // Update the attachment
-                        await DB.updateAttachment({
-                            submissionID: submissionID,
-                            link: attachment.link,
-                            name: attachment.name,
-                            size: attachment.size
+
+                    // Update the submissions
+                    for (submission of assignment.submissions.submissions) {
+                        // Update the submission
+                        let submissionID = await DB.updateSubmission({
+                            assignmentID: assignmentID,
+                            d2lSubmissionID: submission.id,
+                            comment: submission.comment,
+                            date: submission.date
+                        }).then((submissionID) => {
+                            return submissionID;
                         }).catch((err) => {
                             reject(err);
                         });
+
+                        // Make sure there are attachments to add/update
+                        if (submission.files == null) {
+                            continue;
+                        }
+                        
+                        // Update the attachments
+                        for (attachment of submission.files) {
+                            if (attachment.link == null) {
+                                continue;
+                            }
+                            // Update the attachment
+                            await DB.updateAttachment({
+                                submissionID: submissionID,
+                                link: attachment.link,
+                                name: attachment.name,
+                                size: attachment.size
+                            }).catch((err) => {
+                                reject(err);
+                            });
+                        }
                     }
                 }
             }
+            
 
             // Make sure there are grades to add/update
             if (course.grades == null) {
@@ -246,15 +245,17 @@ async function updateDatabase(courses, userID) {
                     console.log(`Mishap adding grade. Name: ${grade.name} | UID: ${grade.uid} | ClassID: ${classID}`);
                     continue;
                 } 
+
                 // Update the grade
                 await DB.updateGrade({
                     classID: courseId,
-                    name: grade.name ? grade.name : null,
-                    grade: grade.grade ? grade.grade : null,
-                    achieved: grade.pointsAchieved ? grade.pointsAchieved : null,
-                    max: grade.pointsMax ? grade.pointsMax : null,
-                    weight: grade.weightMax ? grade.weightMax : null,
-                    uid: grade.uid
+                    name: grade.name,
+                    grade: grade.grade,
+                    achieved: grade.pointsAchieved,
+                    max: grade.pointsMax,
+                    weight: grade.weightMax,
+                    uid: grade.uid,
+                    userID: userID
                 }).catch((err) => {
                     reject(err);
                 });
