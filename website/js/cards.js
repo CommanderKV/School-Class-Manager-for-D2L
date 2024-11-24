@@ -645,19 +645,89 @@ function createGradeCard(classData, overallGrade) {
     gradeList.classList.add("card-body-list");
     body.appendChild(gradeList);
 
-    // Add the grades
+    // Get the assignments to add that have grades
+    var gradesToAdd = [];
     for (var i = 0; i < classData.assignments.length; i++) {
         if (classData.assignments[i].name == null) {
             continue;
         }
+
+        // Get the grade value
+        let grade = "No grade";
+        if (classData.classGrades != null) {
+            grade = classData.classGrades.find(grade => grade.uid == classData.assignments[i].gradeUID);
+            if (grade != null) {
+                if (grade.grade != null) {
+                    grade = Math.round(grade.grade * 100) / 100;
+                } else {
+                    grade = "No grade";
+                }
+            } else {
+                grade = "No grade";
+            }
+        }
+
+        // Add the data to the list
+        gradesToAdd.push([
+            classData.assignments[i].name, 
+            grade, 
+            classData.assignments[i].submissionURL ? classData.assignments[i].submissionURL : classData.assignments[i].link
+        ]);
+    }
+
+    // Get grades that don't have assignments
+    if (classData.classGrades != null) {
+        for (var i=0; i<classData.classGrades.length; i++) {
+            // Check if the grade is valid
+            if (classData.classGrades[i].uid == null) {
+                continue;
+            }
+
+            // Check if the grade has already been displayed
+            var skip = false;
+            for (var j=0; j<classData.assignments.length; j++) {
+                if (classData.assignments[j].gradeUID != null) {
+                    if (classData.assignments[j].gradeUID == classData.classGrades[i].uid) {
+                        skip = true;
+                    }
+                }
+            }
+
+            // If the grade has not been displayed yet add it to the list
+            if (!skip) {
+                gradesToAdd.push([
+                    classData.classGrades[i].name, 
+                    classData.classGrades[i].grade ? Math.round(classData.classGrades[i].grade * 100) / 100 : "No grade", 
+                    null
+                ]);
+            }
+        }
+    }
+
+    // Sort gradesToAdd by grade and then by name
+    gradesToAdd.sort((a, b) => {
+        if (a[1] === "No grade" && b[1] !== "No grade") return 1;
+        if (a[1] !== "No grade" && b[1] === "No grade") return -1;
+        if (a[1] !== "No grade" && b[1] !== "No grade") {
+            if (a[1] !== b[1]) return b[1] - a[1];
+        }
+        if (a[0] < b[0]) return -1;
+        if (a[0] > b[0]) return 1;
+        return 0;
+    });
+
+    // Add the grades
+    for (var i = 0; i < gradesToAdd.length; i++) {
         // Create the list
         const gradeItem = document.createElement("li");
         gradeList.appendChild(gradeItem);
 
-        let link = classData.assignments[i].submissionURL ? classData.assignments[i].submissionURL : classData.assignments[i].link;
-        gradeItem.addEventListener("click", () => {
-            window.open(link)
-        });
+        // Add an event listener to the list
+        if (gradesToAdd[i][2] != null) {
+            gradeItem.addEventListener("click", () => {
+                window.open(gradesToAdd[i][2]);
+            });
+        }
 
         // Create the grade div
         const gradeDiv = document.createElement("div");
@@ -666,44 +736,30 @@ function createGradeCard(classData, overallGrade) {
         gradeItem.appendChild(gradeDiv);
 
         // Create the grade name
-        const assignmentName = document.createElement("Label");
-        assignmentName.innerText = classData.assignments[i].name;
-        gradeDiv.appendChild(assignmentName);
+        const gradeName = document.createElement("Label");
+        gradeName.innerText = gradesToAdd[i][0];
+        gradeDiv.appendChild(gradeName);
 
         // Create the grade value
-        let grade = null;
-        if (classData.classGrades != null) {
-            grade = classData.classGrades.find(grade => grade.uid == classData.assignments[i].gradeUID);
-            if (grade != null) {
-                grade = Math.round(grade.grade * 100) / 100;
-            }
-        }
-
-        if (grade != null) {
-            const assignmentGrade = document.createElement("span");
-            assignmentGrade.innerText = grade + "%";
-            gradeDiv.appendChild(assignmentGrade);
-
-            // Change the color of the grade
-            if (grade >= 80) {
-                assignmentGrade.classList.add("good");
-            } else if (grade >= 70) {
-                assignmentGrade.classList.add("okay");
+        const gradeValue = document.createElement("span");
+        if (gradesToAdd[i][1] == "No grade") {
+            gradeValue.innerText = gradesToAdd[i][1];
+            gradeValue.classList.add("okay");
+        } else {
+            gradeValue.innerText = gradesToAdd[i][1] + "%";
+            if (gradesToAdd[i][1] >= 80) {
+                gradeValue.classList.add("good");
+            } else if (gradesToAdd[i][1] >= 70) {
+                gradeValue.classList.add("okay");
             } else {
-                assignmentGrade.classList.add("bad");
+                gradeValue.classList.add("bad");
             }
-            
-        } else if (grade == null) {
-            const assignmentGrade = document.createElement("span");
-            assignmentGrade.innerText = "No grade";
-            assignmentGrade.classList.add("okay");
-            gradeDiv.appendChild(assignmentGrade);
         }
+        gradeDiv.appendChild(gradeValue);
     }
-
+    
     // Return the card
     return card;
-    
 }
 
 // Create a form card element for editing grades
