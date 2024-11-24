@@ -40,3 +40,6 @@
   so hello world again. You will also get details like what ip its bound to and what
   port its listening to as well.
 
+  You will also need to change the domain names to use your own link as they are set to 
+  the domain I've set it to.
+
