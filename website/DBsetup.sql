@@ -118,11 +118,11 @@ SELECT * FROM Attachments;
 
 SELECT * FROM Assignments;
 
-SELECT * FROM Assignments WHERE classID = 1002;
+SELECT * FROM Assignments WHERE classID = 1001;
 
 SELECT * FROM Submissions;
 
-SELECT * FROM Grades;
+SELECT * FROM Grades WHERE uId = 156601;
 
 SELECT * FROM GradesLinkToAssignments;
 
@@ -131,6 +131,8 @@ SELECT * FROM GradesLinkToClasses;
 SELECT * FROM Users;
 
 SELECT LAST_INSERT_ID();
+
+
 
 
 SELECT
