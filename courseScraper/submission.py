@@ -211,9 +211,9 @@ class Submissions:
 
         # Return the file details
         return {
-            "LINK": link,
-            "NAME": name,
-            "SIZE": size
+            "link": link,
+            "name": name,
+            "size": size
         }
 
     def _getComment(self, cell: str) -> str | None:

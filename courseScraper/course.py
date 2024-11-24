@@ -486,8 +486,8 @@ if __name__ == "__main__":
             print(f"RANDOM VALUE: {value}")
             # Server side ASP.NET = 5
             # doc auto: 7
-            # reational databases = 16
-            randomCourse = courses[value]
+            # relational databases = 16
+            randomCourse = courses[2]
             newCourse = Course(baseURL=base)
             newCourse.fill(randomCourse, testPage)
 
