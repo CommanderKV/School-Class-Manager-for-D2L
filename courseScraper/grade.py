@@ -279,11 +279,11 @@ class Grade:
         name = self.name.replace(" ", "_").lower()
 
         # Convert the name into numbers
-        uid = sum([ord(char) for char in name]) # pylint: disable=consider-using-generator
+        uid = sum((ord(char) for char in name))
 
         # Add the ending numbers of the link to the UID
         # Convert the class name into numbers
-        uid += sum([ord(char) for char in courseName.replace(" ", "_")])
+        uid += sum((ord(char) for char in courseName.replace(" ", "_")))
 
         # Make the unique ID
         self.uid = round(uid)

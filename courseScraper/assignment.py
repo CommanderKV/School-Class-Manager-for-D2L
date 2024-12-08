@@ -145,8 +145,8 @@ class Assignment:
             ).first.inner_text()
 
             # Set the UID of the assignment
-            self.uid = sum([ord(char) for char in self.name.replace(" ", "_")])
-            self.uid += sum([ord(char) for char in courseName.replace(" ", "_")])
+            self.uid = sum((ord(char) for char in self.name.replace(" ", "_")))
+            self.uid += sum((ord(char) for char in courseName.replace(" ", "_")))
 
         except Exception as e:
             raise ValueError("Assignment name not found.") from e
