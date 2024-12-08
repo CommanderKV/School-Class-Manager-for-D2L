@@ -30,7 +30,7 @@ class Grade:
         self.uid: int | None = None
         self.useTD: bool = False
 
-    def fill(self, row: BeautifulSoup, headerRow: dict[str, int], url: str) -> None:
+    def fill(self, row: BeautifulSoup, headerRow: dict[str, int], courseName: str) -> None:
         """
         # Description:
             This function fills the grade object with the data from the row.
@@ -89,7 +89,7 @@ class Grade:
             self.grade = round(self.grade, 2)
 
         # Make a Unique ID for the grade
-        self.makeUID(url)
+        self.makeUID(courseName)
 
 
     def _getName(self, row: BeautifulSoup) -> bool:
@@ -263,14 +263,14 @@ class Grade:
         print("\t\t[Warning] Could not find grade column!")
         return False
 
-    def makeUID(self, link: str) -> None:
+    def makeUID(self, courseName: str) -> None:
         """
         # Description:
             This function makes a unique ID for the grade.
             
         ## Args:
-            - link (str): 
-                The link to the grade item.
+            - courseName (str): 
+                The name of the course.
                 
         ## Returns:
             None
@@ -282,7 +282,8 @@ class Grade:
         uid = sum([ord(char) for char in name]) # pylint: disable=consider-using-generator
 
         # Add the ending numbers of the link to the UID
-        uid += int(link.split("ou=")[1])
+        # Convert the class name into numbers
+        uid += sum([ord(char) for char in courseName.replace(" ", "_")])
 
         # Make the unique ID
         self.uid = round(uid)

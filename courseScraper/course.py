@@ -286,7 +286,7 @@ class Course:
             newGrade = Grade()
 
             # Fill the grade object with the row data
-            newGrade.fill(row, rowHeader.copy(), page.url)
+            newGrade.fill(row, rowHeader.copy(), self.name)
 
             # Append the grade object to the list of grades
             self.grades.append(newGrade)
@@ -328,7 +328,7 @@ class Course:
 
                 # Create a new assignment object
                 newAssignment: Assignment = Assignment(baseUrl=self.baseURL)
-                newAssignment.fill(assignment, page)
+                newAssignment.fill(assignment, page, self.name)
 
                 # Check if the assignment grade is in the grades we have already
                 for grade in self.grades:

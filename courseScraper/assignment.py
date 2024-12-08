@@ -54,7 +54,7 @@ class Assignment:
         self.feedback: dict[str, str|None] | None = None
 
 
-    def fill(self, assignment: Locator, page: Page) -> None: # pylint: disable=too-many-branches
+    def fill(self, assignment: Locator, page: Page, courseName: str) -> None: # pylint: disable=too-many-branches
         """
         # Description:
             Fills the assignment object with the information of the assignment
@@ -73,7 +73,7 @@ class Assignment:
 
         """
         # Get the assignment name
-        self._getName(assignment)
+        self._getName(assignment, courseName)
 
         # Output logs
         print(f"\t\t[Notice] Assignment: \"{self.name}\" loading...")
@@ -109,7 +109,7 @@ class Assignment:
             print("\t\t\t[Success] Obtained submissions!")
 
         # Get the grade
-        if self._getGrade(assignment) is None:
+        if self._getGrade(assignment, courseName) is None:
             print("\t\t\t[Notice] Grade not found!")
         else:
             print("\t\t\t[Success] Obtained grade!")
@@ -124,7 +124,7 @@ class Assignment:
         print(f"\t\t[Success] Assignment: \"{self.name}\" loaded!")
 
 
-    def _getName(self, assignment: Locator) -> str:
+    def _getName(self, assignment: Locator, courseName: str) -> str:
         """
         # Description:
             Sets the name of the assignment and returns it
@@ -132,6 +132,8 @@ class Assignment:
         ## Args:
             - assignment (Locator): 
                 The current assignment locator
+            - courseName (str):
+                The name of the course
 
         ## Returns:
             str: 
@@ -141,6 +143,11 @@ class Assignment:
             self.name: str = assignment.locator(
                 "a.d2l-link[title^='Submit'] strong, .d2l-foldername:nth-child(1) strong"
             ).first.inner_text()
+
+            # Set the UID of the assignment
+            self.uid = sum([ord(char) for char in self.name.replace(" ", "_")])
+            self.uid += sum([ord(char) for char in courseName.replace(" ", "_")])
+
         except Exception as e:
             raise ValueError("Assignment name not found.") from e
 
@@ -168,7 +175,6 @@ class Assignment:
         # Set the link
         if a:
             self.link = self.baseUrl + a[0]["href"]
-            self.uid = int(self.link.split("db=")[1].split("&")[0] + self.link.split("&ou=")[1])
         else:
             self.link = None
 
@@ -335,7 +341,7 @@ class Assignment:
         # Return the submissions
         return self.submissions
 
-    def _getGrade(self, assignment: Locator) -> str | None:
+    def _getGrade(self, assignment: Locator, courseName: str) -> str | None:
         """
         # Description:
             Gets the weight for the assignment
@@ -343,6 +349,8 @@ class Assignment:
         ## Args:
             - assignment (Locator): 
                 The current assignment locator
+            - courseName (str):
+                The name of the course
 
         ## Returns:
             str | None: 
@@ -386,7 +394,7 @@ class Assignment:
             self.grade.fill(
                 row,
                 headerDict.copy(),
-                assignment.page.url
+                courseName
             )
 
             break

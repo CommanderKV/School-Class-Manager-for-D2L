@@ -160,7 +160,8 @@ async function updateDatabase(courses, userID) {
                         instructions: assignment.instructions,
                         gradeUID: assignment.grade ? assignment.grade.uid : null,
                         courseID: courseId,
-                        submissionURL: submissionURL
+                        submissionURL: submissionURL,
+                        userID: userID
                     }).then((assignmentID) => {
                         return assignmentID;
                     }).catch((err) => {

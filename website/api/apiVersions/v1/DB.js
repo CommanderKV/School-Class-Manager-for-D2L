@@ -224,7 +224,8 @@ function updateAssignment({
     instructions=null,
     gradeUID=null,
     courseID=null,
-    submissionURL=null
+    submissionURL=null,
+    userID=null
     }) {
     return new Promise((resolve, reject) => {
         // Check that the parameters are given
@@ -254,7 +255,8 @@ function updateAssignment({
             dueDate: due, 
             instructions: instructions,
             submissionURL: submissionURL, 
-            classID: courseID
+            classID: courseID,
+            userID: userID
         }).then((data) => {
             // Assignment does not exist
             if (data == null || data.length === 0) {
@@ -858,7 +860,8 @@ function getAssignment({
     name=null, 
     dueDate=null, 
     instructions=null, 
-    grade=null 
+    grade=null,
+    userID=null
     }) {
     // Execute the query
     return new Promise((resolve, reject) => {
@@ -870,8 +873,14 @@ function getAssignment({
         // Create the query
         let query, queryParams;
         if (uid != null) {
-            query = "SELECT * FROM Assignments WHERE uid = ?;";
-            queryParams = [uid];
+            query = `SELECT * FROM Assignments
+                    LEFT JOIN Classes ON Classes.classID = Assignments.classID
+                    LEFT JOIN Users ON Classes.userID = Users.userID
+                    WHERE 
+	                    Assignments.uid = ? AND 
+	                    Assignments.classID = ? AND 
+                        Classes.userID = ?;`;
+            queryParams = [uid, classID, userID];
         } else {
             [query, queryParams] = helper.makeQuery(
                 `SELECT * FROM Assignments WHERE `,
