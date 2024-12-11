@@ -160,7 +160,6 @@ async function setValues() {
     checkToken();
     let data = await getUserData();
     data = data[0];
-    console.log(data);
 
     // Set the values for the user
     username.setAttribute("value", data.username ? data.username : "");
