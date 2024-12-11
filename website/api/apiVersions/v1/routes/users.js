@@ -57,8 +57,11 @@ router.post("/saveSettings", (req, res) => {
     // Get the userID
     const userID = data.data.userID;
 
+    const dataBody = req.body;
+    dataBody.d2lPassword = security.encrypt(dataBody.d2lPassword);
+
     // Check the type of save for the settings
-    DB.saveUserSettings(userID, data).then(() => {
+    DB.saveUserSettings(userID, dataBody).then(() => {
         res.status(200).json({ "message": "Settings saved" });
     }).catch((error) => {
         console.log(error);
