@@ -1208,7 +1208,7 @@ function saveUserSettings(userID, data) {
 
         // Create the query
         var query, queryParams;
-        if (data.username == null || data.password == null) {
+        if (data.username == null && data.password == null) {
             // D2L settings
             if (data.d2lPassword != null) {
                 query = `UPDATE Users SET d2lEmail = ?, d2lLink = ?, d2lPassword = ? WHERE userID = ?;`;
@@ -1234,7 +1234,6 @@ function saveUserSettings(userID, data) {
             if (error) {
                 console.log(`An error occurred while saving the user settings. ${error}`);
                 reject(`An error occurred while saving the user settings. ${error}`);
-                return;
             }
             resolve(results);
         });
