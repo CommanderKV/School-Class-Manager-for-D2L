@@ -301,14 +301,13 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
     header.classList.add("card-header");
     card.appendChild(header);
 
-    header.addEventListener("click", () => {
-        window.open(assignmentLink);
-    });
-
+    // If the assignment link is not null, add the event listener
     // Add the event listener to the card
-    header.addEventListener("click", () => {
-        window.open(assignmentLink);
-    });
+    if (assignmentLink != null) {
+        header.addEventListener("click", () => {
+            window.open(assignmentLink);
+        });
+    }
 
     // Create the label
     const label = document.createElement("label");
@@ -416,9 +415,14 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
         const instructionsDiv = document.createElement("div");
         instructionsDiv.classList.add("instructions");
         body.appendChild(instructionsDiv);
-        instructionsDiv.addEventListener("click", () => {
-            window.open(assignmentLink);
-        });
+
+        // Add the event listener to the instructions
+        // with the assignment link if its not null
+        if (assignmentLink != null) {
+            instructionsDiv.addEventListener("click", () => {
+                window.open(assignmentLink);
+            });
+        }
 
         // Create the instructions Label
         const instructionsLabel = document.createElement("label");
@@ -439,9 +443,13 @@ function createAssignmentCard(name, due, grade, className, courseCode, instructi
             attachmentsDiv.classList.add("attachments");
             body.appendChild(attachmentsDiv);
 
-            attachmentsDiv.addEventListener("click", () => {
-                window.open(assignmentLink);
-            });
+            // Add the event listener to the attachments
+            // with the assignment link if its not null
+            if (assignmentLink != null) {
+                attachmentsDiv.addEventListener("click", () => {
+                    window.open(assignmentLink);
+                });
+            }
 
             // Create the attachments label
             const attachmentsLabel = document.createElement("label");
@@ -1100,9 +1108,7 @@ async function addCards(container) {
                     let grade = null;
                     if (data[i].classGrades != null) {
                         grade = data[i].classGrades.find(grade => grade.uid == data[i].assignments[j].gradeUID);
-                        if (grade == null) {
-                            console.log(`No grade found. gradeUID: ${data[i].assignments[j].gradeUID}`);
-                        } else {
+                        if (grade != null) {
                             grade = grade.grade;
                         }
                     }
