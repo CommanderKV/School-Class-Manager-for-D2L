@@ -16,6 +16,7 @@ const helper = require("../helper");
 
 // Get the encryption module
 const security = require("../security");
+const { error } = require("console");
 
 
 // Features to add:
@@ -828,6 +829,7 @@ router.use((req, res, next) => {
     next();
 });
 
+// Update the users data
 router.post("/update", (req, res, next) => {
     // Get data out of token
     const token = req.headers.authorization.split(" ")[1];
@@ -872,6 +874,123 @@ router.post("/update", (req, res, next) => {
     });
     */
 });
+
+
+// Update grades that the user edits
+router.post("/editGrades", async (req, res, next) => {
+    // Get data out of token
+    const token = req.headers.authorization.split(" ")[1];
+    const data = helper.verifyToken(token);
+
+    if (progressTracker[data.data.apiKey]) {
+        res.status(409).json({
+            "status": "failed",
+            "message": "Update already in progress"
+        });
+        return;
+    }
+
+    // Get the userID
+    const userID = data.data.userID;
+
+    // Get the grades and className
+    const grades = req.body.grades;
+    const className = req.body.className;
+
+
+    // Check the data to see if the grades or the class name is not there
+    if (!grades || !className) {
+        res.status(400).json({
+            "status": "failed",
+            "message": "No grades found"
+        });
+        return;
+    }
+
+    // Check the grades to see if they are valid
+    for (var i=0; i<grades.length; i++) {
+        if (grades[i].grade === null || grades[i].grade === "") {
+            res.status(400).json({
+                "status": "failed",
+                "message": "Invalid grade data"
+            });
+            return;
+        
+        // Check if the gradUID is set. If not set one
+        } else if (!grades[i].uid) {
+            // Convert the name and class name to individual numbers
+            const nameAsNumber = grades[i].name.replace(" ", "_").split("").reduce(
+                (acc, char) => acc + char.charCodeAt(0), 
+                0
+            );
+            
+            const classNameAsNumber = className.replace(" ", "_").split("").reduce(
+                (acc, char) => acc + char.charCodeAt(0), 
+                0
+            );
+
+            // Set the uid
+            grades[i].uid = nameAsNumber + classNameAsNumber;
+
+            // Set a flag
+            grades[i].custom = true;
+        }
+    }
+
+    console.log("Updating grades for " + data.data.username + ". Updating class: " + className);
+    console.log(grades);
+
+    // Get the classID
+    var classID = await DB.getClass({userID: userID, name: className}).catch((err) => {
+        res.status(400).json({
+            "status": "failed",
+            "message": "Failed to get classID"
+        });
+    });
+    classID = classID[0].classID;
+
+    // Update the grades
+    var failed = 0;
+    var errors = [];
+    for (var i=0; i<grades.length; i++) {
+        if (grades[i].name == null || grades[i].name == "") {
+            failed++;
+            errors.push("No name found");
+            continue;
+        }
+        DB.updateGrade({
+            classID: classID,
+            name: grades[i].name,
+            grade: grades[i].grade,
+            achieved: grades[i].achieved,
+            max: grades[i].max,
+            weight: grades[i].weight,
+            uid: grades[i].uid,
+            userID: userID,
+            custom: grades[i].custom
+        }).catch((err) => {
+            failed++;
+            errors.push(err);
+            console.log(err);
+        });
+    }
+
+    // Send response
+    if (failed == 0 && errors.length == 0) {
+        res.status(200).json({
+            "status": "success",
+            "message": "Grades updated"
+        });
+    } else {
+        res.status(400).json({
+            "status": "failed",
+            "message": "Failed to update grades",
+            "errors": errors
+        });
+    }
+});
+
+
 
 router.get("/update", (req, res, next) => {
     // Get the token

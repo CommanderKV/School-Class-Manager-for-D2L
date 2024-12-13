@@ -583,12 +583,13 @@ function updateGrade({
     classID=null,
     uid=null,
     name=null,
-    userID=null
+    userID=null,
+    custom=false
 }) {    
     // Check if the parameters are provided
     if (!helper.checkParams([classID, userID, uid], 3)) {
         return new Promise((resolve, reject) => {
-            reject(`updateGrade: Invalid arguments provided: ${classID}, ${uid}`);
+            reject(`updateGrade: Invalid arguments provided: ${classID}, ${userID}, ${uid}`);
         });
     }
 
@@ -600,9 +601,10 @@ function updateGrade({
     WHERE 
         Classes.classID = ? AND 
         Classes.userID = ? AND 
-        Grades.uId = ?;
+        Grades.uId = ? AND
+        Grades.custom = ?;
     `;
-    let queryParams = [classID, userID, uid];
+    let queryParams = [classID, userID, uid, custom];
 
     // Check if the grade exists
     return new Promise((resolve, reject) => {
@@ -616,10 +618,10 @@ function updateGrade({
             if (results.length == 0) {
                 // Insert the grade into the database
                 query = `
-                INSERT INTO Grades (grade, achieved, max, weight, uId, name) VALUES (?, ?, ?, ?, ?, ?);
+                INSERT INTO Grades (grade, achieved, max, weight, uId, name, custom) VALUES (?, ?, ?, ?, ?, ?, ?);
                 INSERT INTO GradesLinkToClasses (classID, gradeID) VALUES (? , LAST_INSERT_ID());
                 `;
-                queryParams = [grade, achieved, max, weight, uid, name, classID];
+                queryParams = [grade, achieved, max, weight, uid, name, custom, classID];
 
                 connection.query(query, queryParams, (error, results, fields) => {
                     if (error) {
@@ -637,7 +639,8 @@ function updateGrade({
                     results[0].grade != grade ||
                     results[0].weight != weight ||
                     results[0].achieved != achieved ||
-                    results[0].max != max
+                    results[0].max != max ||
+                    results[0].name != name
                 ) {
                     let query = `
                     UPDATE Grades
@@ -645,11 +648,12 @@ function updateGrade({
                         Grades.grade = ?,
                         Grades.achieved = ?,
                         Grades.max = ?,
-                        Grades.weight = ?
+                        Grades.weight = ?,
+                        Grades.name = ?
                     WHERE
                         Grades.gradeID = ?;
                     `;
-                    let queryParams = [grade, achieved, max, weight, results[0].gradeID];
+                    let queryParams = [grade, achieved, max, weight, name, results[0].gradeID];
                     
                     // Update the grade
                     connection.query(query, queryParams, (error, results, fields) => {
@@ -1150,7 +1154,8 @@ LEFT JOIN (
                 'grade', Grades.grade,			-- Grade achieved (90%) etc
                 'achieved', Grades.achieved,	-- Grade points achieved
                 'max', Grades.max,				-- Grade points maximum
-                'weight', Grades.weight			-- Grade weight maximum
+                'weight', Grades.weight,		-- Grade weight maximum
+                'custom', Grades.custom         -- Grade custom
             )
         ) AS classGrades
     FROM Grades

@@ -770,6 +770,42 @@ function createGradeCard(classData, overallGrade) {
     return card;
 }
 
+// Update the overallGrade
+function updateOverallGrade(gradeList, courseGrade) {
+    // Update the overall grade using the grades that can be edited
+    let overallGrade = 0;
+    let totalWeight = 0;
+
+    for (let i = 0; i < gradeList.children.length - 2; i++) {
+        const element = gradeList.children[i + 1].children[0];
+        const grade = element.children[4] ? parseFloat(element.children[4].innerText.replace("%", "")) : 0;
+        const weight = element.children[3] ? parseFloat(element.children[3].value) : 1;
+    
+        if (!isNaN(grade)) {
+            overallGrade += grade * weight;
+            totalWeight += weight;
+        }
+    }
+    
+	// Check if we might be dividing by zero
+    if (totalWeight > 0) {
+        overallGrade = Math.round((overallGrade / 100) * 100) / 100;
+    } else {
+        overallGrade = 0;
+    }
+    
+    courseGrade.innerText = overallGrade + "%";
+
+    // Change the color of the grade
+    if (overallGrade >= 80) {
+        courseGrade.classList.add("good");
+    } else if (overallGrade >= 70) {
+        courseGrade.classList.add("okay");
+    } else {
+        courseGrade.classList.add("bad");
+    }
+}
+
 // Create a form card element for editing grades
 function createEditGradeCard(classData, overallGrade) {
     // Create the form container
@@ -803,9 +839,9 @@ function createEditGradeCard(classData, overallGrade) {
     headerDetails.appendChild(courseCode);
 
     // Create the course grade
+    const courseGrade = document.createElement("span");
+    courseGrade.classList.add("course-grade");
     if (overallGrade != null && overallGrade != "N/A") { 
-        const courseGrade = document.createElement("span");
-        courseGrade.classList.add("course-grade");
         courseGrade.innerText = overallGrade + "%";
 
         // Change the color of the grade
@@ -820,8 +856,6 @@ function createEditGradeCard(classData, overallGrade) {
         headerDetails.appendChild(courseGrade);
         
     } else {
-        const courseGrade = document.createElement("span");
-        courseGrade.classList.add("course-grade");
         courseGrade.innerText = "No grade";
         courseGrade.classList.add("okay");
         headerDetails.appendChild(courseGrade);
@@ -871,12 +905,154 @@ function createEditGradeCard(classData, overallGrade) {
     headersGrade.innerText = "Grade";
     headersDiv.appendChild(headersGrade);
 
-
     // Add the grades
-    for (var i = 0; i < classData.assignments.length; i++) {
-        // Create the list
+    if (classData.classGrades != null) {
+		// Sort the grades
+		var gradesToAdd = classData.classGrades;
+		gradesToAdd.sort((a, b) => {
+			if (a.grade === null && b.grade !== null) return 1;
+			if (a.grade !== null && b.grade === null) return -1;
+			if (a.grade !== null && b.grade !== null) {
+				if (a.grade !== b.grade) return b.grade - a.grade;
+			}
+			if (a.name < b.name) return -1;
+			if (a.name > b.name) return 1;
+			return 0;
+		});
+
+        for (var i = 0; i < gradesToAdd.length; i++) {
+            // Create the list
+            const gradeItem = document.createElement("li");
+            gradeList.appendChild(gradeItem);
+
+            // Create the grade div
+            const gradeDiv = document.createElement("div");
+            gradeDiv.classList.add("row");
+            gradeDiv.classList.add("grid");
+            gradeItem.appendChild(gradeDiv);
+
+            // Create the grade name
+            if (gradesToAdd[i].custom) {
+                const assignmentName = document.createElement("input");
+                assignmentName.type = "text";
+                assignmentName.placeholder = "Grade Name";
+                assignmentName.value = gradesToAdd[i].name;
+                gradeDiv.appendChild(assignmentName);
+            } else {
+                const assignmentName = document.createElement("Label");
+                assignmentName.innerText = gradesToAdd[i].name;
+                gradeDiv.appendChild(assignmentName);
+            }
+
+            // Create the achieved grade
+            const assignmentAchieved = document.createElement("input");
+            assignmentAchieved.type = "number";
+            assignmentAchieved.min = 0;
+            assignmentAchieved.max = gradesToAdd[i].max ? gradesToAdd[i].max : null;
+            assignmentAchieved.step = 0.01;
+			assignmentAchieved.value = gradesToAdd[i].achieved ? parseFloat(gradesToAdd[i].achieved.toFixed(2)) : 0;
+            gradeDiv.appendChild(assignmentAchieved);
+
+
+            // Create the max grade value
+            const assignmentMax = document.createElement("input");
+            assignmentMax.type = "number";
+            assignmentMax.min = 0;
+            assignmentMax.step = 0.01;
+            assignmentMax.value = gradesToAdd[i].max ? gradesToAdd[i].max : 100;
+            gradeDiv.appendChild(assignmentMax);
+        
+
+            // Create the weight value
+            const assignmentWeight = document.createElement("input");
+            assignmentWeight.type = "number";
+            assignmentWeight.min = 1;
+            assignmentWeight.step = 0.01;
+            assignmentWeight.value = gradesToAdd[i].weight ? parseFloat(gradesToAdd[i].weight.toFixed(2)) : 1;
+            gradeDiv.appendChild(assignmentWeight);
+
+            // Create the grade value
+            const assignmentGrade = document.createElement("span");
+            if (gradesToAdd[i].grade != null) {
+                let grade = Math.round(gradesToAdd[i].grade * 100) / 100;
+                assignmentGrade.innerText = `${grade}%`;
+
+                if (grade >= 80) {
+                    assignmentGrade.classList.add("good");
+                } else if (grade >= 70) {
+                    assignmentGrade.classList.add("okay");
+                } else {
+                    assignmentGrade.classList.add("bad");
+                }
+            } else {
+                assignmentGrade.innerText = "N/A";
+                assignmentGrade.classList.add("okay");
+            }
+            assignmentGrade.style = "text-align: center;";
+            gradeDiv.appendChild(assignmentGrade);
+
+            
+            // Add the event listener to the achieved
+            assignmentAchieved.addEventListener("input", () => {
+                // Update the grade value
+                assignmentGrade.innerText = Math.round((assignmentAchieved.value / assignmentMax.value) * 10000) / 100;
+                assignmentGrade.innerText += "%";
+
+                // Update the overall grade
+                updateOverallGrade(gradeList, courseGrade);
+            });
+
+            // Add the event listener to the max
+            assignmentMax.addEventListener("input", () => {
+                // Update the grade value
+                assignmentGrade.innerText = Math.round((assignmentAchieved.value / assignmentMax.value) * 10000) / 100;
+                assignmentGrade.innerText += "%";
+
+                // Update the overall grade
+                updateOverallGrade(gradeList, courseGrade);
+            });
+
+            // Add the event listener to the weight
+            assignmentWeight.addEventListener("input", () => {
+                // Update the overall grade
+                updateOverallGrade(gradeList, courseGrade);
+            });
+        }
+    }
+
+    // Create the container for the buttons
+    const buttonContainer = document.createElement("div");
+    buttonContainer.classList.add("button-container");
+    gradeList.appendChild(buttonContainer);
+
+    // Create the add grade button
+    const addGradeButton = document.createElement("div");
+    addGradeButton.classList.add("button");
+    addGradeButton.classList.add("button-secondary");
+    buttonContainer.appendChild(addGradeButton);
+
+    // Add the text to the button
+    const gradeButtonText = document.createElement("span");
+    gradeButtonText.innerText = "Add Grade";
+    addGradeButton.appendChild(gradeButtonText);
+
+    // Create the submit button
+    const submitButton = document.createElement("div");
+    submitButton.classList.add("button");
+    submitButton.classList.add("button-primary");
+    buttonContainer.appendChild(submitButton);
+
+    // Add the text to the button
+    const submitButtonText = document.createElement("span");
+    submitButtonText.innerText = "Submit";
+    submitButton.appendChild(submitButtonText);
+
+    // Add the event listener to the add grade button
+    customGrades = [];
+    addGradeButton.addEventListener("click", () => {
+        // Create the list item
         const gradeItem = document.createElement("li");
-        gradeList.appendChild(gradeItem);
+        gradeList.insertBefore(gradeItem, buttonContainer);
 
         // Create the grade div
         const gradeDiv = document.createElement("div");
@@ -885,61 +1061,42 @@ function createEditGradeCard(classData, overallGrade) {
         gradeItem.appendChild(gradeDiv);
 
         // Create the grade name
-        const assignmentName = document.createElement("Label");
-        assignmentName.innerText = classData.assignments[i].name;
+        const assignmentName = document.createElement("input");
+        assignmentName.type = "text";
+        assignmentName.placeholder = "Grade Name";
         gradeDiv.appendChild(assignmentName);
 
         // Create the achieved grade
         const assignmentAchieved = document.createElement("input");
         assignmentAchieved.type = "number";
         assignmentAchieved.min = 0;
-        assignmentAchieved.max = classData.assignments[i].max ? classData.assignments[i].max : null;
+        assignmentAchieved.max = 100;
         assignmentAchieved.step = 0.01;
-        if (classData.assignments[i].achieved != null) {
-            assignmentAchieved.value = classData.assignments[i].achieved;
-        } else if (classData.assignments[i].grade != null && classData.assignments[i].max != null) {
-            assignmentAchieved.value = (classData.assignments[i].grade / 100) * classData.assignments[i].max;
-        } else {
-            assignmentAchieved.value = -1;
-        }
+        assignmentAchieved.value = 0;
         gradeDiv.appendChild(assignmentAchieved);
-
 
         // Create the max grade value
         const assignmentMax = document.createElement("input");
         assignmentMax.type = "number";
         assignmentMax.min = 0;
         assignmentMax.step = 0.01;
-        assignmentMax.value = classData.assignments[i].max ? classData.assignments[i].max : 100;
+        assignmentMax.value = 100;
         gradeDiv.appendChild(assignmentMax);
-    
-
-        // Create the weight value
+        
+        // Create the Weight value
         const assignmentWeight = document.createElement("input");
-        assignmentWeight.value = classData.assignments[i].weight ? parseFloat(classData.assignments[i].weight.toFixed(2)) : 1;
+        assignmentWeight.type = "number";
+        assignmentWeight.min = 0;
+        assignmentWeight.step = 0.01;
+        assignmentWeight.value = 1;
         gradeDiv.appendChild(assignmentWeight);
 
         // Create the grade value
         const assignmentGrade = document.createElement("span");
-        if (classData.assignments[i].grade != null) {
-            let grade = Math.round(classData.assignments[i].grade * 100);
-            assignmentGrade.innerText = `${grade}%`;
-
-            if (grade >= 80) {
-                assignmentGrade.classList.add("good");
-            } else if (grade >= 70) {
-                assignmentGrade.classList.add("okay");
-            } else {
-                assignmentGrade.classList.add("bad");
-            }
-        } else {
-            assignmentGrade.innerText = "N/A";
-            assignmentGrade.classList.add("okay");
-        }
+        assignmentGrade.innerText = "N/A";
+        assignmentGrade.classList.add("okay");
         assignmentGrade.style = "text-align: center;";
         gradeDiv.appendChild(assignmentGrade);
-
-        
 
         // Add the event listener to the input
         assignmentGrade.addEventListener("input", () => {
@@ -949,20 +1106,169 @@ function createEditGradeCard(classData, overallGrade) {
             // Update the overall grade
             let overallGrade = 0;
             let totalWeight = 0;
-            for (let i = 0; i < classData.assignments.length; i++) {
-                if (classData.assignments[i].grade) {
-                    weight = classData.assignments[i].weight ? classData.assignments[i].weight : 1;
-                    overallGrade += classData.assignments[i].grade * weight;
-                    totalWeight += weight;
-                }
+            if (classData.classGrades != null) {
+                for (let i = 0; i < classData.classGrades.length; i++) {
+                    if (classData.classGrades[i].grade) {
+                        weight = classData.classGrades[i].weight ? classData.classGrades[i].weight : 1;
+                        overallGrade += classData.classGrades[i].grade * weight;
+                        totalWeight += weight;
+                    }
+                } 
+            } else {
+                overallGrade = assignmentAchieved.value * assignmentWeight.value;
+                totalWeight = assignmentWeight.value;
             }
 
             overallGrade = Math.round((overallGrade / totalWeight) * 100);
             courseGrade.innerText = overallGrade + "%";
         });
 
-    }
+		// Add the event listener to the achieved
+		assignmentAchieved.addEventListener("input", () => {
+			// Update the grade value
+			assignmentGrade.innerText = Math.round((assignmentAchieved.value / assignmentMax.value) * 10000) / 100;
+			assignmentGrade.innerText += "%";
 
+			// Update the overall grade
+			updateOverallGrade(gradeList, courseGrade);
+		});
+
+		// Add the event listener to the max
+		assignmentMax.addEventListener("input", () => {
+			// Update the grade value
+			assignmentGrade.innerText = Math.round((assignmentAchieved.value / assignmentMax.value) * 10000) / 100;
+			assignmentGrade.innerText += "%";
+
+			// Update the overall grade
+			updateOverallGrade(gradeList, courseGrade);
+		});
+
+		// Add the event listener to the weight
+		assignmentWeight.addEventListener("input", () => {
+			// Update the overall grade
+			updateOverallGrade(gradeList, courseGrade);
+		});
+
+        // Add the grade data to the customGrades array
+        customGrades.push(
+            {
+                "max": assignmentMax,
+                "uid": null,
+                "name": assignmentName,
+                "grade": assignmentGrade,
+                "weight": assignmentWeight,
+                "achieved": assignmentAchieved
+            }
+        )
+    });
+
+    // Add the event listener to the submit button
+    submitButton.addEventListener("click", async () => {
+        // Get the grade data
+        let gradeData = [];
+
+        // Go through the grades if there are any
+        if (classData.classGrades != null) {
+            for (var i=0; i<classData.classGrades.length; i++) {
+                // Get the element from the displayed list
+                var element = gradeList.children[i+1].children[0];
+                console.log(element);
+
+				// Check if anything has been changed and add it to the data
+				if (classData.classGrades[i].custom == false) {
+					if (parseFloat(element.children[1].value) !== classData.classGrades[i].achieved || 
+						parseFloat(element.children[2].value) !== classData.classGrades[i].max || 
+						parseFloat(element.children[3].value) !== classData.classGrades[i].weight ||
+						parseFloat(element.children[4].innerText.replace("%", "")) !== classData.classGrades[i].grade
+					) {
+						// Add the grade to the data
+						gradeData.push({
+							"uid": classData.classGrades[i].uid,
+							"grade": parseFloat(element.children[4].innerText.replace("%", "")),
+							"weight": element.children[3].value,
+							"achieved": element.children[1].value,
+							"max": element.children[2].value,
+							"name": classData.classGrades[i].name.value,
+							"custom": false
+						});
+						console.log("Not custom", gradeData);
+					}
+				} else {
+					if (
+						parseFloat(element.children[1].value) !== classData.classGrades[i].achieved || 
+						parseFloat(element.children[2].value) !== classData.classGrades[i].max || 
+						parseFloat(element.children[3].value) !== classData.classGrades[i].weight ||
+						parseFloat(element.children[4].innerText.replace("%", "")) !== classData.classGrades[i].grade ||
+						element.children[0].value !== classData.classGrades[i].name
+					) {
+						gradeData.push({
+							"uid": classData.classGrades[i].uid,
+							"grade": parseFloat(element.children[4].innerText.replace("%", "")),
+							"weight": parseFloat(element.children[3].value),
+							"achieved": parseFloat(element.children[1].value),
+							"max": parseFloat(element.children[2].value),
+							"name": element.children[0].value,
+							"custom": true
+						});
+						console.log("Custom grade", gradeData);
+					}
+                }
+            }
+        }
+		
+		// Add the custom grades to the data that were just added
+		for (var i=0; i<customGrades.length; i++) {
+			gradeData[i] = {
+				"uid": null,
+				"grade": parseFloat(customGrades[i].grade.innerText.replace("%", "")),
+				"weight": parseFloat(customGrades[i].weight.value),
+				"achieved": parseFloat(customGrades[i].achieved.value),
+				"max": parseFloat(customGrades[i].max.value),
+				"name": customGrades[i].name.value,
+				"custom": true
+			};
+			console.log("New grade", gradeData);
+		}
+        
+
+        if (gradeData.length == 0) {
+            alert("No grades have been changed");
+            return;
+        }
+
+        // Send data to the server
+        let response = await fetch("https://kyler.visserfamily.ca:3000/api/v1/classes/editGrades", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "authorization": `Bearer ${JSON.parse(sessionStorage.getItem("token")).token}`
+            },
+            body: JSON.stringify({
+                "className": classData.className,
+                "grades": gradeData
+            })
+        }).catch((error) => {
+            console.error(error);
+            return null;
+        });
+
+        // Check the status
+        if (response.status == 400) {
+            var data = await response.json();
+            if (Object.hasOwn(data, "errors")) {
+                for (var i=0; i<data.errors.length; i++) {
+                    console.error(data.errors[i].msg);
+                }
+            } else {
+                checkStatus(response.status);
+            }
+        } else if (response.status != 200) {
+            checkStatus(response.status);
+        }
+    });
+
+
+    // Return the new card
     return card;
 }
 
@@ -1173,16 +1479,23 @@ async function addCards(container) {
                 // Calculate the overall grade
                 let overallGrade = 0;
                 let totalWeight = 0;
-                for (let j = 0; j < data[i].assignments.length; j++) {
-                    if (data[i].assignments[j].grade) {
-                        weight = data[i].assignments[j].weight ? data[i].assignments[j].weight : 1;
-                        overallGrade += data[i].assignments[j].grade * weight;
-                        totalWeight += weight;
+                if (data[i].classGrades != null) {
+                    for (let j = 0; j < data[i].classGrades.length; j++) {
+                        if (data[i].classGrades[j].grade != null && data[i].classGrades[j].grade >= 0) {
+                            if (data[i].classGrades[j].weight == null) {
+                                data[i].classGrades[j].weight = 1;
+                            }
+                            overallGrade += data[i].classGrades[j].grade * data[i].classGrades[j].weight;
+                            totalWeight += data[i].classGrades[j].weight;
+                        }
                     }
+
+                    overallGrade = Math.round(overallGrade / totalWeight);
+                } else {
+                    overallGrade = null;
                 }
 
-                overallGrade = Math.round((overallGrade / totalWeight) * 100);
-
+                // Add the cars
                 cardHolder.appendChild(createEditGradeCard(data[i], overallGrade ? overallGrade : "N/A"));
             }
 
