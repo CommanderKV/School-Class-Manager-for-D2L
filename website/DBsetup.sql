@@ -47,7 +47,8 @@ CREATE TABLE Grades (
     grade FLOAT,
     achieved FLOAT,
     max FLOAT,
-    weight FLOAT DEFAULT 1
+    weight FLOAT DEFAULT 1,
+    custom BOOLEAN DEFAULT FALSE NOT NULL
 ) AUTO_INCREMENT = 1;
 
 CREATE TABLE GradesLinkToClasses (
@@ -122,7 +123,9 @@ SELECT * FROM Assignments WHERE classID = 1001;
 
 SELECT * FROM Submissions;
 
-SELECT * FROM Grades WHERE uId = 156601;
+DELETE FROM GradesLinkToClasses WHERE gradeID = 399;
+DELETE FROM Grades WHERE gradeID = 399;
+SELECT * FROM Grades;
 
 SELECT * FROM GradesLinkToAssignments;
 
@@ -132,7 +135,13 @@ SELECT * FROM Users;
 
 SELECT LAST_INSERT_ID();
 
-
+SELECT * FROM Assignments
+LEFT JOIN Classes ON Classes.classID = Assignments.classID
+LEFT JOIN Users ON Classes.userID = Users.userID
+WHERE 
+	Assignments.uid = 2680 AND 
+	Assignments.classID = 1001 AND 
+    Classes.userID = 1000;
 
 
 SELECT
@@ -226,7 +235,8 @@ LEFT JOIN (
                 'grade', Grades.grade,			-- Grade achieved (90%) etc
                 'achieved', Grades.achieved,	-- Grade points achieved
                 'max', Grades.max,				-- Grade points maximum
-                'weight', Grades.weight			-- Grade weight maximum
+                'weight', Grades.weight,		-- Grade weight maximum
+                'custom', Grades.custom			-- Is this grade custom?
             )
         ) AS classGrades
     FROM Grades
