@@ -16,6 +16,7 @@ let updating = false;
 let eta = 3600000;
 let updatedETA = Math.floor(eta/1000);
 let failedAttemptsAtStart = 0;
+let updatedStartedAt = new Date();
 
 async function checkToken() {
     // Check if we have one already or need to get a new one
@@ -102,46 +103,6 @@ function updateLogs(log) {
     logsContainer.appendChild(logElement);
 }
 
-// Function to deal with initial request
-async function initialRequest() {
-    // Check the token
-    if (!await checkToken()) {
-        return false;
-    }
-
-    var result, resultJson;
-    do {
-        // Initiate the first call to the server
-        result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/classes/update", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "authorization": `Bearer ${JSON.parse(sessionStorage.getItem("token")).token}`
-            },
-        })
-        .catch((error) => {
-            console.error(error);
-            return false;
-        });
-        
-        if (result == false) {
-            return false;
-        }
-
-        // Get the result as json
-        resultJson = await result.json();
-
-        // Check the status of the result
-        if (result.status != 200) {
-            checkStatus(result.status, resultJson);
-        }
-    } while (result.status != 200 && (result.status != 409 && resultJson.message != "Update already in progress"));
-
-    // Add a log to the logs container
-    updateLogs(resultJson.message);
-    return true;
-}
-
 // Function to deal with regular updates
 async function updateStatus(lastOutputLength, get=true) {
     var result, resultJson;
@@ -180,9 +141,10 @@ async function updateStatus(lastOutputLength, get=true) {
     resultJson = await result.json();
 
     // If this is the initial request then add the message to the logs
-    if (Object.keys(resultJson).length == 2) {
+    if (Object.keys(resultJson).length == 3) {
         if (result.status == 200 || result.status == 409) {
             updateLogs(resultJson.message);
+            updatedStartedAt = resultJson.time;
         } else {
             checkStatus(result.status, resultJson);
         }
@@ -195,67 +157,49 @@ async function updateStatus(lastOutputLength, get=true) {
         return -1;
     }
 
-    
+    // If the script was told to close by the server try accessing it again
+    if (resultJson.started != updatedStartedAt) {
+        return lastOutputLength;
+    }
 
+
+    /////////////////////
+    // Update the logs //
+    /////////////////////
+    // Update the header
+    consoleHeader.querySelector("#consoleStatus").innerHTML = resultJson.status;
+
+    // Update the progress bar
+    let progress = consoleHeader.querySelector("#progressBar");
+    progress.value = resultJson.progress;
+    progress.max = resultJson.steps;
+
+    // Update logs
+    if (resultJson.output.length > lastOutputLength) {
+        for (let i = lastOutputLength; i < resultJson.output.length; i++) {
+            updateLogs(resultJson.output[i]);
+        }
+    }
+
+    /////////////////
+    // Error check //
+    /////////////////
     // Check if there is an error
     if (resultJson.status == "Failed" || resultJson.status == "Error") {
 
+        // Update header
+        consoleHeader.querySelector("#consoleStatus").classList = "error";
+        updating = false;
+
+        // Check errors
         if (resultJson.error == "User missing required data") {
             updateLogs("Missing required data for user. Visit the settings page to update your information.");
         
         } else {
-            // Update the logs
-            updateLogs(resultJson.error);
-        }
-
-        // Update header
-        consoleHeader.querySelector("#consoleStatus").innerHTML = resultJson.status;
-        consoleHeader.querySelector("#consoleStatus").classList = "error";
-        updating = false;
-
-        // Update logs
-        if (resultJson.output.length > lastOutputLength) {
-            for (let i = lastOutputLength; i < resultJson.output.length; i++) {
-                updateLogs(resultJson.output[i]);
-            }
+            updateLogs(`[Error] Failed on Step ${resultJson.progress} / ${resultJson.steps} Try again later.`);
         }
 
         return false;
-
-    } else if (resultJson.status == "Completed" || resultJson.status == "Script Completed") {
-        if (resultJson.output.length > lastOutputLength) {
-            // Update the header
-            consoleHeader.querySelector("#consoleStatus").innerHTML = resultJson.status;
-
-            // Update the progress bar
-            let progress = consoleHeader.querySelector("#progressBar");
-            progress.value = resultJson.progress;
-            progress.max = resultJson.steps;
-
-            // Add the new logs to the logs container
-            for (let i = lastOutputLength; i < resultJson.output.length; i++) {
-                updateLogs(resultJson.output[i]);
-            }
-        }
-        return false;
-    }
-
-
-    // Check if there are any new logs
-    if (resultJson.output.length > lastOutputLength) {
-        // Update the header
-        consoleHeader.querySelector("#consoleStatus").innerHTML = resultJson.status;
-
-        // Update the progress bar
-        let progress = consoleHeader.querySelector("#progressBar");
-        progress.value = resultJson.progress;
-        progress.max = resultJson.steps;
-        
-
-        // Add the new logs to the logs container
-        for (let i = lastOutputLength; i < resultJson.output.length; i++) {
-            updateLogs(resultJson.output[i]);
-        }
     }
 
     // Check if the eta has changed
@@ -319,7 +263,7 @@ async function startUpdate() {
                 loopCounter = seconds*2;
                 // Check if the initial request is not successful
                 lastOutputLength = await updateStatus(lastOutputLength);
-                if (lastOutputLength == false || lastOutputLength == -1) {
+                if (lastOutputLength === false || lastOutputLength === -1) {
                     exit = true;
                     updating = false;
                     clearInterval(interval);
