@@ -15,6 +15,7 @@ const consoleHeader = document.getElementById("consoleHeader");
 let updating = false;
 let eta = 3600000;
 let updatedETA = Math.floor(eta/1000);
+let failedAttemptsAtStart = 0;
 
 async function checkToken() {
     // Check if we have one already or need to get a new one
@@ -34,9 +35,13 @@ async function checkToken() {
                     "authorization": `Bearer: ${JSON.parse(sessionStorage.getItem("token")).token}`
                 }
             }).catch((error) => {
-                console.error(error);
-                return null;
+                updateLogs("[Error] Failed to verify token. Please try again.");
+                return false;
             });
+
+            if (!result) {
+                return false;
+            }
 
             // Get the data
             let resultJson = await result.json();
@@ -47,6 +52,7 @@ async function checkToken() {
                 return null;
             } else {
                 console.log("Token is valid");
+                return true;
             }
         }
     
@@ -99,7 +105,9 @@ function updateLogs(log) {
 // Function to deal with initial request
 async function initialRequest() {
     // Check the token
-    await checkToken();
+    if (!await checkToken()) {
+        return false;
+    }
 
     var result, resultJson;
     do {
@@ -116,6 +124,10 @@ async function initialRequest() {
             return false;
         });
         
+        if (result == false) {
+            return false;
+        }
+
         // Get the result as json
         resultJson = await result.json();
 
@@ -131,55 +143,59 @@ async function initialRequest() {
 }
 
 // Function to deal with regular updates
-async function updateStatus(lastOutputLength) {
+async function updateStatus(lastOutputLength, get=true) {
     var result, resultJson;
-    do {
+    for (let i=0; i<5; i++) {
         // Initiate call to server for status update
         result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/classes/update", {
-            method: "GET",
+            method: get ? "GET" : "POST",
             headers: {
                 "Content-Type": "application/json",
                 "authorization": `Bearer ${JSON.parse(sessionStorage.getItem("token")).token}`
             }
-        })
-        .catch(async (error) => {
-            // Retry 5 times
-            for (let i = 0; i < 5; i++) {
-                updateLogs("Error: Failed to connect to server. Retrying...");
-                await new Promise(r => setTimeout(r, 5000));
-                result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/classes/update", {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "authorization": `Bearer ${JSON.parse(sessionStorage.getItem("token")).token}`
-                    }
-                })
-                .catch((error) => {
-                    console.error(error);
-                    return false;
-                });
-                if (result != false) {
-                    break;
-                }
-            }
-            if (result == false) {
-                return false;
-            }
+        }).catch((error) => {
+            console.error(error);
+            return false;
         });
-        
-        if (result == false) {
-            return false;
-        }
-        // Get the result as json
-        resultJson = await result.json();
 
-        // Check the status of the result
-        if (result.status != 200) {
+        // Check if the result had an error
+        if (result != false) {
+            break;
+        }
+
+        // If the result is false something is wrong try again
+        if (i < 4) {
+            updateLogs("Failed to get update. Retrying...");
+        } else {
+            updateLogs("Failed to get update. Check connection and try again later.");
+        }
+    }
+    
+    // Check if the result is not set
+    if (result == false) {
+        return -1;
+    }
+    
+    // Get the result as json
+    resultJson = await result.json();
+
+    // If this is the initial request then add the message to the logs
+    if (Object.keys(resultJson).length == 2) {
+        if (result.status == 200 || result.status == 409) {
+            updateLogs(resultJson.message);
+        } else {
             checkStatus(result.status, resultJson);
-            return false;
         }
+        return 0;
+    }
 
-    } while (result.status != 200);
+    // Check the status of the result
+    if (result.status != 200) {
+        checkStatus(result.status, resultJson);
+        return -1;
+    }
+
+    
 
     // Check if there is an error
     if (resultJson.status == "Failed" || resultJson.status == "Error") {
@@ -196,9 +212,17 @@ async function updateStatus(lastOutputLength) {
         consoleHeader.querySelector("#consoleStatus").innerHTML = resultJson.status;
         consoleHeader.querySelector("#consoleStatus").classList = "error";
         updating = false;
+
+        // Update logs
+        if (resultJson.output.length > lastOutputLength) {
+            for (let i = lastOutputLength; i < resultJson.output.length; i++) {
+                updateLogs(resultJson.output[i]);
+            }
+        }
+
         return false;
 
-    } else if (resultJson.status == "Completed") {
+    } else if (resultJson.status == "Completed" || resultJson.status == "Script Completed") {
         if (resultJson.output.length > lastOutputLength) {
             // Update the header
             consoleHeader.querySelector("#consoleStatus").innerHTML = resultJson.status;
@@ -257,7 +281,20 @@ async function startUpdate() {
     consoleHeader.querySelector("#consoleStatus").classList.add("active");
 
     // Check if the initial request is not successful
-    if (!await initialRequest()) {
+    if (!await checkToken() || await updateStatus(0, false) == -1) {
+        // If the user has tried at least 3 times to start an update and failed
+        // There is likely an issue with the server or their internet connection
+        if (failedAttemptsAtStart >= 3) {
+            updateLogs("[Error] Failed to start update. Please try again later.");
+
+        // Let user know something failed and have them try again
+        } else {
+            updating = false;
+            updateLogs("[Error] Failed to start update. Please try again.");
+            failedAttemptsAtStart++;
+        }
+
+        // Exit execution
         return;
     }
 
@@ -276,44 +313,47 @@ async function startUpdate() {
 
     // Start the loop
     let interval = setInterval(async () => {
-        if (loopCounter == seconds) {
-            // Check if the initial request is not successful
-            lastOutputLength = await updateStatus(lastOutputLength);
-            if (lastOutputLength == false) {
-                exit = true;
-                updating = false;
-                clearInterval(interval);
-                consoleHeader.querySelector("#consoleCountDown").classList.add("hidden");
-                consoleHeader.querySelector("#consoleETA").classList.add("hidden");
-                
-                // Scroll to bottom of logs
-                logs.scrollTo(0, logs.scrollHeight);
-                return;
-            }
-
-            // Check if we need to add more to the logs
-            if (!lastOutputLength) {
-                clearInterval(interval);
-                consoleHeader.querySelector("#consoleCountDown").classList.add("hidden");
-                consoleHeader.querySelector("#consoleETA").classList.add("hidden");
-                
-                // Scroll to bottom of logs
-                logs.scrollTo(0, logs.scrollHeight);
-                return;
-            }
-            loopCounter = 0;
-        }
-
         // Check if we need to exit
         if (!exit) {
-            loopCounter++;
-            consoleHeader.querySelector("#consoleCountDown").innerHTML = `Updating in: ${(seconds - loopCounter) + 1}`;
+            if (loopCounter == seconds) {
+                loopCounter = seconds*2;
+                // Check if the initial request is not successful
+                lastOutputLength = await updateStatus(lastOutputLength);
+                if (lastOutputLength == false || lastOutputLength == -1) {
+                    exit = true;
+                    updating = false;
+                    clearInterval(interval);
+                    consoleHeader.querySelector("#consoleCountDown").classList.add("hidden");
+                    consoleHeader.querySelector("#consoleETA").classList.add("hidden");
+                    consoleHeader.querySelector("#consoleStatus").innerHTML = "Failed";
+                    
+                    // Scroll to bottom of logs
+                    logs.scrollTo(0, logs.scrollHeight);
+                    return;
+                }
+                loopCounter = 0;
+
+            // Check to update counters
+            } else if (loopCounter <= seconds) {
+                // Update the countdown
+                loopCounter++;
+                consoleHeader.querySelector("#consoleCountDown").innerHTML = `Updating in: ${(seconds - loopCounter) + 1}`;
+                
+                // Update the ETA
+                updatedETA -= 1
+                consoleHeader.querySelector("#consoleETAValue").innerHTML = `${Math.floor(updatedETA/60)}:${updatedETA % 60 < 10 ? "0" : ""}${updatedETA % 60}`;
             
-            // Update the ETA
-            updatedETA -= 1
-            consoleHeader.querySelector("#consoleETAValue").innerHTML = `${Math.floor(updatedETA/60)}:${updatedETA % 60 < 10 ? "0" : ""}${updatedETA % 60}`;
+            // Check if we are over the time limit
+            // This would indicate the connection is 
+            // trying to reconnect or something is wrong
+            } else {
+                consoleHeader.querySelector("#consoleCountDown").classList.add("hidden");
+                consoleHeader.querySelector("#consoleETA").classList.add("hidden");
+                consoleHeader.querySelector("#consoleStatus").innerHTML = "Trouble shooting";
+            }
+        } else {
+            clearInterval(interval);
         }
-        logs.scrollTo(0, logs.scrollHeight);
     }, 1000);
 
 }
