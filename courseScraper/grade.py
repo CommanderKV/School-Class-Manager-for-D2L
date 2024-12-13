@@ -281,7 +281,6 @@ class Grade:
         # Convert the name into numbers
         uid = sum((ord(char) for char in name))
 
-        # Add the ending numbers of the link to the UID
         # Convert the class name into numbers
         uid += sum((ord(char) for char in courseName.replace(" ", "_")))
 
