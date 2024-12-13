@@ -1216,20 +1216,20 @@ function saveUserSettings(userID, data) {
         if (data.username == null && data.password == null) {
             // D2L settings
             if (data.d2lPassword != null) {
-                query = `UPDATE Users SET d2lEmail = ?, d2lLink = ?, d2lPassword = ? WHERE userID = ?;`;
+                query = `UPDATE Users SET d2lEmail = ?, d2lLink = ?, d2lPassword = ?, updated = NOW() WHERE userID = ?;`;
                 queryParams = [data.d2lEmail, data.d2lLink, data.d2lPassword, userID];
             } else {
-                query = `UPDATE Users SET d2lEmail = ?, d2lLink = ? WHERE userID = ?;`;
+                query = `UPDATE Users SET d2lEmail = ?, d2lLink = ?, updated = NOW() WHERE userID = ?;`;
                 queryParams = [data.d2lEmail, data.d2lLink, userID];
             }
 
         } else {
             // User settings
             if (data.password != null) {
-                query = `UPDATE Users SET username = ?, password = ? WHERE userID = ?;`;
+                query = `UPDATE Users SET username = ?, password = ?, updated = NOW() WHERE userID = ?;`;
                 queryParams = [data.username, data.password, userID];
             } else {
-                query = `UPDATE Users SET username = ? WHERE userID = ?;`;
+                query = `UPDATE Users SET username = ?, updated = NOW() WHERE userID = ?;`;
                 queryParams = [data.username, userID];
             }
         }
