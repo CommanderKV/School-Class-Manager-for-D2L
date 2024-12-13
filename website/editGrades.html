@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+
+<html lang="en" class="no-scrollbar">
+    <head>
+        <title>Grades</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <link rel="stylesheet" type="text/css" href="css/main.css">
+        <link rel="stylesheet" type="text/css" href="css/options.css">
+        <link rel="stylesheet" type="text/css" href="css/card.css">
+        <link rel="stylesheet" type="text/css" href="css/loading.css">
+        <link rel="stylesheet" type="text/css" href="css/search.css">
+
+        <script src="js/cards.js" defer></script>
+        <script src="js/filter.js" defer></script>
+    </head>
+    <body>
+        <header>
+            <div class="options">
+                <div class="option-links">
+                    <a href="console.html">Api</a>
+                    <a href="courses.html">Courses</a>
+                    <a href="assignments.html">Assignments</a>
+                    <a href="grades.html" class="active">Grades</a>
+                    <a href="calander.html">Calendar</a>
+                    <a href="settings.html">Settings</a>
+                    <a href="login.html">Log Out</a>
+                </div>
+                <h1 id="pageTitle">My grades</h1>
+            </div>
+        </header>
+        <main>
+            <div id="editGrades" class="main-container">
+                <div class="card-holder">
+                    <div class="search-bar">
+                        <input type="text" id="search-input" placeholder="Search for a grade...">
+                    </div>
+                    <div class="cards editGrades no-scrollbar stiffCards">
+                        <div id="loadingAnimation" class="loader-container">
+                            <div class="loader">
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer>
+
+        </footer>
+    </body>
+</html>

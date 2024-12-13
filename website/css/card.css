@@ -315,3 +315,46 @@ div.grid {
     color: var(--course-title-color);
     margin-bottom: 10px;
 }
+
+/* Used for cards that need to take up the entire screen*/
+.stiffCards {
+    display: block;
+    width: -webkit-fill-available;
+}
+.stiffCards .card {
+    max-width: none;
+}
+.stiffCards .card:hover {
+    transform: scale(1.025);
+}
+.stiffCards .card .card-body-list li:hover {
+    transform: scale(1.015);
+}
+
+/* Used for edit grades buttons */
+.button-container {
+    display: flex;
+    justify-content: space-around !important;
+}
+.button {
+    width: 30%;
+    display: flex;
+    justify-content: center;
+    border-radius: 100px;
+    cursor: pointer;
+}
+.button span {
+    font-size: 1.3em;
+    padding: 0px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    align-content: center;
+    font-weight: bold;
+}
+.button-primary {
+    background-color: var(--option-link-background-color);
+    color: var(--option-link-text-color);
+}
+.button-secondary {
+    background-color: var(--course-details-color);
+}
