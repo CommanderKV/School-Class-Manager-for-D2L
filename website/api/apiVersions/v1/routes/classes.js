@@ -938,7 +938,6 @@ router.post("/editGrades", async (req, res, next) => {
     }
 
     console.log("Updating grades for " + data.data.username + ". Updating class: " + className);
-    console.log(grades);
 
     // Get the classID
     var classID = await DB.getClass({userID: userID, name: className}).catch((err) => {
