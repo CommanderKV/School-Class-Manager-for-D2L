@@ -31,7 +31,6 @@ body {
 }
 
 #pageTitle {
-    margin-top: 100px; /* Used to get below page navigation */
     font-size: 3em;
     color: var(--html-text-color);
 }

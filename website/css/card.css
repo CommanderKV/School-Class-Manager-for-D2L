@@ -358,3 +358,7 @@ div.grid {
 .button-secondary {
     background-color: var(--course-details-color);
 }
+.button.big {
+    height: 3em;
+    width: 100%;
+}
