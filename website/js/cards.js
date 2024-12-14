@@ -1469,6 +1469,12 @@ async function addCards(container) {
                 cardHolder.appendChild(createGradeCard(data[i], overallGrade ? overallGrade : "N/A"));
             }
 
+            // Add the edit button
+            document.getElementById("edit").addEventListener("click", () => {
+                // Go to the edit grades page
+                window.location.href = "editGrades.html";
+            });
+
             // Remove loading animation
             document.getElementById("loadingAnimation").remove();
             break;
@@ -1499,12 +1505,14 @@ async function addCards(container) {
                 cardHolder.appendChild(createEditGradeCard(data[i], overallGrade ? overallGrade : "N/A"));
             }
 
+            // Add the back button
+            document.getElementById("back").addEventListener("click", () => {
+                // Go back to the grades page
+                window.location.href = "grades.html";
+            });
+
             // Remove loading animation
-            try{
-                document.getElementById("loadingAnimation").remove();
-            } catch (error) {
-                console.error(error);
-            }
+            document.getElementById("loadingAnimation").remove();
     }
 }
 

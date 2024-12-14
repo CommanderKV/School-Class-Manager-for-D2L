@@ -175,8 +175,9 @@ async function setValues() {
 
 // Save the values to the db
 async function saveD2L() {
-    if (D2LPassword.value == "********") {
-        D2LDetails.innerHTML = "Enter a new password!";
+    let userData = await getUserData();
+    if (D2LPassword.value == "********" && D2LUsername.value == userData[0].d2lEmail && D2LURL.value == userData[0].d2lLink) {
+        D2LDetails.innerHTML = "Nothing to save!";
         D2LDetails.classList.add("bad");
         return;
     }
@@ -185,9 +186,9 @@ async function saveD2L() {
     let data = {
         username: null,
         password: null,
-        d2lEmail: D2LUsername.value,
-        d2lPassword: D2LPassword.value,
-        d2lLink: D2LURL.value
+        d2lEmail: D2LUsername.value != userData[0].d2lEmail ? D2LUsername.value : userData[0].d2lEmail,
+        d2lPassword: D2LPassword.value != "********" ? D2LPassword.value : null,
+        d2lLink: D2LURL.value != userData[0].d2lLink ? D2LURL.value : userData[0].d2lLink
     };
 
     // Save the data
@@ -215,13 +216,15 @@ async function saveUser() {
             }
         );
 
+    let userData = await getUserData();
+
     // Get the data
-    if (password.value == "********") {
-        userDetails.innerHTML = "Please enter a new password!";
+    if (password.value == "********" && username.value == userData[0].username) {
+        userDetails.innerHTML = "No data to save!";
         userDetails.classList.add("bad");
         return;
     
-    } else if (password.value != confirmPassword.value) {
+    } else if (password.value != confirmPassword.value && password.value != "********") {
         userDetails.innerHTML = "Passwords do not match!";
         userDetails.classList.add("bad");
         return;
@@ -230,8 +233,8 @@ async function saveUser() {
     var pass = await hashValue(password.value);
     
     let data = {
-        username: username.value,
-        password: pass,
+        username: username.value != userData[0].username ? username.value : userData[0].username,
+        password: password.value != "********" ? pass : userData[0].password,
         d2lEmail: null,
         d2lPassword: null,
         d2lLink: null,

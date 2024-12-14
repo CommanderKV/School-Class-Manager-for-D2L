@@ -16,7 +16,7 @@ let updating = false;
 let eta = 3600000;
 let updatedETA = Math.floor(eta/1000);
 let failedAttemptsAtStart = 0;
-let updatedStartedAt = new Date();
+let updatedStartedAt = Date();
 
 async function checkToken() {
     // Check if we have one already or need to get a new one
@@ -158,8 +158,8 @@ async function updateStatus(lastOutputLength, get=true) {
     }
 
     // If the script was told to close by the server try accessing it again
-    if (resultJson.started != updatedStartedAt) {
-        return lastOutputLength;
+    if (resultJson.error == "Script told to close by server") {
+        return 1;
     }
 
 
@@ -179,7 +179,11 @@ async function updateStatus(lastOutputLength, get=true) {
         for (let i = lastOutputLength; i < resultJson.output.length; i++) {
             updateLogs(resultJson.output[i]);
         }
+        
+        // Go to the bottom of the logs
+        logs.scrollTop = logs.scrollHeight;
     }
+
 
     /////////////////
     // Error check //
@@ -270,9 +274,6 @@ async function startUpdate() {
                     consoleHeader.querySelector("#consoleCountDown").classList.add("hidden");
                     consoleHeader.querySelector("#consoleETA").classList.add("hidden");
                     consoleHeader.querySelector("#consoleStatus").innerHTML = "Failed";
-                    
-                    // Scroll to bottom of logs
-                    logs.scrollTo(0, logs.scrollHeight);
                     return;
                 }
                 loopCounter = 0;
