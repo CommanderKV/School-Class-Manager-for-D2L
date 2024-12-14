@@ -13,77 +13,83 @@
         <link rel="stylesheet" type="text/css" href="css/loading.css">
 
         <script src="js/settings.js" defer></script>
+        <script src="js/dropdown.js" defer></script>
     </head>
     <body>
-        <header>
-            <div class="options">
-                <div class="option-links">
-                    <a href="console.html">Api</a>
-                    <a href="courses.html">Courses</a>
-                    <a href="assignments.html">Assignments</a>
-                    <a href="grades.html">Grades</a>
-                    <a href="calander.html">Calendar</a>
-                    <a href="settings.html" class="active">Settings</a>
-                    <a href="login.html">Log Out</a>
-                </div>
+        <!-- HEADER -->
+        <div class="option-links-container">
+            <div class="option-links">
+                <span id="menuDropDown" class="hidden-option">Menu</span>
+                <a href="console.html">Api</a>
+                <a href="courses.html">Courses</a>
+                <a href="assignments.html">Assignments</a>
+                <a href="grades.html">Grades</a>
+                <a href="calander.html">Calendar</a>
+                <a href="settings.html" class="active">Settings</a>
+                <a href="login.html">Log Out</a>
+            </div>
+        </div>
+        <div class="options">
+            <div>
                 <h1 id="pageTitle">Settings</h1>
             </div>
-        </header>
-        <main>
-            <div id="settings" class="main-container">
-                <div class="card-holder">
-                    <div class="cards">
-                        <div class="card">
-                            <form id="d2lForm">
-                                <h2>D2L Information</h2>
-
-                                <div class="row">
-                                    <label for="d2lUsername">Username:</label>
-                                    <input type="text" id="d2lUsername" name="d2lUsername" required>
-                                </div>
-
-                                <div class="row">
-                                    <label for="d2lPassword">Password:</label>
-                                    <input type="password" id="d2lPassword" name="d2lPassword">
-                                </div>
-
-                                <div class="row">
-                                    <label for="d2lURL">Link:</label>
-                                    <input type="text" id="d2lURL" name="d2lLink" required>
-                                </div>
-
-                                <button type="submit">Save</button>
-                                <p id="d2l-details"></p>
-                            </form>
-                        </div>
-                    </div>
-                
+        </div>
+        <!-- END HEADER -->
+        <!-- MAIN -->
+        <div id="settings" class="main-container">
+            <div class="card-holder">
+                <div class="cards">
                     <div class="card">
-                        <form id="accountForm">
-                            <h2>Account Information</h2>
+                        <form id="d2lForm">
+                            <h2>D2L Information</h2>
 
                             <div class="row">
-                                <label for="username">Username:</label>
-                                <input type="text" id="username" name="username" autocomplete="username" required>
+                                <label for="d2lUsername">Username:</label>
+                                <input type="text" id="d2lUsername" name="d2lUsername" required>
                             </div>
 
                             <div class="row">
-                                <label for="password">Password:</label>
-                                <input type="password" id="password" name="password" autocomplete="new-password">
+                                <label for="d2lPassword">Password:</label>
+                                <input type="password" id="d2lPassword" name="d2lPassword">
                             </div>
 
                             <div class="row">
-                                <label for="confirmPassword">Confirm Password:</label>
-                                <input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password">
+                                <label for="d2lURL">Link:</label>
+                                <input type="text" id="d2lURL" name="d2lLink" required>
                             </div>
 
                             <button type="submit">Save</button>
-                            <p id="user-details"></p>
+                            <p id="d2l-details"></p>
                         </form>
                     </div>
                 </div>
+            
+                <div class="card">
+                    <form id="accountForm">
+                        <h2>Account Information</h2>
+
+                        <div class="row">
+                            <label for="username">Username:</label>
+                            <input type="text" id="username" name="username" autocomplete="username" required>
+                        </div>
+
+                        <div class="row">
+                            <label for="password">Password:</label>
+                            <input type="password" id="password" name="password" autocomplete="new-password">
+                        </div>
+
+                        <div class="row">
+                            <label for="confirmPassword">Confirm Password:</label>
+                            <input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password">
+                        </div>
+
+                        <button type="submit">Save</button>
+                        <p id="user-details"></p>
+                    </form>
+                </div>
             </div>
-        </main>
+        </div>
+        <!-- END MAIN -->
         <footer>
 
         </footer>

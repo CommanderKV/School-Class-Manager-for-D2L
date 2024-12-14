@@ -14,40 +14,50 @@
 
         <script src="js/cards.js" defer></script>
         <script src="js/filter.js" defer></script>
+        <script src="js/dropdown.js" defer></script>
     </head>
     <body>
-        <header>
-            <div class="options">
-                <div class="option-links">
-                    <a href="console.html">Api</a>
-                    <a href="courses.html">Courses</a>
-                    <a href="assignments.html">Assignments</a>
-                    <a href="grades.html" class="active">Grades</a>
-                    <a href="calander.html">Calendar</a>
-                    <a href="settings.html">Settings</a>
-                    <a href="login.html">Log Out</a>
-                </div>
-                <h1 id="pageTitle">My grades</h1>
+        <!-- HEADER -->
+        <div class="option-links-container">
+            <div class="option-links">
+                <span id="menuDropDown" class="hidden-option">Menu</span>
+                <a href="console.html">Api</a>
+                <a href="courses.html">Courses</a>
+                <a href="assignments.html">Assignments</a>
+                <a href="grades.html" class="active">Grades</a>
+                <a href="calander.html">Calendar</a>
+                <a href="settings.html">Settings</a>
+                <a href="login.html">Log Out</a>
             </div>
-        </header>
-        <main>
-            <div id="editGrades" class="main-container">
-                <div class="card-holder">
-                    <div class="search-bar">
-                        <input type="text" id="search-input" placeholder="Search for a grade...">
-                    </div>
-                    <div class="cards editGrades no-scrollbar stiffCards">
-                        <div id="loadingAnimation" class="loader-container">
-                            <div class="loader">
-                                <div></div>
-                                <div></div>
-                                <div></div>
-                            </div>
+        </div>
+        <div class="options">
+            <div>
+                <h1 id="pageTitle">My grades</h1>
+                <div class="button button-primary big" id="back">
+                    <span>Back</span>
+                </div>
+            </div>
+        </div>
+        <!-- END HEADER -->
+        <!-- MAIN -->
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder="Search for a class...">
+        </div>
+        <div id="editGrades" class="main-container">
+            <div class="card-holder">
+                
+                <div class="cards editGrades no-scrollbar stiffCards">
+                    <div id="loadingAnimation" class="loader-container">
+                        <div class="loader">
+                            <div></div>
+                            <div></div>
+                            <div></div>
                         </div>
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
+        <!-- END MAIN -->
         <footer>
 
         </footer>

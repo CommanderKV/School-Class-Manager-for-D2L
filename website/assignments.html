@@ -12,41 +12,47 @@
         <link rel="stylesheet" type="text/css" href="css/main.css"> 
         <script src="js/cards.js" defer></script>
         <script src="js/filter.js" defer></script>
+        <script src="js/dropdown.js" defer></script>
 
     </head>
     <body>
-        <header>
-            <div class="options">
-                <div class="option-links">
-                    <a href="console.html">Api</a>
-                    <a href="courses.html">Courses</a>
-                    <a href="assignments.html" class="active">Assignments</a>
-                    <a href="grades.html">Grades</a>
-                    <a href="calander.html">Calendar</a>
-                    <a href="settings.html">Settings</a>
-                    <a href="login.html">Log Out</a>
-                </div>
+        <!-- HEADER -->
+        <div class="option-links-container">
+            <div class="option-links">
+                <span id="menuDropDown" class="hidden-option">Menu</span>
+                <a href="console.html">Api</a>
+                <a href="courses.html">Courses</a>
+                <a href="assignments.html" class="active">Assignments</a>
+                <a href="grades.html">Grades</a>
+                <a href="calander.html">Calendar</a>
+                <a href="settings.html">Settings</a>
+                <a href="login.html">Log Out</a>
+            </div>
+        </div>
+        <div class="options">
+            <div>
                 <h1 id="pageTitle">My Assignments</h1>
             </div>
-        </header>
-        <main>
-            <div id="assignments" class="main-container">
-                <div class="card-holder">
-                    <div class="search-bar">
-                        <input type="text" id="search-input" placeholder="Search for an assignment..." onkeyup="filterFunction()">
-                    </div>
-                    <div class="cards assignments no-scrollbar">
-                        <div id="loadingAnimation" class="loader-container">
-                            <div class="loader">
-                                <div></div>
-                                <div></div>
-                                <div></div>
-                            </div>
+        </div>
+        <!-- END HEADER -->
+        <!-- MAIN -->
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder="Search for an assignment...">
+        </div>
+        <div id="assignments" class="main-container">
+            <div class="card-holder">
+                <div class="cards assignments no-scrollbar">
+                    <div id="loadingAnimation" class="loader-container">
+                        <div class="loader">
+                            <div></div>
+                            <div></div>
+                            <div></div>
                         </div>
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
+        <!-- END MAIN -->
         <footer>
 
         </footer>
