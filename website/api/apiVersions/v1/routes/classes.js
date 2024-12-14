@@ -42,13 +42,7 @@ async function runScript(args, apiKey) {
         let pythonProcess = child_process.spawn("python3", args);
 
         // Allow the process to be ended
-        progressTracker[apiKey].endProcess = () => {
-            if (!pythonProcess.killed) {
-                pythonProcess.kill();
-                progressTracker[apiKey].status = "Process terminated";
-                progressTracker[apiKey].output.push("Process terminated by user");
-            }
-        };
+        progressTracker[apiKey].script = pythonProcess;
 
         // Update the progress tracker
         progressTracker[apiKey].status = "running";
@@ -112,6 +106,7 @@ async function runScript(args, apiKey) {
         });
 
         // Add a listener for script errors
+        let errorData = "";
         pythonProcess.stderr.on("data", (data) => {
             // Don't need to stack errors on errors
             if (
@@ -151,7 +146,7 @@ async function runScript(args, apiKey) {
 
             if (progressTracker[apiKey].error != "Invalid login credentials") {
                 // Log the error to the console
-                console.log(errorText);
+                errorData += data.toString() + "\n";
             }
         });
 
@@ -179,10 +174,12 @@ async function runScript(args, apiKey) {
                     // being that the script has failed
                     reject("Script exited with code: " + code);
                     return;
-
-                } else if (progressTracker[apiKey].status == "Failed") {
-                    // Reject the promise with the reason for failure
-                    // being that the script has failed
+                } else if (code != 0) {
+                    if (progressTracker[apiKey].error == "Invalid login credentials") {
+                        return;
+                    } else {
+                        console.log(errorData);    
+                    }
                     reject("Script failed with code: " + code);
                     return;
                 }
@@ -502,9 +499,9 @@ router.post("/update", async (req, res, next) => {
     if (progressTracker[data.data.apiKey]) {
         if (user.updated < progressTracker[data.data.apiKey].started) {
             res.status(409).json({
-                "status": "failed",
-                "message": "Update already in progress",
-                "time": progressTracker[data.data.apiKey].started
+            "status": "failed",
+            "message": "Update already in progress",
+            "time": progressTracker[data.data.apiKey].started
             });
             return;
         } else {
@@ -512,7 +509,10 @@ router.post("/update", async (req, res, next) => {
             // update again then stop the previous update if its running
             // and remove the progress tracker
             console.log("Stopping previous update");
-            progressTracker[data.data.apiKey].endProcess();
+            if (!progressTracker[data.data.apiKey].script.killed) {
+                progressTracker[data.data.apiKey].script.kill("SIGKILL");
+            }
+            delete progressTracker[data.data.apiKey];
         }
     }
 

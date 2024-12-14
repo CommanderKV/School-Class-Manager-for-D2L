@@ -57,8 +57,11 @@ router.post("/saveSettings", (req, res) => {
     // Get the userID
     const userID = data.data.userID;
 
+    // Convert the password to an encrypted password
     const dataBody = req.body;
-    dataBody.d2lPassword = security.encrypt(dataBody.d2lPassword);
+    if (dataBody.d2lPassword != null) {
+        dataBody.d2lPassword = security.encrypt(dataBody.d2lPassword);
+    }
 
     // Check the type of save for the settings
     DB.saveUserSettings(userID, dataBody).then(() => {
