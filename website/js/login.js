@@ -26,7 +26,7 @@ async function verifyLogin() {
     };
 
     // Send the data to the server
-    let response = await fetch("https://kyler.visserfamily.ca:3000/api/v1/users/login", {
+    let response = await fetch("https://kyler.visserfamily.ca:3000/School/api/v1/users/login", {
         method: "POST",
         body: JSON.stringify(data),
         headers: {

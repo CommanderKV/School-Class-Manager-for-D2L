@@ -19,7 +19,7 @@ async function checkToken() {
         // The token is set and not expired
         } else {
             // Test token
-            let result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/login/test", {
+            let result = await fetch("https://kyler.visserfamily.ca:3000/School/api/v1/login/test", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -1237,7 +1237,7 @@ function createEditGradeCard(classData, overallGrade) {
         }
 
         // Send data to the server
-        let response = await fetch("https://kyler.visserfamily.ca:3000/api/v1/classes/editGrades", {
+        let response = await fetch("https://kyler.visserfamily.ca:3000/School/api/v1/classes/editGrades", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -1277,7 +1277,7 @@ async function getAllData() {
     // Fetch the data
     let data;
     do {
-    data = await fetch("https://kyler.visserfamily.ca:3000/api/v1/classes/allData", {
+    data = await fetch("https://kyler.visserfamily.ca:3000/School/api/v1/classes/allData", {
         method: "GET",
         headers: {
             "Content-Type": "application/json",

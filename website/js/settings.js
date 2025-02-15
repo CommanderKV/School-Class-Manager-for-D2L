@@ -30,7 +30,7 @@ async function checkToken() {
         // The token is set and not expired
         } else {
             // Test token
-            let result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/login/test", {
+            let result = await fetch("https://kyler.visserfamily.ca:3000/School/api/v1/login/test", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -109,7 +109,7 @@ async function getUserData() {
     // Fetch the data
     let data;
     do {
-        data = await fetch("https://kyler.visserfamily.ca:3000/api/v1/users/userSettings", {
+        data = await fetch("https://kyler.visserfamily.ca:3000/School/api/v1/users/userSettings", {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -136,7 +136,7 @@ async function getUserData() {
 
 async function saveData(data) {
     // Save the data
-    let result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/users/saveSettings", {
+    let result = await fetch("https://kyler.visserfamily.ca:3000/School/api/v1/users/saveSettings", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

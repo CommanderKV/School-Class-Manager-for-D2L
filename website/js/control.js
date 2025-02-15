@@ -29,7 +29,7 @@ async function checkToken() {
         // The token is set and not expired
         } else {
             // Test token
-            let result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/login/test", {
+            let result = await fetch("https://kyler.visserfamily.ca:3000/School/api/v1/login/test", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -108,7 +108,7 @@ async function updateStatus(lastOutputLength, get=true) {
     var result, resultJson;
     for (let i=0; i<5; i++) {
         // Initiate call to server for status update
-        result = await fetch("https://kyler.visserfamily.ca:3000/api/v1/classes/update", {
+        result = await fetch("https://kyler.visserfamily.ca:3000/School/api/v1/classes/update", {
             method: get ? "GET" : "POST",
             headers: {
                 "Content-Type": "application/json",
