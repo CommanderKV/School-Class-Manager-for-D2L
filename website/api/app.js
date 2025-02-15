@@ -33,8 +33,8 @@ app.use((req, res, next) => {
 // Function used as start to api
 app.use("/School/api/v1", v1);
 
-app.get("/", (req, res) => {
-    res.send("Hello World");
+app.get("/School", (req, res) => {
+    res.send("Welcome to the School API");
 });
 
 
